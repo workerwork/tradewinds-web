@@ -1,0 +1,48 @@
+[package]
+name = "aiman-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = { version = "0.7", features = ["macros"] }
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sqlx = { version = "0.7", features = [
+    "runtime-tokio-rustls",
+    "mysql",
+    "uuid",
+    "chrono",
+    "json",
+] }
+uuid = { version = "1.0", features = ["serde", "v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+bcrypt = "0.15"
+jsonwebtoken = "9.2"
+dotenv = "0.15"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tower-http = { version = "0.5", features = ["cors"] }
+config = "0.13"
+lettre = { version = "0.11", default-features = false, features = [
+    "tokio1",
+    "tokio1-rustls-tls",
+    "builder",
+    "hostname",
+    "smtp-transport",
+] }
+rand = "0.8"
+thiserror = "1.0"
+async-trait = "0.1"
+tower = { version = "0.4", features = ["util"] }
+
+[[bin]]
+name = "aiman-server"
+path = "src/main.rs"
+
+[[bin]]
+name = "db"
+path = "src/bin/db.rs"
+
+[dev-dependencies]
+tokio-test = "0.4"

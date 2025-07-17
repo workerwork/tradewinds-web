@@ -1,0 +1,110 @@
+export default {
+    system: {
+        title: '后台管理系统',
+        logout: '退出登录',
+        profile: '个人信息',
+        settings: '系统设置',
+        confirm: '确定',
+        cancel: '取消',
+        logoutConfirm: '确定要退出登录吗？',
+        tip: '提示',
+        runtime: '系统运行',
+        version: '版本',
+        days: '天',
+        hours: '小时',
+        login: '登录'
+    },
+    common: {
+        add: '添加',
+        edit: '编辑',
+        delete: '删除',
+        confirm: '确定',
+        cancel: '取消',
+        warning: '警告',
+        deleteConfirm: '确定要删除该项吗？',
+        deleteSuccess: '删除成功',
+        deleteFailed: '删除权限失败',
+        addSuccess: '添加成功',
+        editSuccess: '编辑成功',
+        operations: '操作'
+    },
+    permission: {
+        name: '名称',
+        code: '权限编码',
+        description: '描述',
+        type: '类型',
+        menuPermission: '菜单权限',
+        buttonPermission: '按钮权限',
+        dataPermission: '数据权限'
+    },
+    notice: {
+        update: '更新',
+        maintenance: '维护',
+        tip: '提示',
+        updateContent: '系统已更新到最新版本 v1.0.0',
+        maintenanceContent: '系统将于本周日凌晨2点进行例行维护',
+        tipContent: '新版本用户手册已发布，请查看'
+    },
+    user: {
+        admin: '管理员',
+        role: '系统管理员',
+        nameFormat: '{name}'
+    },
+    error: {
+        404: '页面不存在'
+    },
+    menu: {
+        dashboard: {
+            title: '首页',
+            overview: '概览'
+        },
+        superAdmin: {
+            title: '超级管理员',
+            dashboard: '超级管理员控制台'
+        },
+        customer: {
+            title: '客户管理',
+            info: '客户信息',
+            track: '客户跟踪',
+            search: '休眠客户',
+            detail: '客户详情'
+        },
+        product: {
+            title: '产品管理',
+            factory: '供应商信息',
+            info: '产品信息'
+        },
+        order: {
+            title: '订单管理',
+            list: '订单列表',
+            quotation: '报价管理'
+        },
+        user: {
+            title: '用户管理',
+            list: '用户列表',
+            roles: '角色管理',
+            permissions: '权限管理'
+        },
+        system: {
+            title: '系统管理',
+            config: {
+                title: '系统配置',
+                params: '参数配置',
+                menu: '菜单配置',
+                dict: '字典管理'
+            },
+            monitor: {
+                title: '系统监控',
+                performance: '系统监控',
+                online: '在线用户',
+                logs: '操作日志'
+            },
+            tools: {
+                title: '系统工具',
+                backup: '数据备份',
+                storage: '存储管理',
+                task: '定时任务'
+            }
+        }
+    }
+} 
