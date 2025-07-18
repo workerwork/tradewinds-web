@@ -5,7 +5,14 @@ import type { User, PaginationQuery, PaginationResponse } from '@/types';
  * 获取用户列表
  * @param params 查询参数
  */
-export const getUserList = (params?: Partial<PaginationQuery & { username: string; status: number }>) => {
+export const getUserList = (params?: Partial<PaginationQuery & {
+    username: string;
+    realName: string;
+    phone: string;
+    email: string;
+    status: number;
+    showDeleted: boolean;
+}>) => {
     return request.get<PaginationResponse<User>>('/system/users', { params });
 };
 

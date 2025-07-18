@@ -11,6 +11,7 @@ declare module 'vue' {
     DynamicMenu: typeof import('./../components/DynamicMenu.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
     ElAside: typeof import('element-plus/es')['ElAside']
+    ElAutocomplete: typeof import('element-plus/es')['ElAutocomplete']
     ElAvatar: typeof import('element-plus/es')['ElAvatar']
     ElBadge: typeof import('element-plus/es')['ElBadge']
     ElBreadcrumb: typeof import('element-plus/es')['ElBreadcrumb']
@@ -74,6 +75,8 @@ declare module 'vue' {
     OptimizedImage: typeof import('./../components/OptimizedImage.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SearchHighlight: typeof import('./../components/SearchHighlight.vue')['default']
+    SearchSuggestions: typeof import('./../components/SearchSuggestions.vue')['default']
     VirtualList: typeof import('./../components/VirtualList.vue')['default']
   }
   export interface GlobalDirectives {

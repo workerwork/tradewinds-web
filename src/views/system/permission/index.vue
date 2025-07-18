@@ -4,20 +4,34 @@
     <el-card class="search-card">
       <el-form :inline="true" :model="searchForm">
         <el-form-item :label="t('permission.name')">
-          <el-input v-model="searchForm.name" :placeholder="t('permission.name')" clearable />
+          <el-autocomplete
+            v-model="searchForm.name"
+            :placeholder="t('permission.name')"
+            clearable
+            :fetch-suggestions="queryNameSuggestions"
+            @select="handleFieldSearch"
+            style="width: 200px;"
+          />
         </el-form-item>
         <el-form-item :label="t('permission.code')">
-          <el-input v-model="searchForm.code" :placeholder="t('permission.code')" clearable />
+          <el-autocomplete
+            v-model="searchForm.code"
+            :placeholder="t('permission.code')"
+            clearable
+            :fetch-suggestions="queryCodeSuggestions"
+            @select="handleFieldSearch"
+            style="width: 200px;"
+          />
         </el-form-item>
         <el-form-item :label="t('permission.type')">
-          <el-select v-model="searchForm.type" :placeholder="t('permission.type')" clearable style="width: 120px;" popper-class="custom-select-popper">
+          <el-select v-model="searchForm.type" :placeholder="t('permission.type')" clearable style="width: 120px;" popper-class="custom-select-popper" @change="handleFieldSearch">
             <el-option label="菜单" value="menu" />
             <el-option label="按钮" value="button" />
             <el-option label="API" value="api" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 120px;" popper-class="custom-select-popper">
+          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 120px;" popper-class="custom-select-popper" @change="handleStatusChange">
             <el-option label="启用" :value="0" />
             <el-option label="禁用" :value="1" />
           </el-select>
@@ -26,13 +40,10 @@
           <span style="margin-right: 8px;">显示已删除权限</span>
           <el-switch
             v-model="searchForm.showDeleted"
-            @change="handleSearch"
+            @change="handleShowDeletedChange"
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">
-            <el-icon><Search /></el-icon>搜索
-          </el-button>
           <el-button @click="resetSearch">
             <el-icon><Refresh /></el-icon>重置
           </el-button>
@@ -64,7 +75,7 @@
           </div>
         </div>
       </template>
-      <el-table :data="permissionList || []" style="width: 100%" v-loading="loading" border stripe :resizable="true">
+      <el-table :data="paginatedPermissionList" style="width: 100%" v-loading="loading" border stripe :resizable="true">
         <el-table-column v-if="getColVisible('selection')" type="selection" width="55" align="center" />
         <el-table-column v-if="getColVisible('name')" prop="name" :label="t('permission.name')" min-width="120" show-overflow-tooltip :formatter="emptyFormatter" />
         <el-table-column v-if="getColVisible('code')" prop="code" :label="t('permission.code')" min-width="120" show-overflow-tooltip :formatter="emptyFormatter" />
@@ -140,19 +151,28 @@
           </template>
         </el-table-column>
       </el-table>
-      <!-- 分页组件 -->
+      <!-- 分页和搜索统计 -->
       <div class="pagination-container">
-        <el-pagination
-          v-model:current-page="page"
-          v-model:page-size="pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50, 100]"
-          size="small"
-          background
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
+        <div class="pagination-left">
+          <div class="search-stats" v-if="hasSearchCriteria">
+            <el-tag type="info" size="small">
+              搜索找到 {{ filteredPermissionList.length }} 条结果
+            </el-tag>
+          </div>
+        </div>
+        <div class="pagination-right">
+          <el-pagination
+            v-model:current-page="page"
+            v-model:page-size="pageSize"
+            :total="filteredPermissionList.length"
+            :page-sizes="[10, 20, 50, 100]"
+            size="small"
+            background
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
       </div>
     </el-card>
     <!-- 添加/编辑权限对话框 -->
@@ -181,9 +201,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, reactive, watch } from 'vue';
+import { ref, onMounted, onUnmounted, computed, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Plus, Search, Refresh, Setting, User, Menu, HomeFilled, Lock, Bell, Folder, Document, Edit, Delete, Star, Warning, InfoFilled, Tools, DataAnalysis, Monitor, PieChart, Tickets, Message, ChatLineRound, Calendar, Collection, Connection, Upload, Download, Link, Compass, Flag, Key, List, Location, Notification, OfficeBuilding, Postcard, Promotion, QuestionFilled, Reading, RefreshRight, School, Service, Shop, ShoppingCart, Stopwatch, Suitcase, SwitchButton, Timer, TrendCharts, Trophy, UploadFilled, UserFilled, Van, VideoCamera, Wallet, ZoomIn, ZoomOut } from '@element-plus/icons-vue';
+import { Plus, Refresh, Setting, User, Menu, HomeFilled, Lock, Bell, Folder, Document, Edit, Delete, Star, Warning, InfoFilled, Tools, DataAnalysis, Monitor, PieChart, Tickets, Message, ChatLineRound, Calendar, Collection, Connection, Upload, Download, Link, Compass, Flag, Key, List, Location, Notification, OfficeBuilding, Postcard, Promotion, QuestionFilled, Reading, RefreshRight, School, Service, Shop, ShoppingCart, Stopwatch, Suitcase, SwitchButton, Timer, TrendCharts, Trophy, UploadFilled, UserFilled, Van, VideoCamera, Wallet, ZoomIn, ZoomOut } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import PermissionForm from './components/PermissionForm.vue';
 import { 
@@ -195,10 +215,12 @@ import {
 } from './services/permission-service';
 import { request } from '@/utils/request';
 import { formatDateTime } from '@/utils/format';
+import { debounce } from 'lodash-es';
 // 只在顶部导入一次 Permission 类型
 import type { Permission } from '@/types';
 import { useMenuStore } from '@/stores/menu';
 import { useTablePersist } from '@/composables/useTablePersist'
+import { useSearchHistory } from '@/composables/useSearchHistory'
 
 const { t } = useI18n();
 // 分页和列显示持久化
@@ -223,6 +245,9 @@ const defaultTableOptions = {
   ]
 }
 const tableOptions = useTablePersist('system-permission', defaultTableOptions)
+
+// 搜索历史管理
+const { addSearchRecord } = useSearchHistory('permission-search-history', 10)
 
 // 只保留一份分页和列声明
 const page = ref(tableOptions.value.page)
@@ -368,6 +393,69 @@ const searchForm = reactive({
 
 const getColVisible = (prop: string) => allColumns.value.find(col => col.prop === prop)?.visible;
 
+// 判断是否有搜索条件
+const hasSearchCriteria = computed(() => {
+  return searchForm.name || searchForm.code || searchForm.type || (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined)
+})
+
+// 实时过滤权限列表
+const filteredPermissionList = computed(() => {
+  let filtered = permissionList.value;
+  
+  // 权限名称过滤
+  if (searchForm.name) {
+    filtered = filtered.filter(permission => 
+      permission.name.toLowerCase().includes(searchForm.name.toLowerCase())
+    );
+  }
+  
+  // 权限编码过滤
+  if (searchForm.code) {
+    filtered = filtered.filter(permission => 
+      permission.code.toLowerCase().includes(searchForm.code.toLowerCase())
+    );
+  }
+  
+  // 权限类型过滤
+  if (searchForm.type) {
+    filtered = filtered.filter(permission => 
+      permission.type === searchForm.type
+    );
+  }
+  
+  // 状态过滤 - 由于状态过滤已经在后端处理，这里不需要再过滤
+  // 但为了保持一致性，仍然保留前端的过滤逻辑作为兜底
+  if (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined) {
+    filtered = filtered.filter(permission => permission.status === searchForm.status);
+  }
+  
+  return filtered;
+});
+
+// 分页后的权限列表
+const paginatedPermissionList = computed(() => {
+  const start = (page.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredPermissionList.value.slice(start, end);
+});
+
+// 联想建议函数
+const queryNameSuggestions = (queryString: string, cb: (suggestions: any[]) => void) => {
+  const suggestions = permissionList.value
+    .filter(permission => permission.name.toLowerCase().includes(queryString.toLowerCase()))
+    .map(permission => ({ value: permission.name }))
+    .slice(0, 10); // 限制建议数量
+  cb(suggestions);
+};
+
+const queryCodeSuggestions = (queryString: string, cb: (suggestions: any[]) => void) => {
+  const suggestions = permissionList.value
+    .filter(permission => permission.code.toLowerCase().includes(queryString.toLowerCase()))
+    .map(permission => ({ value: permission.code }))
+    .slice(0, 10);
+  cb(suggestions);
+};
+
 // 空值formatter，防止tooltipFormatter报错
 const emptyFormatter = (row, column, cellValue) => cellValue == null ? '' : cellValue;
 
@@ -387,15 +475,19 @@ const fetchPermissionList = async () => {
   try {
     loading.value = true;
     const params: any = {
-      page: page.value,
-      pageSize: pageSize.value,
-      ...(searchForm.name && { name: searchForm.name }),
-      ...(searchForm.code && { code: searchForm.code }),
-      ...(searchForm.type && { type: searchForm.type }),
+      page: 1, // 获取所有数据用于本地过滤
+      pageSize: 1000, // 获取大量数据
       showDeleted: !!searchForm.showDeleted
     };
-    if (typeof searchForm.status === 'number' && !isNaN(searchForm.status)) {
+    
+    // 只有当状态有有效值时才传递状态参数
+    if (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined) {
       params.status = searchForm.status;
+    }
+    
+    // 只有当权限类型有有效值时才传递类型参数
+    if (searchForm.type) {
+      params.type = searchForm.type;
     }
     const res: any = await getPermissionList(params);
     // 兼容返回结构
@@ -438,6 +530,19 @@ const fetchPermissionList = async () => {
       return result;
     });
     total.value = totalCount;
+    
+    // 记录搜索历史（使用当前搜索的字段作为关键词）
+    const searchKeywords = [
+      searchForm.name,
+      searchForm.code,
+      searchForm.type,
+      searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined ? `状态:${searchForm.status === 0 ? '启用' : '禁用'}` : null
+    ].filter(Boolean)
+    
+    if (searchKeywords.length > 0) {
+      const keyword = searchKeywords.join(' ')
+      addSearchRecord(keyword, filteredPermissionList.value.length)
+    }
   } catch (error) {
     console.error('获取权限列表失败:', error);
   } finally {
@@ -445,31 +550,42 @@ const fetchPermissionList = async () => {
   }
 };
 
-// 搜索
-const handleSearch = () => {
-  page.value = 1;
+// 字段搜索（带防抖）
+const handleFieldSearch = debounce(() => {
+  // 字段变化时重新获取数据以确保数据完整性
+  fetchPermissionList();
+}, 300);
+
+// 状态变化处理
+const handleStatusChange = () => {
+  // 状态变化时立即重新获取数据
   fetchPermissionList();
 };
-// 重置
+
+// 显示已删除权限开关变化处理
+const handleShowDeletedChange = () => {
+  // 显示已删除权限开关变化时立即重新获取数据
+  fetchPermissionList();
+};
+// 重置搜索
 const resetSearch = () => {
   searchForm.name = '';
   searchForm.code = '';
   searchForm.type = '';
   searchForm.status = '';
   searchForm.showDeleted = false; // 重置显示已删除权限开关
-  page.value = 1;
-  pageSize.value = 10;
   fetchPermissionList();
 };
-// 分页事件
+// 分页相关方法
 const handleSizeChange = (newSize: number) => {
   pageSize.value = newSize;
   page.value = 1;
-  fetchPermissionList();
+  // 本地分页，不需要重新请求数据
 };
+
 const handleCurrentChange = (newPage: number) => {
   page.value = newPage;
-  fetchPermissionList();
+  // 本地分页，不需要重新请求数据
 };
 
 // 重置表单
@@ -682,7 +798,24 @@ const flattenPermissions = (tree: Permission[], parentId: string = '0'): Permiss
 .pagination-container {
   margin-top: 20px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pagination-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.pagination-right {
+  display: flex;
+  align-items: center;
+}
+
+.search-stats {
+  display: flex;
+  align-items: center;
 }
 :deep(.el-form--inline .el-form-item) {
   margin-right: 16px;

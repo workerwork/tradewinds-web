@@ -4,13 +4,27 @@
     <el-card class="search-card">
       <el-form :inline="true" :model="searchForm">
         <el-form-item label="角色名称">
-          <el-input v-model="searchForm.name" placeholder="请输入角色名称" clearable />
+          <el-autocomplete
+            v-model="searchForm.name"
+            placeholder="请输入角色名称"
+            clearable
+            :fetch-suggestions="queryNameSuggestions"
+            @select="handleFieldSearch"
+            style="width: 200px;"
+          />
         </el-form-item>
         <el-form-item label="角色编码">
-          <el-input v-model="searchForm.code" placeholder="请输入角色编码" clearable />
+          <el-autocomplete
+            v-model="searchForm.code"
+            placeholder="请输入角色编码"
+            clearable
+            :fetch-suggestions="queryCodeSuggestions"
+            @select="handleFieldSearch"
+            style="width: 200px;"
+          />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 120px;" popper-class="custom-select-popper">
+          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 120px;" popper-class="custom-select-popper" @change="handleStatusChange">
             <el-option label="启用" :value="0" />
             <el-option label="禁用" :value="1" />
           </el-select>
@@ -19,13 +33,10 @@
           <span style="margin-right: 8px;">显示已删除角色</span>
           <el-switch
             v-model="searchForm.showDeleted"
-            @change="handleSearch"
+            @change="handleShowDeletedChange"
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">
-            <el-icon><Search /></el-icon>查询
-          </el-button>
           <el-button @click="resetSearch">
             <el-icon><Refresh /></el-icon>重置
           </el-button>
@@ -58,7 +69,7 @@
         </div>
       </template>
 
-      <el-table :data="roleList || []" v-loading="loading" border stripe>
+      <el-table :data="filteredRoleList" v-loading="loading" border stripe>
         <el-table-column v-if="getColVisible('selection')" type="selection" width="55" align="center" />
         <el-table-column v-if="getColVisible('name')" prop="name" label="角色名称" min-width="100" show-overflow-tooltip :formatter="emptyFormatter" />
         <el-table-column v-if="getColVisible('code')" prop="code" label="角色编码" min-width="100" show-overflow-tooltip :formatter="emptyFormatter" />
@@ -134,19 +145,28 @@
         </el-table-column>
       </el-table>
 
-      <!-- 分页 -->
+      <!-- 分页和搜索统计 -->
       <div class="pagination-container">
-        <el-pagination
-          v-model:current-page="page"
-          v-model:page-size="pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50, 100]"
-          size="small"
-          background
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
+        <div class="pagination-left">
+          <div class="search-stats" v-if="hasSearchCriteria">
+            <el-tag type="info" size="small">
+              搜索找到 {{ filteredRoleList.length }} 条结果
+            </el-tag>
+          </div>
+        </div>
+        <div class="pagination-right">
+          <el-pagination
+            v-model:current-page="page"
+            v-model:page-size="pageSize"
+            :total="filteredRoleList.length"
+            :page-sizes="[10, 20, 50, 100]"
+            size="small"
+            background
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
       </div>
     </el-card>
 
@@ -201,9 +221,9 @@
 export const emptyFormatter = (row, column, cellValue) => cellValue == null ? '' : cellValue;
 </script>
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, watch, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Search, Plus, Refresh, Setting } from '@element-plus/icons-vue';
+import { Plus, Refresh, Setting } from '@element-plus/icons-vue';
 import type { Role } from '@/types';
 import { formatDateTime } from '@/utils/format';
 import { debounce } from 'lodash-es';
@@ -219,6 +239,7 @@ import {
 } from './services/role-service';
 import { useMenuStore } from '@/stores/menu';
 import { useTablePersist } from '@/composables/useTablePersist'
+import { useSearchHistory } from '@/composables/useSearchHistory'
 
 const menuStore = useMenuStore();
 
@@ -247,6 +268,9 @@ const defaultTableOptions = {
   ]
 }
 const tableOptions = useTablePersist('system-role', defaultTableOptions)
+
+// 搜索历史管理
+const { addSearchRecord } = useSearchHistory('role-search-history', 10)
 
 // 只保留一份分页和列声明
 const page = ref(tableOptions.value.page)
@@ -280,18 +304,69 @@ watch([page, pageSize, allColumns], () => {
 
 const getColVisible = (prop: string) => allColumns.value.find(col => col.prop === prop)?.visible
 
+// 判断是否有搜索条件
+const hasSearchCriteria = computed(() => {
+  return searchForm.name || searchForm.code || (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined)
+})
+
+// 实时过滤角色列表
+const filteredRoleList = computed(() => {
+  let filtered = roleList.value;
+  
+  // 角色名称过滤
+  if (searchForm.name) {
+    filtered = filtered.filter(role => 
+      role.name.toLowerCase().includes(searchForm.name.toLowerCase())
+    );
+  }
+  
+  // 角色编码过滤
+  if (searchForm.code) {
+    filtered = filtered.filter(role => 
+      role.code.toLowerCase().includes(searchForm.code.toLowerCase())
+    );
+  }
+  
+  // 状态过滤 - 由于状态过滤已经在后端处理，这里不需要再过滤
+  // 但为了保持一致性，仍然保留前端的过滤逻辑作为兜底
+  if (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined) {
+    filtered = filtered.filter(role => role.status === searchForm.status);
+  }
+  
+  return filtered;
+});
+
+// 联想建议函数
+const queryNameSuggestions = (queryString: string, cb: (suggestions: any[]) => void) => {
+  const suggestions = roleList.value
+    .filter(role => role.name.toLowerCase().includes(queryString.toLowerCase()))
+    .map(role => ({ value: role.name }))
+    .slice(0, 10); // 限制建议数量
+  cb(suggestions);
+};
+
+const queryCodeSuggestions = (queryString: string, cb: (suggestions: any[]) => void) => {
+  const suggestions = roleList.value
+    .filter(role => role.code.toLowerCase().includes(queryString.toLowerCase()))
+    .map(role => ({ value: role.code }))
+    .slice(0, 10);
+  cb(suggestions);
+};
+
 // 获取角色列表
 const fetchRoleList = debounce(async () => {
   try {
     loading.value = true;
-    const params = {
-      page: page.value,
-      pageSize: pageSize.value,
-      ...(searchForm.name && { name: searchForm.name }),
-      ...(searchForm.code && { code: searchForm.code }),
-      ...(searchForm.status !== '' && { status: Number(searchForm.status) }),
+    const params: any = {
+      page: 1, // 获取所有数据用于本地过滤
+      pageSize: 1000, // 获取大量数据
       showDeleted: !!searchForm.showDeleted
     };
+    
+    // 只有当状态有有效值时才传递状态参数
+    if (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined) {
+      params.status = searchForm.status;
+    }
     
     const { roles, total: totalCount } = await getRoleList(params);
     roleList.value = roles;
@@ -307,6 +382,17 @@ const fetchRoleList = debounce(async () => {
       // item.id = item.id ?? '';
       return item;
     });
+    
+    // 记录搜索历史（使用当前搜索的字段作为关键词）
+    const searchKeywords = [
+      searchForm.name,
+      searchForm.code
+    ].filter(Boolean)
+    
+    if (searchKeywords.length > 0) {
+      const keyword = searchKeywords.join(' ')
+      addSearchRecord(keyword, filteredRoleList.value.length)
+    }
   } catch (error) {
     console.error('获取角色列表失败:', error);
     ElMessage.error('获取角色列表失败');
@@ -315,9 +401,21 @@ const fetchRoleList = debounce(async () => {
   }
 }, 300);
 
-// 搜索
-const handleSearch = () => {
-  page.value = 1;
+// 字段搜索（带防抖）
+const handleFieldSearch = debounce(() => {
+  // 状态变化时需要重新请求数据，其他字段变化时只需要前端过滤
+  // 这里暂时不重新请求，让用户手动刷新或通过其他方式触发
+}, 300);
+
+// 状态变化处理
+const handleStatusChange = () => {
+  // 状态变化时立即重新获取数据
+  fetchRoleList();
+};
+
+// 显示已删除角色开关变化处理
+const handleShowDeletedChange = () => {
+  // 显示已删除角色开关变化时立即重新获取数据
   fetchRoleList();
 };
 
@@ -327,8 +425,6 @@ const resetSearch = () => {
     if (key === 'showDeleted') return; // 不重置显示已删除角色开关
     searchForm[key] = '';
   });
-  page.value = 1;
-  pageSize.value = 10;
   fetchRoleList();
 };
 
@@ -611,13 +707,12 @@ const handlePhysicalDelete = (row: Role) => {
   });
 };
 
-// 分页大小改变
+// 分页相关方法
 const handleSizeChange = (newSize: number) => {
   page.value = 1;
   fetchRoleList();
 };
 
-// 当前页改变
 const handleCurrentChange = (newPage: number) => {
   fetchRoleList();
 };
@@ -649,7 +744,24 @@ onMounted(() => {
 .pagination-container {
   margin-top: 20px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pagination-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.pagination-right {
+  display: flex;
+  align-items: center;
+}
+
+.search-stats {
+  display: flex;
+  align-items: center;
 }
 
 :deep(.el-form--inline .el-form-item) {

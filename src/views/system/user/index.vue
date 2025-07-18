@@ -4,13 +4,55 @@
     <el-card class="search-card">
       <el-form :inline="true" :model="searchForm">
         <el-form-item label="用户名">
-          <el-input v-model="searchForm.username" placeholder="请输入用户名" clearable />
+          <el-autocomplete
+            v-model="searchForm.username"
+            :fetch-suggestions="queryUsernameSuggestions"
+            placeholder="请输入用户名"
+            clearable
+            @input="handleFieldSearch"
+            @clear="handleFieldSearch"
+            @select="handleFieldSearch"
+            style="width: 140px;"
+          />
+        </el-form-item>
+        <el-form-item label="姓名">
+          <el-autocomplete
+            v-model="searchForm.realName"
+            :fetch-suggestions="queryRealNameSuggestions"
+            placeholder="请输入姓名"
+            clearable
+            @input="handleFieldSearch"
+            @clear="handleFieldSearch"
+            @select="handleFieldSearch"
+            style="width: 120px;"
+          />
         </el-form-item>
         <el-form-item label="手机号">
-          <el-input v-model="searchForm.phone" placeholder="请输入手机号" clearable />
+          <el-autocomplete
+            v-model="searchForm.phone"
+            :fetch-suggestions="queryPhoneSuggestions"
+            placeholder="请输入手机号"
+            clearable
+            @input="handleFieldSearch"
+            @clear="handleFieldSearch"
+            @select="handleFieldSearch"
+            style="width: 140px;"
+          />
+        </el-form-item>
+        <el-form-item label="邮箱">
+          <el-autocomplete
+            v-model="searchForm.email"
+            :fetch-suggestions="queryEmailSuggestions"
+            placeholder="请输入邮箱"
+            clearable
+            @input="handleFieldSearch"
+            @clear="handleFieldSearch"
+            @select="handleFieldSearch"
+            style="width: 200px;"
+          />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 120px;" popper-class="custom-select-popper">
+          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 120px;" popper-class="custom-select-popper" @change="handleStatusChange">
             <el-option label="启用" :value="0" />
             <el-option label="禁用" :value="1" />
           </el-select>
@@ -19,13 +61,10 @@
           <span style="margin-right: 8px;">显示已删除用户</span>
           <el-switch
             v-model="searchForm.showDeleted"
-            @change="handleSearch"
+            @change="handleShowDeletedChange"
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">
-            <el-icon><Search /></el-icon>搜索
-          </el-button>
           <el-button @click="resetSearch">
             <el-icon><Refresh /></el-icon>重置
           </el-button>
@@ -58,13 +97,12 @@
         </div>
       </template>
 
-
-      <el-table :data="userList || []" v-loading="loading" border stripe>
+      <el-table :data="filteredUserList" v-loading="loading" border stripe>
         <el-table-column v-if="getColVisible('selection')" type="selection" width="55" align="center" />
-        <el-table-column v-if="getColVisible('username')" prop="username" label="用户名" min-width="100" show-overflow-tooltip :formatter="(row, column, cellValue) => emptyFormatter(row, column, cellValue)" />
-        <el-table-column v-if="getColVisible('realName')" prop="realName" label="姓名" min-width="80" show-overflow-tooltip :formatter="(row, column, cellValue) => emptyFormatter(row, column, cellValue)" />
-        <el-table-column v-if="getColVisible('phone')" prop="phone" label="手机号" min-width="110" show-overflow-tooltip :formatter="(row, column, cellValue) => emptyFormatter(row, column, cellValue)" />
-        <el-table-column v-if="getColVisible('email')" prop="email" label="邮箱" min-width="140" show-overflow-tooltip :formatter="(row, column, cellValue) => emptyFormatter(row, column, cellValue)" />
+        <el-table-column v-if="getColVisible('username')" prop="username" label="用户名" min-width="100" show-overflow-tooltip />
+        <el-table-column v-if="getColVisible('realName')" prop="realName" label="姓名" min-width="80" show-overflow-tooltip />
+        <el-table-column v-if="getColVisible('phone')" prop="phone" label="手机号" min-width="110" show-overflow-tooltip />
+        <el-table-column v-if="getColVisible('email')" prop="email" label="邮箱" min-width="140" show-overflow-tooltip />
         <el-table-column v-if="getColVisible('roles')" prop="roles" label="角色" min-width="120" show-overflow-tooltip :formatter="(row, column, cellValue) => emptyFormatter(row, column, cellValue)">
           <template #default="{ row }">
             <template v-if="row.roles && row.roles.length > 0">
@@ -137,19 +175,28 @@
         </el-table-column>
       </el-table>
 
-      <!-- 分页 -->
+      <!-- 分页和搜索统计 -->
       <div class="pagination-container">
-        <el-pagination
-          v-model:current-page="page"
-          v-model:page-size="pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50, 100]"
-          size="small"
-          background
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
+        <div class="pagination-left">
+          <div class="search-stats" v-if="hasSearchCriteria">
+            <el-tag type="info" size="small">
+              搜索找到 {{ filteredUserList.length }} 条结果
+            </el-tag>
+          </div>
+        </div>
+        <div class="pagination-right">
+          <el-pagination
+            v-model:current-page="page"
+            v-model:page-size="pageSize"
+            :total="filteredUserList.length"
+            :page-sizes="[10, 20, 50, 100]"
+            size="small"
+            background
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
       </div>
     </el-card>
 
@@ -182,9 +229,9 @@
 export const emptyFormatter = (row, column, cellValue) => cellValue == null ? '' : cellValue;
 </script>
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, watch } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, watch, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Search, Plus, Refresh, Setting } from '@element-plus/icons-vue';
+import { Plus, Refresh, Setting } from '@element-plus/icons-vue';
 import type { User } from '@/types';
 import { useRoleStore } from '@/stores';
 import { useMenuStore } from '@/stores/menu';
@@ -201,11 +248,14 @@ import {
 } from './services/user-service';
 import { emitter } from '@/utils/emitter';
 import { useTablePersist } from '@/composables/useTablePersist'
+import { useSearchHistory } from '@/composables/useSearchHistory'
 
 // 搜索表单
 const searchForm = reactive({
   username: '',
+  realName: '',
   phone: '',
+  email: '',
   status: '',
   showDeleted: false
 });
@@ -253,6 +303,9 @@ const form = reactive({
 const roleStore = useRoleStore()
 const menuStore = useMenuStore()
 
+// 搜索历史管理
+const { addSearchRecord } = useSearchHistory('user-search-history', 10)
+
 watch([page, pageSize, allColumns], () => {
   tableOptions.value.page = page.value
   tableOptions.value.pageSize = pageSize.value
@@ -261,18 +314,101 @@ watch([page, pageSize, allColumns], () => {
 
 const getColVisible = (prop: string) => allColumns.value.find(col => col.prop === prop)?.visible;
 
+// 判断是否有搜索条件
+const hasSearchCriteria = computed(() => {
+  return searchForm.username || searchForm.realName || searchForm.phone || searchForm.email || (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined)
+})
+
+// 实时过滤用户列表
+const filteredUserList = computed(() => {
+  let filtered = userList.value;
+  
+  // 用户名过滤
+  if (searchForm.username) {
+    filtered = filtered.filter(user => 
+      user.username.toLowerCase().includes(searchForm.username.toLowerCase())
+    );
+  }
+  
+  // 姓名过滤
+  if (searchForm.realName) {
+    filtered = filtered.filter(user => 
+      user.realName.toLowerCase().includes(searchForm.realName.toLowerCase())
+    );
+  }
+  
+  // 手机号过滤
+  if (searchForm.phone) {
+    filtered = filtered.filter(user => 
+      user.phone.includes(searchForm.phone)
+    );
+  }
+  
+  // 邮箱过滤
+  if (searchForm.email) {
+    filtered = filtered.filter(user => 
+      user.email.toLowerCase().includes(searchForm.email.toLowerCase())
+    );
+  }
+  
+  // 状态过滤 - 由于状态过滤已经在后端处理，这里不需要再过滤
+  // 但为了保持一致性，仍然保留前端的过滤逻辑作为兜底
+  if (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined) {
+    filtered = filtered.filter(user => user.status === searchForm.status);
+  }
+  
+  return filtered;
+});
+
+// 联想建议函数
+const queryUsernameSuggestions = (queryString: string, cb: (suggestions: any[]) => void) => {
+  const suggestions = userList.value
+    .filter(user => user.username.toLowerCase().includes(queryString.toLowerCase()))
+    .map(user => ({ value: user.username }))
+    .slice(0, 10); // 限制建议数量
+  cb(suggestions);
+};
+
+const queryRealNameSuggestions = (queryString: string, cb: (suggestions: any[]) => void) => {
+  const suggestions = userList.value
+    .filter(user => user.realName.toLowerCase().includes(queryString.toLowerCase()))
+    .map(user => ({ value: user.realName }))
+    .slice(0, 10);
+  cb(suggestions);
+};
+
+const queryPhoneSuggestions = (queryString: string, cb: (suggestions: any[]) => void) => {
+  const suggestions = userList.value
+    .filter(user => user.phone.includes(queryString))
+    .map(user => ({ value: user.phone }))
+    .slice(0, 10);
+  cb(suggestions);
+};
+
+const queryEmailSuggestions = (queryString: string, cb: (suggestions: any[]) => void) => {
+  const suggestions = userList.value
+    .filter(user => user.email.toLowerCase().includes(queryString.toLowerCase()))
+    .map(user => ({ value: user.email }))
+    .slice(0, 10);
+  cb(suggestions);
+};
+
 // 获取用户列表
 const fetchUserList = debounce(async () => {
   try {
     loading.value = true;
-    const params = {
-      page: page.value,
-      pageSize: pageSize.value,
-      ...(searchForm.username && { username: searchForm.username }),
-      ...(searchForm.phone && { phone: searchForm.phone }),
-      ...(searchForm.status !== '' && { status: searchForm.status }),
+    const params: any = {
+      page: 1, // 获取所有数据用于本地过滤
+      pageSize: 1000, // 获取大量数据
       showDeleted: !!searchForm.showDeleted
     };
+    
+    // 只有当状态有有效值时才传递状态参数
+    if (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined) {
+      params.status = searchForm.status;
+    }
+    
+
     
     const { users, total: totalCount } = await getUserList(params);
     userList.value = users.map(item => {
@@ -308,6 +444,19 @@ const fetchUserList = debounce(async () => {
       return safeItem;
     });
     total.value = totalCount;
+    
+    // 记录搜索历史（使用当前搜索的字段作为关键词）
+    const searchKeywords = [
+      searchForm.username,
+      searchForm.realName,
+      searchForm.phone,
+      searchForm.email
+    ].filter(Boolean)
+    
+    if (searchKeywords.length > 0) {
+      const keyword = searchKeywords.join(' ')
+      addSearchRecord(keyword, filteredUserList.value.length)
+    }
   } catch (error) {
     console.error('获取用户列表失败:', error);
     ElMessage.error('获取用户列表失败');
@@ -316,11 +465,25 @@ const fetchUserList = debounce(async () => {
   }
 }, 300);
 
-// 搜索
-const handleSearch = () => {
-  page.value = 1;
+// 字段搜索（带防抖）
+const handleFieldSearch = debounce(() => {
+  // 状态变化时需要重新请求数据，其他字段变化时只需要前端过滤
+  // 这里暂时不重新请求，让用户手动刷新或通过其他方式触发
+}, 300);
+
+// 状态变化处理
+const handleStatusChange = () => {
+  // 状态变化时立即重新获取数据
   fetchUserList();
 };
+
+// 显示已删除用户开关变化处理
+const handleShowDeletedChange = () => {
+  // 显示已删除用户开关变化时立即重新获取数据
+  fetchUserList();
+};
+
+
 
 // 重置搜索
 const resetSearch = () => {
@@ -328,10 +491,10 @@ const resetSearch = () => {
     if (key === 'showDeleted') return; // 不重置显示已删除用户开关
     searchForm[key] = '';
   });
-  page.value = 1;
-  pageSize.value = 10;
   fetchUserList();
 };
+
+
 
 // 刷新角色数据
 const refreshRoles = async () => {
@@ -553,7 +716,24 @@ onUnmounted(() => {
 .pagination-container {
   margin-top: 20px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pagination-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.pagination-right {
+  display: flex;
+  align-items: center;
+}
+
+.search-stats {
+  display: flex;
+  align-items: center;
 }
 
 .role-tag {
