@@ -1,5 +1,6 @@
-import { request } from '@/utils/request';
+import { request } from '@/utils';
 import type { Log, PaginationQuery, PaginationResponse } from '@/types';
+import type { ExportLogParams } from '../types';
 
 /**
  * 获取日志列表
@@ -34,7 +35,7 @@ export const batchDeleteLogs = (ids: number[]) => {
  * 导出日志
  * @param params 查询参数
  */
-export const exportLogs = (params?: any) => {
+export const exportLogs = (params?: ExportLogParams) => {
     return request.post('/system/log/export', params, {
         responseType: 'blob'
     });

@@ -1,17 +1,12 @@
-import { request, request_invoke } from '@/utils/request';
-import type { User } from '@/types';
+import { request, request_invoke } from '@/utils';
+import type { User, ApiResponse } from '@/types';
 import type { MenuItem } from '@/types/menu';
 import { API_MODE } from '@/config';
 
-// API 响应类型
-interface ApiResponse<T> {
-    code: number;
-    data: T;
-    message: string;
-}
-
-// 超级管理员仪表盘数据类型
-interface SuperAdminDashboard {
+/**
+ * 超级管理员仪表盘数据类型
+ */
+export interface SuperAdminDashboard {
     systemStats: {
         totalUsers: number;
         onlineUsers: number;
@@ -32,7 +27,9 @@ interface SuperAdminDashboard {
     };
 }
 
-// API 接口定义
+/**
+ * 认证 API 接口定义
+ */
 interface AuthAPI {
     login(data: { username: string; password: string }): Promise<ApiResponse<{ token: string; user: User }>> | Promise<{ token: string; user: User }>;
     register(data: { username: string; password: string; email: string; phone?: string }): Promise<ApiResponse<{ user: User }>> | Promise<{ user: User }>;
@@ -47,8 +44,7 @@ interface AuthAPI {
 // 实现 API 接口
 export const authAPI: AuthAPI = {
     async login(data) {
-        const response = await request.post<{ token: string; user: User }>('/auth/login', data);
-        return response;
+        return request.post<{ token: string; user: User }>('/auth/login', data);
     },
 
     async register(data) {
@@ -145,7 +141,6 @@ const invokeAPI: AuthAPI = {
 
 // API 工厂函数
 const createAuthAPI = (): AuthAPI => {
-    console.log('Current API_MODE:', API_MODE);
     switch (API_MODE) {
         case 'direct':
             return authAPI;
@@ -168,7 +163,4 @@ export const changePassword = authAPIInstance.changePassword.bind(authAPIInstanc
 export const refreshToken = authAPIInstance.refreshToken.bind(authAPIInstance);
 export const getUserInfo = authAPIInstance.getUserInfo.bind(authAPIInstance);
 export const getUserMenus = authAPIInstance.getUserMenus.bind(authAPIInstance);
-export const getSuperAdminDashboard = authAPIInstance.getSuperAdminDashboard.bind(authAPIInstance);
-
-// 导出类型
-export type { SuperAdminDashboard }; 
+export const getSuperAdminDashboard = authAPIInstance.getSuperAdminDashboard.bind(authAPIInstance); 

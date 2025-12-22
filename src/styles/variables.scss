@@ -1,0 +1,98 @@
+/**
+ * 样式变量定义
+ * 统一管理项目中使用的颜色、尺寸等变量
+ */
+
+// 布局尺寸
+$topbar-height: 64px;
+$sidebar-width: 220px;
+$sidebar-width-expanded: 220px;
+$sidebar-collapsed-width: 56px;
+$sidebar-width-collapsed: 56px;
+
+// 菜单相关尺寸
+$menu-item-height-base: 36px;
+$menu-item-height-level0: 42px;
+$menu-item-height-level1: 38px;
+$menu-item-height-level2: 34px;
+$menu-item-height-level3: 32px;
+
+// 间距
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 12px;
+$spacing-lg: 16px;
+$spacing-xl: 20px;
+$spacing-xxl: 24px;
+
+// 圆角
+$border-radius-sm: 4px;
+$border-radius-md: 6px;
+$border-radius-lg: 8px;
+$border-radius-xl: 12px;
+
+// 颜色 - 主题色
+$color-primary: #409EFF;
+$color-success: #67C23A;
+$color-warning: #E6A23C;
+$color-danger: #F56C6C;
+$color-info: #909399;
+
+// 颜色 - 文本
+$text-color-primary: #303133;
+$text-color-regular: #606266;
+$text-color-secondary: #909399;
+$text-color-placeholder: #C0C4CC;
+
+// 颜色 - 背景
+$bg-color-base: #F5F7FA;
+$bg-color-light: #FFFFFF;
+$bg-color-dark: #1F2937;
+$bg-color-darker: #111827;
+
+// 颜色 - 边框
+$border-color-base: #DCDFE6;
+$border-color-light: #E4E7ED;
+$border-color-lighter: #EBEEF5;
+$border-color-extra-light: #F2F6FC;
+
+// 颜色 - 侧边栏
+$sidebar-bg: #223046;
+$sidebar-bg-popup: #2c3e50;
+$sidebar-text: rgba(255, 255, 255, 0.7);
+$sidebar-text-hover: #ffffff;
+$sidebar-text-active: #409EFF;
+$sidebar-bg-hover: rgba(255, 255, 255, 0.08);
+$sidebar-bg-active: rgba(64, 158, 255, 0.15);
+$sidebar-bg-item: rgba(255, 255, 255, 0.05);
+
+// 颜色 - 顶栏
+$topbar-bg: #1F2937;
+$topbar-text: #ffffff;
+
+// 阴影
+$shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+$shadow-md: 0 2px 8px rgba(0, 0, 0, 0.1);
+$shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.2);
+$shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.3);
+
+// 过渡动画
+$transition-base: all 0.3s ease;
+$transition-fast: all 0.15s ease;
+$transition-slow: all 0.5s ease;
+$transition-sidebar: all 0.3s ease;
+
+// 缩放比例
+$scale-sm: 0.8;
+$scale-md: 0.9;
+$scale-lg: 1.1;
+
+// Z-index 层级
+$z-index-dropdown: 1000;
+$z-index-sticky: 1020;
+$z-index-fixed: 1030;
+$z-index-modal-backdrop: 1040;
+$z-index-modal: 1050;
+$z-index-popover: 1060;
+$z-index-tooltip: 1070;
+$z-index-drawer: 2000;

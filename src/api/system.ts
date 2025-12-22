@@ -1,12 +1,37 @@
-import { request, request_invoke } from '@/utils/request';
+import { request, request_invoke } from '@/utils';
 import { API_MODE } from '@/config';
 
-// 获取参数列表
-export function getParamList(params: any) {
+/**
+ * 参数查询类型
+ */
+export interface ParamQuery {
+    param_name?: string;
+    param_key?: string;
+    page?: number;
+    pageSize?: number;
+}
+
+/**
+ * 参数数据类型
+ */
+export interface ParamData {
+    paramName?: string;
+    paramKey?: string;
+    paramValue?: string;
+    type?: string;
+    status?: string;
+    remark?: string;
+}
+
+/**
+ * 获取参数列表
+ * @param params 查询参数
+ */
+export function getParamList(params?: ParamQuery) {
     return API_MODE === 'direct'
-        ? request.get('/api/system/params', { params })
+        ? request.get('/system/params', { params })
         : request_invoke({
-            url: '/api/system/params',
+            url: '/system/params',
             method: 'get',
             params,
             invokeCommand: 'get_config_list',
@@ -19,12 +44,15 @@ export function getParamList(params: any) {
         });
 }
 
-// 新增参数
-export function addParam(data: any) {
+/**
+ * 新增参数
+ * @param data 参数数据
+ */
+export function addParam(data: ParamData) {
     return API_MODE === 'direct'
-        ? request.post('/api/system/params', data)
+        ? request.post('/system/params', data)
         : request_invoke({
-            url: '/api/system/params',
+            url: '/system/params',
             method: 'post',
             data,
             invokeCommand: 'add_config',
@@ -32,12 +60,16 @@ export function addParam(data: any) {
         });
 }
 
-// 更新参数
-export function updateParam(id: number, data: any) {
+/**
+ * 更新参数
+ * @param id 参数ID
+ * @param data 参数数据
+ */
+export function updateParam(id: number, data: ParamData) {
     return API_MODE === 'direct'
-        ? request.put(`/api/system/params/${id}`, data)
+        ? request.put(`/system/params/${id}`, data)
         : request_invoke({
-            url: `/api/system/params/${id}`,
+            url: `/system/params/${id}`,
             method: 'put',
             data,
             invokeCommand: 'update_config',
@@ -45,24 +77,30 @@ export function updateParam(id: number, data: any) {
         });
 }
 
-// 删除参数
+/**
+ * 删除参数
+ * @param id 参数ID
+ */
 export function deleteParam(id: number) {
     return API_MODE === 'direct'
-        ? request.delete(`/api/system/params/${id}`)
+        ? request.del<void>(`/system/params/${id}`)
         : request_invoke({
-            url: `/api/system/params/${id}`,
+            url: `/system/params/${id}`,
             method: 'delete',
             invokeCommand: 'delete_config',
             invokeParams: { id }
         });
 }
 
-// 批量删除参数
+/**
+ * 批量删除参数
+ * @param ids 参数ID列表
+ */
 export function batchDeleteParams(ids: number[]) {
     return API_MODE === 'direct'
-        ? request.delete('/api/system/params/batch', { data: { ids } })
+        ? request.del<void>('/system/params/batch', { data: { ids } })
         : request_invoke({
-            url: '/api/system/params/batch',
+            url: '/system/params/batch',
             method: 'delete',
             data: { ids },
             invokeCommand: 'batch_delete_config',
@@ -70,12 +108,15 @@ export function batchDeleteParams(ids: number[]) {
         });
 }
 
-// 获取参数值
+/**
+ * 获取参数值
+ * @param key 参数键名
+ */
 export function getParamValue(key: string) {
     return API_MODE === 'direct'
-        ? request.get(`/api/system/params/value/${key}`)
+        ? request.get(`/system/params/value/${key}`)
         : request_invoke({
-            url: `/api/system/params/value/${key}`,
+            url: `/system/params/value/${key}`,
             method: 'get',
             invokeCommand: 'get_config_value',
             invokeParams: { key }

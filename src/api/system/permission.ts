@@ -1,4 +1,4 @@
-import { request } from '@/utils/request';
+import { request } from '@/utils';
 import type { Permission, PaginationQuery, PaginationResponse } from '@/types';
 
 /**
@@ -46,7 +46,7 @@ export const getPermissionDetail = (id: number) => {
  * 获取权限树
  */
 export const getPermissionTree = () => {
-    return request.get('/system/permission/tree');
+    return request.get<Permission[]>('/system/permission/tree');
 };
 
 /**
@@ -54,5 +54,5 @@ export const getPermissionTree = () => {
  * @param roleId 角色ID
  */
 export const getRolePermissions = (roleId: number) => {
-    return request.get(`/system/roles/${roleId}/permissions`);
+    return request.get<Permission[]>(`/system/roles/${roleId}/permissions`);
 }; 

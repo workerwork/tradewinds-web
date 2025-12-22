@@ -8,6 +8,7 @@
             v-model="searchForm.name"
             :placeholder="t('permission.name')"
             clearable
+            popper-class="autocomplete-permission-name-popper"
             :fetch-suggestions="queryNameSuggestions"
             @select="handleFieldSearch"
             style="width: 200px;"
@@ -18,9 +19,10 @@
             v-model="searchForm.code"
             :placeholder="t('permission.code')"
             clearable
+            popper-class="autocomplete-permission-code-popper"
             :fetch-suggestions="queryCodeSuggestions"
             @select="handleFieldSearch"
-            style="width: 200px;"
+            style="width: 250px;"
           />
         </el-form-item>
         <el-form-item :label="t('permission.type')">
@@ -57,13 +59,13 @@
           <span>{{ t('menu.user.permissions') }}</span>
           <div>
             <el-dropdown trigger="click" popper-class="column-setting-popper">
-              <el-button type="primary" plain size="small" class="column-setting-btn" style="margin-right: 10px;">
-                <el-icon style="margin-right: 4px;"><Setting /></el-icon>列设置
+              <el-button type="primary" plain size="small" class="column-setting-btn">
+                <el-icon><Setting /></el-icon>列设置
               </el-button>
               <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item v-for="col in allColumns" :key="col.prop" style="min-width: 160px;">
-                    <el-checkbox v-model="col.visible" style="margin-right: 8px; vertical-align: middle;">{{ col.label }}</el-checkbox>
+                <el-dropdown-menu class="column-setting-menu">
+                  <el-dropdown-item v-for="col in allColumns" :key="col.prop">
+                    <el-checkbox v-model="col.visible">{{ col.label }}</el-checkbox>
                   </el-dropdown-item>
                 </el-dropdown-menu>
               </template>
@@ -176,11 +178,16 @@
       </div>
     </el-card>
     <!-- 添加/编辑权限对话框 -->
-    <el-dialog
-      :title="dialogType === 'add' ? '新增权限' : '编辑权限'"
+    <FormDialog
       v-model="dialogVisible"
+      :dialog-type="dialogType"
+      :title="dialogType === 'add' ? '新增权限' : '编辑权限'"
       width="500px"
-      :close-on-click-modal="false"
+      :loading="submitting"
+      :cancel-text="t('common.cancel')"
+      :confirm-text="t('common.confirm')"
+      @confirm="handleSubmit"
+      @cancel="close"
     >
       <PermissionForm
         ref="permissionFormRef"
@@ -188,24 +195,17 @@
         :is-edit="dialogType === 'edit'"
         :parent-options="allPermissionsTree"
       />
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
-          <el-button type="primary" @click="handleSubmit" :loading="submitting">
-            {{ t('common.confirm') }}
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
+    </FormDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, reactive, watch } from 'vue';
+import { ref, onMounted, onUnmounted, computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Plus, Refresh, Setting, User, Menu, HomeFilled, Lock, Bell, Folder, Document, Edit, Delete, Star, Warning, InfoFilled, Tools, DataAnalysis, Monitor, PieChart, Tickets, Message, ChatLineRound, Calendar, Collection, Connection, Upload, Download, Link, Compass, Flag, Key, List, Location, Notification, OfficeBuilding, Postcard, Promotion, QuestionFilled, Reading, RefreshRight, School, Service, Shop, ShoppingCart, Stopwatch, Suitcase, SwitchButton, Timer, TrendCharts, Trophy, UploadFilled, UserFilled, Van, VideoCamera, Wallet, ZoomIn, ZoomOut } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import PermissionForm from './components/PermissionForm.vue';
+import FormDialog from '@/components/common/FormDialog.vue';
 import { 
   getPermissionList, 
   createPermission, 
@@ -213,14 +213,17 @@ import {
   deletePermission,
   getPermissionTree
 } from './services/permission-service';
-import { request } from '@/utils/request';
-import { formatDateTime } from '@/utils/format';
+import { request, formatDateTime } from '@/utils';
 import { debounce } from 'lodash-es';
 // 只在顶部导入一次 Permission 类型
 import type { Permission } from '@/types';
 import { useMenuStore } from '@/stores/menu';
-import { useTablePersist } from '@/composables/useTablePersist'
-import { useSearchHistory } from '@/composables/useSearchHistory'
+import { useTablePersist, useSearchHistory, useDialog } from '@/composables'
+
+// 自动完成建议项类型
+interface AutocompleteSuggestion {
+  value: string;
+}
 
 const { t } = useI18n();
 // 分页和列显示持久化
@@ -256,11 +259,8 @@ const allColumns = ref(tableOptions.value.allColumns)
 const total = ref(0)
 const loading = ref(false)
 const permissionList = ref<Permission[]>([])
-const dialogVisible = ref(false)
-const dialogType = ref<'add' | 'edit'>('add')
 const currentId = ref<string>('')
 const permissionFormRef = ref()
-const submitting = ref(false)
 const allPermissionsTree = ref<Permission[]>([])
 const allPermissionsFlat = ref<Permission[]>([])
 const form = ref<Permission>({
@@ -280,6 +280,44 @@ const form = ref<Permission>({
   updateTime: ''
 })
 const menuStore = useMenuStore()
+
+// safeItem 定义（用于表单重置）
+const safeItem: Permission = {
+  id: '',
+  name: '',
+  code: '',
+  type: 'menu',
+  parentId: '',
+  path: '',
+  component: '',
+  icon: '',
+  sort: 0,
+  status: 0,
+  description: '',
+  children: [],
+  createTime: '',
+  updateTime: ''
+};
+
+// 使用 useDialog 管理弹窗状态
+const resetForm = () => {
+  form.value = { ...safeItem };
+  form.value.parentId = String(form.value.parentId ?? '');
+  permissionFormRef.value?.resetForm();
+  form.value.type = 'menu'; // 确保type为menu
+};
+
+const {
+  dialogVisible,
+  dialogType,
+  submitting,
+  openAdd,
+  openEdit,
+  close,
+  setSubmitting
+} = useDialog({
+  resetForm
+});
 
 watch([page, pageSize, allColumns], () => {
   tableOptions.value.page = page.value
@@ -360,23 +398,7 @@ const getParentName = (parentId: string) => {
   return parent ? parent.name : '—';
 };
 
-// safeItem 定义
-const safeItem: Permission = {
-  id: '',
-  name: '',
-  code: '',
-  type: 'menu',
-  parentId: '',
-  path: '',
-  component: '',
-  icon: '',
-  sort: 0,
-  status: 0,
-  description: '',
-  children: [],
-  createTime: '',
-  updateTime: ''
-};
+// safeItem 已在上面定义，这里不再重复定义
 
 const dialogTitle = computed(() => {
   return dialogType.value === 'add' ? t('common.add') : t('common.edit');
@@ -426,7 +448,8 @@ const filteredPermissionList = computed(() => {
   // 状态过滤 - 由于状态过滤已经在后端处理，这里不需要再过滤
   // 但为了保持一致性，仍然保留前端的过滤逻辑作为兜底
   if (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined) {
-    filtered = filtered.filter(permission => permission.status === searchForm.status);
+    const statusNum = typeof searchForm.status === 'string' ? parseInt(searchForm.status) : searchForm.status;
+    filtered = filtered.filter(permission => permission.status === statusNum);
   }
   
   return filtered;
@@ -440,7 +463,7 @@ const paginatedPermissionList = computed(() => {
 });
 
 // 联想建议函数
-const queryNameSuggestions = (queryString: string, cb: (suggestions: any[]) => void) => {
+const queryNameSuggestions = (queryString: string, cb: (suggestions: AutocompleteSuggestion[]) => void) => {
   const suggestions = permissionList.value
     .filter(permission => permission.name.toLowerCase().includes(queryString.toLowerCase()))
     .map(permission => ({ value: permission.name }))
@@ -448,7 +471,7 @@ const queryNameSuggestions = (queryString: string, cb: (suggestions: any[]) => v
   cb(suggestions);
 };
 
-const queryCodeSuggestions = (queryString: string, cb: (suggestions: any[]) => void) => {
+const queryCodeSuggestions = (queryString: string, cb: (suggestions: AutocompleteSuggestion[]) => void) => {
   const suggestions = permissionList.value
     .filter(permission => permission.code.toLowerCase().includes(queryString.toLowerCase()))
     .map(permission => ({ value: permission.code }))
@@ -462,12 +485,6 @@ const emptyFormatter = (row, column, cellValue) => cellValue == null ? '' : cell
 onMounted(() => {
   fetchPermissionList();
   fetchAllPermissions();
-  watch(allPermissionsTree, (val) => {
-  }, { immediate: true });
-  watch(allPermissionsFlat, (val) => {
-  }, { immediate: true });
-  watch(permissionList, (val) => {
-  }, { immediate: true });
 });
 
 // 获取权限列表
@@ -489,32 +506,33 @@ const fetchPermissionList = async () => {
     if (searchForm.type) {
       params.type = searchForm.type;
     }
-    const res: any = await getPermissionList(params);
+    const res = await getPermissionList(params);
     // 兼容返回结构
-    let list: any[] = [];
+    let list: Permission[] = [];
     let totalCount = 0;
     if (Array.isArray(res)) {
       list = res;
       totalCount = res.length;
     } else if (res && typeof res === 'object') {
-      if ('permissions' in (res as any)) {
-        list = (res as any).permissions || [];
-        totalCount = (res as any).total ?? list.length ?? 0;
-      } else if ('items' in (res as any) || 'list' in (res as any)) {
-        list = (res as any).items || (res as any).list || [];
-        totalCount = (res as any).total || list.length || 0;
-      } else if ('data' in (res as any) && typeof (res as any).data === 'object' && (('items' in (res as any).data) || ('list' in (res as any).data))) {
-        list = (res as any).data.items || (res as any).data.list || [];
-        totalCount = (res as any).data.total || list.length || 0;
+      const resObj = res as Record<string, any>;
+      if ('permissions' in resObj) {
+        list = (resObj.permissions || []) as Permission[];
+        totalCount = resObj.total ?? list.length ?? 0;
+      } else if ('items' in resObj || 'list' in resObj) {
+        list = ((resObj.items || resObj.list) || []) as Permission[];
+        totalCount = resObj.total || list.length || 0;
+      } else if ('data' in resObj && typeof resObj.data === 'object' && (('items' in resObj.data) || ('list' in resObj.data))) {
+        list = ((resObj.data.items || resObj.data.list) || []) as Permission[];
+        totalCount = resObj.data.total || list.length || 0;
       } else {
-        list = res as any[] || [];
+        list = (Array.isArray(res) ? res : []) as Permission[];
         totalCount = list.length || 0;
       }
     } else {
       list = [];
       totalCount = 0;
     }
-    permissionList.value = list.map(item => {
+    permissionList.value = list.map((item: any) => {
       const result: Permission = { ...safeItem, ...item };
       result.id = String(item.id ?? '');
       result.parentId = String(item.parentId ?? '');
@@ -536,14 +554,15 @@ const fetchPermissionList = async () => {
       searchForm.name,
       searchForm.code,
       searchForm.type,
-      searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined ? `状态:${searchForm.status === 0 ? '启用' : '禁用'}` : null
+      searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined ? `状态:${(typeof searchForm.status === 'string' ? parseInt(searchForm.status) : searchForm.status) === 0 ? '启用' : '禁用'}` : null
     ].filter(Boolean)
     
     if (searchKeywords.length > 0) {
       const keyword = searchKeywords.join(' ')
       addSearchRecord(keyword, filteredPermissionList.value.length)
     }
-  } catch (error) {
+  } catch (error: any) {
+    ElMessage.error(error?.message || '获取权限列表失败，请稍后重试');
     console.error('获取权限列表失败:', error);
   } finally {
     loading.value = false;
@@ -588,31 +607,20 @@ const handleCurrentChange = (newPage: number) => {
   // 本地分页，不需要重新请求数据
 };
 
-// 重置表单
-const resetForm = () => {
-  form.value = { ...safeItem };
-  form.value.parentId = String(form.value.parentId ?? '');
-  permissionFormRef.value?.resetForm();
-};
-
 // 添加权限
 const handleAdd = () => {
-  dialogType.value = 'add';
-  dialogVisible.value = true;
-  resetForm();
-  form.value.type = 'menu'; // 再次确保type为menu
+  openAdd();
 };
 
 // 编辑权限
 const handleEdit = (row: Permission) => {
-  dialogType.value = 'edit';
   currentId.value = String(row.id);
   form.value = { ...safeItem, ...row };
   form.value.id = String(row.id ?? '');
   form.value.parentId = String(row.parentId ?? '');
   form.value.sort = Number(row.sort ?? 0);
   form.value.status = Number(row.status ?? 0);
-  dialogVisible.value = true;
+  openEdit(row);
 };
 
 // 删除权限
@@ -630,9 +638,11 @@ const handleDelete = (row: Permission) => {
       await deletePermission(String(row.id));
       ElMessage.success(t('common.deleteSuccess'));
       fetchPermissionList();
-    } catch (error) {
-      console.error('删除失败:', error);
-      ElMessage.error(t('common.deleteFailed') || '删除失败');
+    } catch (error: any) {
+      if (error !== 'cancel') {
+        ElMessage.error(error?.message || t('common.deleteFailed') || '删除失败，请稍后重试');
+        console.error('删除失败:', error);
+      }
     }
   });
 };
@@ -641,55 +651,63 @@ const handleDelete = (row: Permission) => {
 const handleSubmit = async () => {
   if (!permissionFormRef.value) return;
   const valid = await permissionFormRef.value.validate();
-  if (valid) {
-    submitting.value = true;
-    try {
-      const permissionData = permissionFormRef.value.form;
-      // 兜底处理 parentId，确保为 null
-      let parentId = permissionData.parentId;
-      if (parentId === '' || parentId === undefined || parentId === 0 || parentId === '0') {
-        parentId = null;
-      }
-      // 只提交可编辑字段
-      const submitData = dialogType.value === 'add' ? {
-        name: permissionData.name,
-        code: permissionData.code,
-        type: permissionData.type,
-        parentId: parentId,
-        path: permissionData.path,
-        component: permissionData.component,
-        icon: permissionData.icon,
-        sort: permissionData.sort,
-        status: permissionData.status,
-        description: permissionData.description
-      } : {
-        id: permissionData.id,
-        name: permissionData.name,
-        code: permissionData.code,
-        type: permissionData.type,
-        parentId: parentId,
-        path: permissionData.path,
-        component: permissionData.component,
-        icon: permissionData.icon,
-        sort: permissionData.sort,
-        status: permissionData.status,
-        description: permissionData.description
-      };
-      if (dialogType.value === 'add') {
-        await createPermission(submitData);
-        ElMessage.success(t('common.addSuccess'));
-      } else {
-        await updatePermission(submitData.id, submitData);
-        ElMessage.success(t('common.editSuccess'));
-      }
-      dialogVisible.value = false;
-      fetchPermissionList();
-      await menuStore.getUserMenus(); // 权限变更后刷新菜单栏
-    } catch (error) {
-      console.error('提交表单失败:', error);
-    } finally {
-      submitting.value = false;
+  if (!valid) return;
+
+  setSubmitting(true);
+  try {
+    const permissionData = permissionFormRef.value.form;
+    // 兜底处理 parentId，确保为 null
+    let parentId = permissionData.parentId;
+    if (parentId === '' || parentId === undefined || parentId === 0 || parentId === '0') {
+      parentId = null;
     }
+    // 只提交可编辑字段
+    const submitData = dialogType.value === 'add' ? {
+      name: permissionData.name,
+      code: permissionData.code,
+      type: permissionData.type,
+      parentId: parentId,
+      path: permissionData.path,
+      component: permissionData.component,
+      icon: permissionData.icon,
+      sort: permissionData.sort,
+      status: permissionData.status,
+      description: permissionData.description
+    } : {
+      id: permissionData.id,
+      name: permissionData.name,
+      code: permissionData.code,
+      type: permissionData.type,
+      parentId: parentId,
+      path: permissionData.path,
+      component: permissionData.component,
+      icon: permissionData.icon,
+      sort: permissionData.sort,
+      status: permissionData.status,
+      description: permissionData.description
+    };
+    if (dialogType.value === 'add') {
+      await createPermission(submitData);
+      ElMessage.success(t('common.addSuccess'));
+    } else {
+      await updatePermission(submitData.id, submitData);
+      ElMessage.success(t('common.editSuccess'));
+    }
+    close();
+    fetchPermissionList();
+    
+    // 权限变更后刷新菜单栏
+    try {
+      await menuStore.getUserMenus();
+    } catch (error) {
+      // 菜单刷新失败不影响主流程，静默处理
+      console.error('权限变更后菜单刷新失败:', error);
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.message || '操作失败，请稍后重试');
+    console.error('提交表单失败:', error);
+  } finally {
+    setSubmitting(false);
   }
 };
 
@@ -780,7 +798,8 @@ const flattenPermissions = (tree: Permission[], parentId: string = '0'): Permiss
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@import '@/styles/variables.scss';
 .permission-management {
   padding: 20px;
 }
@@ -817,36 +836,118 @@ const flattenPermissions = (tree: Permission[], parentId: string = '0'): Permiss
   display: flex;
   align-items: center;
 }
+// ==================== 表单样式穿透 ====================
 :deep(.el-form--inline .el-form-item) {
   margin-right: 16px;
 }
-.custom-select-popper.el-popper.is-light {
+
+// ==================== 自定义选择器 Popper ====================
+:deep(.custom-select-popper.el-popper.is-light) {
   min-width: 120px !important;
   width: 120px !important;
   max-width: 120px !important;
   text-align: center;
 }
-.el-select .el-input__inner {
+
+:deep(.el-select .el-input__inner) {
   text-align: center;
 }
-.column-setting-popper.el-popper {
+
+// ==================== 自动完成下拉菜单 ====================
+// 权限名称输入框下拉菜单（200px）
+:deep(.autocomplete-permission-name-popper.el-popper),
+:deep(.autocomplete-permission-name-popper.el-autocomplete-suggestion) {
+  min-width: 200px !important;
+  width: 200px !important;
+  max-width: 200px !important;
+}
+
+// 权限编码输入框下拉菜单（250px）
+:deep(.autocomplete-permission-code-popper.el-popper),
+:deep(.autocomplete-permission-code-popper.el-autocomplete-suggestion) {
+  min-width: 250px !important;
+  width: 250px !important;
+  max-width: 250px !important;
+}
+
+// ==================== 列设置下拉菜单 ====================
+// Popper 容器样式
+:deep(.column-setting-popper.el-popper) {
   min-width: 180px !important;
-  width: 180px !important;
-  padding: 8px 0;
+  width: auto !important;
+  max-width: none !important;
+  padding: 8px 0 !important;
+  border-radius: $border-radius-md !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
-.column-setting-popper .el-dropdown-menu__item {
-  padding: 4px 16px;
-  display: flex;
-  align-items: center;
+
+// 下拉菜单样式
+:deep(.column-setting-popper .el-dropdown-menu),
+:deep(.column-setting-menu) {
+  padding: 4px 0 !important;
+  border-radius: $border-radius-md !important;
+  min-width: 180px !important;
+  width: auto !important;
 }
+
+// 菜单项样式
+:deep(.column-setting-popper .el-dropdown-menu__item),
+:deep(.column-setting-menu .el-dropdown-menu__item) {
+  padding: 8px 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  transition: $transition-fast !important;
+  min-height: 36px !important;
+  
+  &:hover {
+    background: rgba(64, 158, 255, 0.08) !important;
+  }
+  
+  // Checkbox 样式穿透
+  :deep(.el-checkbox) {
+    width: 100% !important;
+    margin: 0 !important;
+    
+    .el-checkbox__label {
+      padding-left: 8px !important;
+      font-size: 14px !important;
+      color: rgba(0, 0, 0, 0.85) !important;
+      transition: $transition-fast !important;
+    }
+    
+    &:hover .el-checkbox__label {
+      color: #409EFF !important;
+    }
+  }
+  
+  :deep(.el-checkbox__input) {
+    .el-checkbox__inner {
+      transition: $transition-fast !important;
+    }
+  }
+}
+
+// ==================== 列设置按钮 ====================
 .column-setting-btn {
-  /* 只保留必要的自定义，主色plain风格 */
-  border-radius: 4px;
-  font-size: 14px;
-  padding: 0 15px;
-  height: 32px;
-  display: inline-flex;
-  align-items: center;
+  border-radius: $border-radius-sm !important;
+  font-size: 14px !important;
+  padding: 0 15px !important;
+  height: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  transition: $transition-base !important;
+  margin-right: 10px !important;
+  
+  :deep(.el-icon) {
+    margin-right: 4px !important;
+    transition: $transition-base !important;
+  }
+  
+  &:hover {
+    :deep(.el-icon) {
+      transform: rotate(90deg) !important;
+    }
+  }
 }
 :deep(.el-table th) {
   vertical-align: middle !important;

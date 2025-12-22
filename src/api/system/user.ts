@@ -1,4 +1,4 @@
-import { request } from '@/utils/request';
+import { request, createFormData, FILE_UPLOAD_CONFIG } from '@/utils';
 import type { User, PaginationQuery, PaginationResponse } from '@/types';
 
 /**
@@ -49,7 +49,6 @@ export const getUserDetail = (id: string) => {
     return request.get<User>(`/system/user/detail/${id}`);
 };
 
-
 /**
  * 重置用户密码
  * @param id 用户ID
@@ -83,13 +82,8 @@ export const updateProfile = (data: Partial<User>) => {
  * @param file 头像文件
  */
 export const uploadAvatar = (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return request.post<{ url: string }>('/system/users/me/avatar', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data'
-        }
-    });
+    const formData = createFormData(file);
+    return request.post<{ url: string }>('/system/users/me/avatar', formData, FILE_UPLOAD_CONFIG);
 };
 
 /**

@@ -1,8 +1,8 @@
 <template>
   <el-breadcrumb separator="/">
-    <el-breadcrumb-item :to="{ path: '/' }">
-      <el-icon><House /></el-icon>
-      <span>{{ t('menu.dashboard.title') }}</span>
+    <!-- 只在非首页时显示首页图标链接 -->
+    <el-breadcrumb-item v-if="showHomeLink" :to="{ path: '/dashboard' }">
+      <el-icon class="home-icon"><House /></el-icon>
     </el-breadcrumb-item>
     <el-breadcrumb-item v-for="(item, index) in breadcrumbs" :key="index">
       <span v-if="index === breadcrumbs.length - 1" class="current">
@@ -22,16 +22,22 @@ import { useI18n } from 'vue-i18n';
 import { House } from '@element-plus/icons-vue';
 import { useMenuStore } from '@/stores/menu';
 import { MenuItem } from '@/types/menu';
-import { ElMessage } from 'element-plus';
 
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
 const menuStore = useMenuStore();
 
+// 判断是否显示首页链接（非首页且不在首页的子路由）
+const showHomeLink = computed(() => {
+  const currentPath = route.path;
+  // 如果当前路径是首页或首页的子路由，不显示首页链接
+  return currentPath !== '/dashboard' && !currentPath.startsWith('/dashboard/');
+});
+
 const breadcrumbs = computed(() => {
   return route.matched
-    .filter(item => !item.meta?.hidden && item.path !== '/')
+    .filter(item => !item.meta?.hidden && item.path !== '/' && item.path !== '/dashboard')
     .map(item => ({
       path: item.path,
       name: item.name,
@@ -164,5 +170,17 @@ const handleBreadcrumbClick = (item: any) => {
   font-size: 14px;
   margin-right: 2px;
   opacity: 0.85;
+}
+
+.home-icon {
+  font-size: 16px;
+  color: #606266;
+  transition: all 0.3s;
+  cursor: pointer;
+  
+  &:hover {
+    color: var(--el-color-primary);
+    opacity: 1;
+  }
 }
 </style> 

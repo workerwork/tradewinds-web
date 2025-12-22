@@ -190,7 +190,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance } from 'element-plus';
 import type { Customer } from '@/types/customer';
 import { getCustomerList, addCustomer, updateCustomer, deleteCustomer } from '@/api/customer';
-import { formatDateTime } from '@/utils/format';
+import { formatDateTime } from '@/utils';
 
 const router = useRouter();
 const formRef = ref<FormInstance>();

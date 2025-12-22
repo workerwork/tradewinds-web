@@ -6,7 +6,7 @@ import {
     updateRoleStatus as changeRoleStatus,
     assignRolePermissions as assignPermissionsApi
 } from '@/api/system/role';
-import { request } from '@/utils/request';
+import { request } from '@/utils';
 import { getPermissionList as fetchPermissionList } from '@/api/system/permission';
 
 /**

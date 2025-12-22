@@ -184,11 +184,60 @@ html {
     border: none !important;
     background: #2c3e50 !important;
     min-width: 220px !important;
+    z-index: 1000 !important;
+    /* 确保弹出菜单在正确的层级 */
+}
+
+// 排除用户下拉菜单，让其宽度自适应
+.el-popper.is-light.user-dropdown-popper {
+    min-width: auto !important;
+    width: auto !important;
+    max-width: none !important;
+}
+
+// 排除自动完成下拉菜单，让其宽度与输入框一致
+.el-popper.is-light.autocomplete-username-popper,
+.el-popper.is-light.autocomplete-name-popper,
+.el-popper.is-light.autocomplete-phone-popper,
+.el-popper.is-light.autocomplete-email-popper,
+.el-popper.is-light.autocomplete-role-name-popper,
+.el-popper.is-light.autocomplete-role-code-popper,
+.el-popper.is-light.autocomplete-permission-name-popper,
+.el-popper.is-light.autocomplete-permission-code-popper,
+.el-popper.is-light.backup-frequency-select-popper {
+    min-width: auto !important;
+    width: auto !important;
+    max-width: none !important;
 }
 
 .el-popper__arrow::before {
     background: #2c3e50 !important;
     border: none !important;
+}
+
+// 确保折叠状态下的弹出菜单可见
+.sidebar.is-collapsed~* .el-sub-menu__popper,
+.sidebar.is-collapsed .el-sub-menu__popper {
+    z-index: 1000 !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    background: #2c3e50 !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+// 确保弹出菜单内的文字可见
+.sidebar.is-collapsed .el-sub-menu__popper .el-menu-item,
+.sidebar.is-collapsed .el-sub-menu__popper .el-sub-menu__title {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.sidebar.is-collapsed .el-sub-menu__popper .el-menu-item:hover,
+.sidebar.is-collapsed .el-sub-menu__popper .el-sub-menu__title:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.1) !important;
 }
 
 // 确保所有弹出菜单宽度一致
@@ -237,6 +286,7 @@ html {
     color: #fff !important;
 }
 
+
 .el-menu--popup .el-menu-item.is-active,
 .el-menu--popup .el-sub-menu.is-active>.el-sub-menu__title {
     background: rgba(64, 158, 255, 0.2) !important;
@@ -254,4 +304,38 @@ html {
 .el-menu--popup .el-sub-menu__title .el-sub-menu__icon-arrow {
     margin-left: auto !important;
     color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* 修复抽屉遮罩漏光问题 */
+.drawer-modal-overlay,
+.el-overlay.drawer-modal-overlay {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(2px) !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    position: fixed !important;
+    z-index: 1999 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* 确保遮罩层完全覆盖，包括顶栏区域 */
+.el-drawer__wrapper {
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    position: fixed !important;
+}
+
+/* 抽屉本身不覆盖顶栏，但遮罩要覆盖 */
+.el-drawer {
+    top: 64px !important;
+    height: calc(100vh - 64px) !important;
 }

@@ -1,17 +1,11 @@
 <template>
-  <el-menu
-    v-if="level === 0"
-    :default-openeds="props.isCollapse ? [] : defaultOpeneds"
-    :collapse="props.isCollapse"
-    :router="true"
-    :default-active="route.path"
-    class="dynamic-menu-root"
-  >
+  <!-- level === 0 时，不创建 el-menu，因为外层 Sidebar 已经有了 -->
+  <template v-if="level === 0">
     <template v-for="menu in filteredMenuList" :key="menu.id">
       <!-- 所有有子菜单的节点都渲染为可展开/折叠的分组菜单 -->
       <el-sub-menu 
         v-if="menu.children && menu.children.length > 0 && menu.visible" 
-        :index="menu.path || menu.id" 
+        :index="String(menu.path || menu.id || '')" 
         class="sub-menu"
         :class="`menu-level-${level}`"
       >
@@ -20,51 +14,8 @@
           <span>{{ getMenuTitle(menu.title) }}</span>
         </template>
         
-        <!-- 递归渲染子菜单，在折叠状态下合并显示二级和三级菜单 -->
-        <template v-if="props.isCollapse">
-          <!-- 折叠状态下，先显示二级菜单，再显示所有叶子节点 -->
-          <template v-for="child in menu.children" :key="child.id">
-            <!-- 折叠状态下所有二级菜单都显示为菜单项，有子菜单的使用弹出方式 -->
-            <template v-if="child.visible && !child.meta?.hidden">
-              <!-- 有子菜单的二级菜单使用 el-sub-menu 支持弹出 -->
-              <el-sub-menu 
-                v-if="child.children && child.children.length > 0"
-                :index="child.path || child.id" 
-                class="sub-menu"
-                :class="`menu-level-${level+1}`"
-              >
-                <template #title>
-                  <MenuIcon :icon="child.icon" />
-                  <span>{{ getMenuTitle(child.title) }}</span>
-                </template>
-                <!-- 递归渲染三级菜单 -->
-                <DynamicMenu :menu-list="child.children" :level="level + 2" :isCollapse="props.isCollapse" />
-              </el-sub-menu>
-              
-              <!-- 没有子菜单的二级菜单直接显示为菜单项 -->
-              <el-menu-item 
-                v-else
-                :index="getMenuPath(child)" 
-                class="menu-item"
-                :class="`menu-level-${level+1}`"
-              >
-                <MenuIcon :icon="child.icon" />
-                <span>{{ getMenuTitle(child.title) }}</span>
-                <!-- 徽章显示 -->
-                <el-badge 
-                  v-if="child.badge" 
-                  :value="child.badge.value" 
-                  :type="child.badge.type" 
-                  class="menu-badge" 
-                />
-              </el-menu-item>
-            </template>
-          </template>
-        </template>
-        <template v-else>
-          <!-- 非折叠状态下，正常递归渲染 -->
-          <DynamicMenu :menu-list="menu.children" :level="level + 1" :isCollapse="props.isCollapse" />
-        </template>
+        <!-- 递归渲染子菜单 - Element Plus 在折叠状态下会自动处理弹出菜单 -->
+        <DynamicMenu :menu-list="menu.children" :level="level + 1" :isCollapse="props.isCollapse" />
       </el-sub-menu>
 
       <!-- 没有子菜单的情况（叶子节点菜单项） -->
@@ -86,13 +37,13 @@
         />
       </el-menu-item>
     </template>
-  </el-menu>
+  </template>
   <template v-else>
     <template v-for="menu in filteredMenuList" :key="menu.id">
       <!-- 所有有子菜单的节点都渲染为可展开/折叠的分组菜单 -->
       <el-sub-menu 
         v-if="menu.children && menu.children.length > 0 && menu.visible" 
-        :index="menu.path || menu.id" 
+        :index="String(menu.path || menu.id || '')" 
         class="sub-menu"
         :class="`menu-level-${level}`"
       >
@@ -643,7 +594,7 @@ const defaultOpeneds = computed(() => {
 :deep(.el-menu--collapse .el-sub-menu > .el-sub-menu__title) {
   width: 40px !important;
   height: 40px !important;
-  margin: 2px 8px !important;
+  margin: 2px 0 !important;
   padding: 0 !important;
   border-radius: 8px !important;
   display: flex !important;

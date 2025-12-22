@@ -1,12 +1,13 @@
-import { request, request_invoke } from '@/utils/request';
+import { request, request_invoke } from '@/utils';
 import type { ContactRecord } from '@/types';
+import type { ContactRecordQuery } from '@/api/types';
 import { API_MODE } from '@/config';
 
 /**
  * 获取客户联系记录列表
- * @param customerId 客户ID
+ * @param params 查询参数
  */
-export const getContactRecords = (params?: any) => {
+export const getContactRecords = (params?: ContactRecordQuery) => {
     return API_MODE === 'direct'
         ? request.get('/contact-records', { params })
         : request_invoke({
@@ -21,7 +22,7 @@ export const getContactRecords = (params?: any) => {
  * 添加联系记录
  * @param data 联系记录数据
  */
-export const createContactRecord = (data: any) => {
+export const createContactRecord = (data: Partial<ContactRecord>) => {
     return API_MODE === 'direct'
         ? request.post('/contact-records', data)
         : request_invoke({

@@ -8,6 +8,7 @@
             v-model="searchForm.name"
             placeholder="请输入角色名称"
             clearable
+            popper-class="autocomplete-role-name-popper"
             :fetch-suggestions="queryNameSuggestions"
             @select="handleFieldSearch"
             style="width: 200px;"
@@ -18,6 +19,7 @@
             v-model="searchForm.code"
             placeholder="请输入角色编码"
             clearable
+            popper-class="autocomplete-role-code-popper"
             :fetch-suggestions="queryCodeSuggestions"
             @select="handleFieldSearch"
             style="width: 200px;"
@@ -51,13 +53,13 @@
           <span>角色列表</span>
           <div>
             <el-dropdown trigger="click" popper-class="column-setting-popper">
-              <el-button type="primary" plain size="small" class="column-setting-btn" style="margin-right: 10px;">
-                <el-icon style="margin-right: 4px;"><Setting /></el-icon>列设置
+              <el-button type="primary" plain size="small" class="column-setting-btn">
+                <el-icon><Setting /></el-icon>列设置
               </el-button>
               <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item v-for="col in allColumns" :key="col.prop" style="min-width: 160px;">
-                    <el-checkbox v-model="col.visible" style="margin-right: 8px; vertical-align: middle;">{{ col.label }}</el-checkbox>
+                <el-dropdown-menu class="column-setting-menu">
+                  <el-dropdown-item v-for="col in allColumns" :key="col.prop">
+                    <el-checkbox v-model="col.visible">{{ col.label }}</el-checkbox>
                   </el-dropdown-item>
                 </el-dropdown-menu>
               </template>
@@ -171,27 +173,21 @@
     </el-card>
 
     <!-- 角色表单对话框 -->
-    <el-dialog
+    <FormDialog
       v-model="dialogVisible"
+      :dialog-type="dialogType"
       :title="dialogType === 'add' ? '新增角色' : '编辑角色'"
       width="600px"
-      destroy-on-close
-      :close-on-click-modal="false"
+      :loading="submitting"
+      @confirm="handleSubmit"
+      @cancel="close"
     >
       <RoleForm
         ref="roleFormRef"
         :model-value="form"
         :is-edit="dialogType === 'edit'"
       />
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleSubmit" :loading="submitting">
-            确定
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
+    </FormDialog>
 
     <!-- 权限分配对话框 -->
     <el-dialog
@@ -225,10 +221,11 @@ import { ref, reactive, onMounted, onUnmounted, watch, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Refresh, Setting } from '@element-plus/icons-vue';
 import type { Role } from '@/types';
-import { formatDateTime } from '@/utils/format';
+import { formatDateTime } from '@/utils';
 import { debounce } from 'lodash-es';
 import RoleForm from './components/RoleForm.vue';
 import PermissionAssignment from './components/PermissionAssignment.vue';
+import FormDialog from '@/components/common/FormDialog.vue';
 import { 
   getRoleList, 
   createRole, 
@@ -238,8 +235,12 @@ import {
   deleteRole
 } from './services/role-service';
 import { useMenuStore } from '@/stores/menu';
-import { useTablePersist } from '@/composables/useTablePersist'
-import { useSearchHistory } from '@/composables/useSearchHistory'
+import { useTablePersist, useSearchHistory, useDialog } from '@/composables'
+
+// 自动完成建议项类型
+interface AutocompleteSuggestion {
+  value: string;
+}
 
 const menuStore = useMenuStore();
 
@@ -279,9 +280,6 @@ const allColumns = ref(tableOptions.value.allColumns)
 const total = ref(0)
 const loading = ref(false)
 const roleList = ref<Role[]>([])
-const dialogVisible = ref(false)
-const dialogType = ref<'add' | 'edit'>('add')
-const submitting = ref(false)
 const roleFormRef = ref()
 const form = reactive({
   id: '' as string | number,
@@ -295,6 +293,28 @@ const permissionDialogVisible = ref(false)
 const permissionAssignmentRef = ref()
 const currentRoleId = ref<string | number>('')
 const checkedPermissions = ref<(string | number)[]>([])
+
+// 使用 useDialog 管理弹窗状态
+const resetForm = () => {
+  form.id = '';
+  form.name = '';
+  form.code = '';
+  form.description = '';
+  form.status = 0;
+  form.permissionIds = [];
+};
+
+const {
+  dialogVisible,
+  dialogType,
+  submitting,
+  openAdd,
+  openEdit,
+  close,
+  setSubmitting
+} = useDialog({
+  resetForm
+});
 
 watch([page, pageSize, allColumns], () => {
   tableOptions.value.page = page.value
@@ -330,14 +350,15 @@ const filteredRoleList = computed(() => {
   // 状态过滤 - 由于状态过滤已经在后端处理，这里不需要再过滤
   // 但为了保持一致性，仍然保留前端的过滤逻辑作为兜底
   if (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined) {
-    filtered = filtered.filter(role => role.status === searchForm.status);
+    const statusNum = typeof searchForm.status === 'string' ? parseInt(searchForm.status) : searchForm.status;
+    filtered = filtered.filter(role => role.status === statusNum);
   }
   
   return filtered;
 });
 
 // 联想建议函数
-const queryNameSuggestions = (queryString: string, cb: (suggestions: any[]) => void) => {
+const queryNameSuggestions = (queryString: string, cb: (suggestions: AutocompleteSuggestion[]) => void) => {
   const suggestions = roleList.value
     .filter(role => role.name.toLowerCase().includes(queryString.toLowerCase()))
     .map(role => ({ value: role.name }))
@@ -345,7 +366,7 @@ const queryNameSuggestions = (queryString: string, cb: (suggestions: any[]) => v
   cb(suggestions);
 };
 
-const queryCodeSuggestions = (queryString: string, cb: (suggestions: any[]) => void) => {
+const queryCodeSuggestions = (queryString: string, cb: (suggestions: AutocompleteSuggestion[]) => void) => {
   const suggestions = roleList.value
     .filter(role => role.code.toLowerCase().includes(queryString.toLowerCase()))
     .map(role => ({ value: role.code }))
@@ -357,7 +378,7 @@ const queryCodeSuggestions = (queryString: string, cb: (suggestions: any[]) => v
 const fetchRoleList = debounce(async () => {
   try {
     loading.value = true;
-    const params: any = {
+    const params: Record<string, any> = {
       page: 1, // 获取所有数据用于本地过滤
       pageSize: 1000, // 获取大量数据
       showDeleted: !!searchForm.showDeleted
@@ -393,9 +414,9 @@ const fetchRoleList = debounce(async () => {
       const keyword = searchKeywords.join(' ')
       addSearchRecord(keyword, filteredRoleList.value.length)
     }
-  } catch (error) {
+  } catch (error: any) {
+    ElMessage.error(error?.message || '获取角色列表失败，请稍后重试');
     console.error('获取角色列表失败:', error);
-    ElMessage.error('获取角色列表失败');
   } finally {
     loading.value = false;
   }
@@ -430,29 +451,31 @@ const resetSearch = () => {
 
 // 新增角色
 const handleAdd = () => {
-  dialogType.value = 'add';
-  form.id = '';
-  form.name = '';
-  form.code = '';
-  form.description = '';
-  form.status = 0;
-  form.permissionIds = []; // 新增时清空权限id
-  dialogVisible.value = true;
+  openAdd();
 };
 
-const isUUID = (id: any) => typeof id === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id);
+const isUUID = (id: string | number | undefined): id is string => {
+  return typeof id === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id);
+};
+
+// 权限树节点类型
+interface PermissionTreeNode {
+  id: string | number;
+  children?: PermissionTreeNode[];
+  [key: string]: any;
+}
 
 // 过滤出叶子权限（用户实际选择的权限，不包括因为层级关系自动添加的父权限）
-const getLeafPermissions = (allPermissionIds: (string | number)[], treeData: any[]) => {
+const getLeafPermissions = (allPermissionIds: (string | number)[], treeData: PermissionTreeNode[]): (string | number)[] => {
   if (!allPermissionIds || allPermissionIds.length === 0 || !treeData || treeData.length === 0) {
     return allPermissionIds || [];
   }
 
   // 创建id到节点的映射
-  const nodeMap = new Map();
+  const nodeMap = new Map<string | number, PermissionTreeNode>();
   
-  const buildNodeMap = (nodes: any[]) => {
-    nodes.forEach((node: any) => {
+  const buildNodeMap = (nodes: PermissionTreeNode[]) => {
+    nodes.forEach((node) => {
       nodeMap.set(node.id, node);
       if (node.children && node.children.length) {
         buildNodeMap(node.children);
@@ -471,7 +494,7 @@ const getLeafPermissions = (allPermissionIds: (string | number)[], treeData: any
     }
     
     // 检查是否有子权限被选中
-    const hasSelectedChildren = node.children.some((child: any) => 
+    const hasSelectedChildren = node.children.some((child) => 
       allPermissionIds.includes(child.id)
     );
     
@@ -484,7 +507,6 @@ const getLeafPermissions = (allPermissionIds: (string | number)[], treeData: any
 
 // 编辑角色
 const handleEdit = async (row: Role) => {
-  dialogType.value = 'edit';
   if (!isUUID(row.id)) {
     ElMessage.error('角色ID无效，无法编辑');
     return;
@@ -506,16 +528,14 @@ const handleEdit = async (row: Role) => {
     const treeData = await getPermissionTree();
     const leafPermissions = getLeafPermissions(allPermissionIds, treeData);
     
-    console.log('handleEdit - 后端返回的完整权限:', allPermissionIds);
-    console.log('handleEdit - 过滤后的叶子权限:', leafPermissions);
-    
+    // 过滤叶子权限，只显示用户选择的权限
     form.permissionIds = leafPermissions;
   } catch (error) {
     console.error('获取权限树失败，使用完整权限列表:', error);
     form.permissionIds = allPermissionIds;
   }
   
-  dialogVisible.value = true;
+  openEdit(row);
 };
 
 // 提交表单
@@ -529,53 +549,53 @@ const handleSubmit = async () => {
   let permissionIdsWithParents = selectedPermissionIds;
   if (roleFormRef.value.getPermissionIdsWithParents) {
     permissionIdsWithParents = roleFormRef.value.getPermissionIdsWithParents();
-    console.log('角色表单提交 - 用户选择的权限:', selectedPermissionIds);
-    console.log('角色表单提交 - 包含父权限的完整列表:', permissionIdsWithParents);
+    // 提交时使用包含父权限的完整列表
   }
   
   if (roleFormRef.value.form) {
     roleFormRef.value.form.permissionIds = selectedPermissionIds; // 表单仍然显示用户选择的权限
   }
   const valid = await roleFormRef.value.validate();
-  if (valid) {
-    submitting.value = true;
-    try {
-      let roleData = { ...roleFormRef.value.form };
-      roleData.permissionIds = permissionIdsWithParents; // 提交时使用包含父权限的完整列表
-      if (dialogType.value === 'add') {
-        // 新增时不携带id
-        delete roleData.id;
-        // status 转 number，防止后端类型不符
-        roleData.status = Number(roleData.status);
-        const res = await createRole(roleData) as unknown as { id: string | number };
-        ElMessage.success('添加成功');
-      } else {
-        // 编辑时校验 id
-        if (!isUUID(roleData.id)) {
-          ElMessage.error('角色ID无效，无法编辑');
-          submitting.value = false;
-          return;
-        }
-        // status 转 number，防止后端类型不符
-        roleData.status = Number(roleData.status);
-        await updateRole(roleData.id, roleData);
-        ElMessage.success('编辑成功');
+  if (!valid) return;
+
+  setSubmitting(true);
+  try {
+    let roleData = { ...roleFormRef.value.form };
+    roleData.permissionIds = permissionIdsWithParents; // 提交时使用包含父权限的完整列表
+    if (dialogType.value === 'add') {
+      // 新增时不携带id
+      delete roleData.id;
+      // status 转 number，防止后端类型不符
+      roleData.status = Number(roleData.status);
+      const res = await createRole(roleData) as unknown as { id: string | number };
+      ElMessage.success('添加成功');
+    } else {
+      // 编辑时校验 id
+      if (!isUUID(roleData.id)) {
+        ElMessage.error('角色ID无效，无法编辑');
+        setSubmitting(false);
+        return;
       }
-      dialogVisible.value = false;
-      fetchRoleList();
-      
-      // 角色信息变更后刷新菜单栏
-      try {
-        await menuStore.getUserMenus();
-        console.log('角色变更后菜单刷新成功');
-      } catch (error) {
-        console.error('角色变更后菜单刷新失败:', error);
-      }
-    } catch (error) {
-      console.error('提交失败:', error);
-    } finally {
-      submitting.value = false;
+      // status 转 number，防止后端类型不符
+      roleData.status = Number(roleData.status);
+      await updateRole(roleData.id, roleData);
+      ElMessage.success('更新成功');
     }
+    close();
+    fetchRoleList();
+    
+    // 角色信息变更后刷新菜单栏
+    try {
+      await menuStore.getUserMenus();
+    } catch (error) {
+      // 菜单刷新失败不影响主流程，静默处理
+      console.error('角色变更后菜单刷新失败:', error);
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.message || '操作失败，请稍后重试');
+    console.error('提交失败:', error);
+  } finally {
+    setSubmitting(false);
   }
 };
 
@@ -592,8 +612,11 @@ const handleToggleStatus = async (row: Role) => {
     await updateRoleStatus(String(row.id), row.status === 0 ? 1 : 0);
     ElMessage.success((row.status === 0 ? '禁用' : '启用') + '成功');
     fetchRoleList();
-  } catch (error) {
-    console.error('更新角色状态失败:', error);
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error?.message || '操作失败，请稍后重试');
+      console.error('更新角色状态失败:', error);
+    }
   }
 };
 
@@ -609,8 +632,7 @@ const handlePermission = async (row: Role) => {
     const treeData = await getPermissionTree();
     const leafPermissions = getLeafPermissions(allPermissionIds, treeData);
     
-    console.log('handlePermission - 后端返回的完整权限:', allPermissionIds);
-    console.log('handlePermission - 过滤后的叶子权限:', leafPermissions);
+    // 过滤叶子权限，只显示用户选择的权限
     
     checkedPermissions.value = leafPermissions;
   } catch (error) {
@@ -635,11 +657,12 @@ const handlePermissionSubmit = async () => {
     // 角色权限变更后刷新菜单栏
     try {
       await menuStore.getUserMenus();
-      console.log('角色权限变更后菜单刷新成功');
     } catch (error) {
+      // 菜单刷新失败不影响主流程，静默处理
       console.error('角色权限变更后菜单刷新失败:', error);
     }
-  } catch (error) {
+  } catch (error: any) {
+    ElMessage.error(error?.message || '权限分配失败，请稍后重试');
     console.error('权限分配失败:', error);
   } finally {
     submitting.value = false;
@@ -722,7 +745,8 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@import '@/styles/variables.scss';
 .role-management {
   padding: 20px;
 }
@@ -764,34 +788,117 @@ onMounted(() => {
   align-items: center;
 }
 
+// ==================== 表单样式穿透 ====================
 :deep(.el-form--inline .el-form-item) {
   margin-right: 16px;
 }
-.custom-select-popper.el-popper.is-light {
+
+// ==================== 自定义选择器 Popper ====================
+:deep(.custom-select-popper.el-popper.is-light) {
   min-width: 120px !important;
   width: 120px !important;
   max-width: 120px !important;
   text-align: center;
 }
-.el-select .el-input__inner {
+
+:deep(.el-select .el-input__inner) {
   text-align: center;
 }
-.column-setting-popper.el-popper {
+
+// ==================== 自动完成下拉菜单 ====================
+// 角色名称输入框下拉菜单（200px）
+:deep(.autocomplete-role-name-popper.el-popper),
+:deep(.autocomplete-role-name-popper.el-autocomplete-suggestion) {
+  min-width: 200px !important;
+  width: 200px !important;
+  max-width: 200px !important;
+}
+
+// 角色编码输入框下拉菜单（200px）
+:deep(.autocomplete-role-code-popper.el-popper),
+:deep(.autocomplete-role-code-popper.el-autocomplete-suggestion) {
+  min-width: 200px !important;
+  width: 200px !important;
+  max-width: 200px !important;
+}
+
+// ==================== 列设置下拉菜单 ====================
+// Popper 容器样式
+:deep(.column-setting-popper.el-popper) {
   min-width: 180px !important;
-  width: 180px !important;
-  padding: 8px 0;
+  width: auto !important;
+  max-width: none !important;
+  padding: 8px 0 !important;
+  border-radius: $border-radius-md !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
-.column-setting-popper .el-dropdown-menu__item {
-  padding: 4px 16px;
-  display: flex;
-  align-items: center;
+
+// 下拉菜单样式
+:deep(.column-setting-popper .el-dropdown-menu),
+:deep(.column-setting-menu) {
+  padding: 4px 0 !important;
+  border-radius: $border-radius-md !important;
+  min-width: 180px !important;
+  width: auto !important;
 }
+
+// 菜单项样式
+:deep(.column-setting-popper .el-dropdown-menu__item),
+:deep(.column-setting-menu .el-dropdown-menu__item) {
+  padding: 8px 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  transition: $transition-fast !important;
+  min-height: 36px !important;
+  
+  &:hover {
+    background: rgba(64, 158, 255, 0.08) !important;
+  }
+  
+  // Checkbox 样式穿透
+  :deep(.el-checkbox) {
+    width: 100% !important;
+    margin: 0 !important;
+    
+    .el-checkbox__label {
+      padding-left: 8px !important;
+      font-size: 14px !important;
+      color: rgba(0, 0, 0, 0.85) !important;
+      transition: $transition-fast !important;
+    }
+    
+    &:hover .el-checkbox__label {
+      color: #409EFF !important;
+    }
+  }
+  
+  :deep(.el-checkbox__input) {
+    .el-checkbox__inner {
+      transition: $transition-fast !important;
+    }
+  }
+}
+
+// ==================== 列设置按钮 ====================
 .column-setting-btn {
-  border-radius: 4px;
-  font-size: 14px;
-  padding: 0 15px;
-  height: 32px;
-  display: inline-flex;
-  align-items: center;
+  border-radius: $border-radius-sm !important;
+  font-size: 14px !important;
+  padding: 0 15px !important;
+  height: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  transition: $transition-base !important;
+  margin-right: 10px !important;
+  
+  :deep(.el-icon) {
+    margin-right: 4px !important;
+    transition: $transition-base !important;
+  }
+  
+  &:hover {
+    :deep(.el-icon) {
+      transform: rotate(90deg) !important;
+    }
+  }
 }
 </style> 

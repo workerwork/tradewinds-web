@@ -8,16 +8,16 @@ import '@/styles/index.scss';
 import i18n from './i18n';
 import lazyLoad from './directives/lazy';
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate';
-import { installErrorHandler } from '@/utils/error-handler';
-import { installPerformanceMonitor } from '@/utils/performance';
-import { installComponentCleanup } from '@/utils/component-cleanup';
+import { installErrorHandler, installPerformanceMonitor, installComponentCleanup } from '@/utils';
 import { useUserStore } from '@/stores';
 import { DEBUG, API_MODE, API_BASE_URL } from '@/config';
 import { setupPermission } from './directives/permission';
 
 // Mock已禁用 - 使用真实后端API
-console.log('Mock已禁用，使用真实后端API');
-console.log('当前API配置:', { API_BASE_URL: API_BASE_URL, API_MODE });
+if (DEBUG) {
+    console.log('Mock已禁用，使用真实后端API');
+    console.log('当前API配置:', { API_BASE_URL: API_BASE_URL, API_MODE });
+}
 
 const app = createApp(App);
 const pinia = createPinia();

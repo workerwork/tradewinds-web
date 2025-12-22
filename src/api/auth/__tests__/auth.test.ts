@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { request } from '@/utils/request-axios';
+import { request } from '@/utils';
 import { authAPI } from '../index';
 import type { AxiosResponse } from 'axios';
 

@@ -1,4 +1,4 @@
-import { request } from '@/utils/request';
+import { request, createFormData, FILE_UPLOAD_CONFIG } from '@/utils';
 import type { Product, PaginationQuery, PaginationResponse } from '@/types';
 
 /**
@@ -61,13 +61,8 @@ export const updateProductStatus = (id: number, status: number) => {
  * @param file 图片文件
  */
 export const uploadProductImage = (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return request.post<{ url: string }>('/product/upload-image', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data'
-        }
-    });
+    const formData = createFormData(file);
+    return request.post<{ url: string }>('/product/upload-image', formData, FILE_UPLOAD_CONFIG);
 };
 
 /**
@@ -75,20 +70,20 @@ export const uploadProductImage = (file: File) => {
  * @param file Excel文件
  */
 export const importProducts = (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return request.post<void>('/product/import', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data'
-        }
-    });
+    const formData = createFormData(file);
+    return request.post<void>('/product/import', formData, FILE_UPLOAD_CONFIG);
 };
 
 /**
  * 导出产品数据
  * @param params 查询参数
  */
-export const exportProducts = (params?: any) => {
+export const exportProducts = (params?: Partial<PaginationQuery & {
+    name?: string;
+    code?: string;
+    category?: string;
+    status?: number;
+}>) => {
     return request.post('/product/export', params, {
         responseType: 'blob'
     });

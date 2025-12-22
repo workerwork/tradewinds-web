@@ -10,7 +10,10 @@ export function useComponentLifecycle() {
 
     // 检查组件是否已卸载
     const isUnmounted = () => {
-        return !isComponentMounted.value || !instance?.isUnmounted?.() || instance?.isUnmounted?.()
+        if (!isComponentMounted.value) return true;
+        if (!instance) return true;
+        // Vue 3 中，组件实例没有 isUnmounted 方法，使用其他方式判断
+        return false;
     }
 
     // 安全地执行异步操作
@@ -62,7 +65,7 @@ export function useComponentLifecycle() {
  */
 export function useSafeDialog() {
     const { isUnmounted, safeSet } = useComponentLifecycle()
-    const dialogVisible = ref(false)
+    const dialogVisible = ref<boolean>(false)
 
     const showDialog = () => {
         if (!isUnmounted()) {

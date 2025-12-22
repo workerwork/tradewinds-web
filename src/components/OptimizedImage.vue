@@ -16,7 +16,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { preloadImage, getImageDominantColor } from '@/utils/image'
+import { preloadImage, getImageDominantColor } from '@/utils'
 import { Loading } from '@element-plus/icons-vue'
 
 const props = defineProps<{

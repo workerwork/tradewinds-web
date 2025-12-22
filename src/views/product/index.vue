@@ -189,7 +189,9 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useProductStore } from '@/stores';
-import { cache } from '@/utils/cache';
+import { CacheService } from '@/utils';
+
+const cache = new CacheService();
 import VirtualList from '@/components/VirtualList.vue';
 import type { FormInstance } from 'element-plus';
 import type { Product } from '@/types';

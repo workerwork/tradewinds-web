@@ -27,13 +27,15 @@ const generateRequestKey = (config: AxiosRequestConfig): string => {
 // 添加请求拦截器
 service.interceptors.request.use(
     (config) => {
-        console.log('发送请求:', {
-            URL: config.baseURL + config.url,
-            方法: config.method,
-            请求头: config.headers,
-            参数: config.params,
-            数据: config.data
-        });
+        if (DEBUG) {
+            console.log('发送请求:', {
+                URL: config.baseURL + config.url,
+                方法: config.method,
+                请求头: config.headers,
+                参数: config.params,
+                数据: config.data
+            });
+        }
 
         const userStore = useUserStore();
         const token = userStore.token;

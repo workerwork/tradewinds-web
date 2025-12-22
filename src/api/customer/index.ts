@@ -1,4 +1,4 @@
-import { request } from '@/utils/request';
+import { request, createFormData, FILE_UPLOAD_CONFIG } from '@/utils';
 import type { Customer, PaginationQuery, PaginationResponse } from '@/types';
 
 /**
@@ -61,20 +61,20 @@ export const updateCustomerStatus = (id: number, status: number) => {
  * @param file Excel文件
  */
 export const importCustomers = (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return request.post<void>('/customer/import', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data'
-        }
-    });
+    const formData = createFormData(file);
+    return request.post<void>('/customer/import', formData, FILE_UPLOAD_CONFIG);
 };
 
 /**
  * 导出客户数据
  * @param params 查询参数
  */
-export const exportCustomers = (params?: any) => {
+export const exportCustomers = (params?: Partial<PaginationQuery & {
+    name?: string;
+    contact?: string;
+    phone?: string;
+    status?: number;
+}>) => {
     return request.post('/customer/export', params, {
         responseType: 'blob'
     });

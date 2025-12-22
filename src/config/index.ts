@@ -8,15 +8,17 @@ export const DEBUG = import.meta.env.DEV;
 export const API_BASE_URL = '/api';  // 固定使用相对路径
 export const API_MODE: ApiMode = 'direct';
 
-// 调试信息
-console.log('配置信息:', {
-    VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
-    API_BASE_URL,
-    VITE_API_MODE: import.meta.env.VITE_API_MODE,
-    API_MODE,
-    NODE_ENV: import.meta.env.NODE_ENV,
-    DEV: import.meta.env.DEV
-});
+// 调试信息（仅在开发模式下输出）
+if (DEBUG) {
+    console.log('配置信息:', {
+        VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+        API_BASE_URL,
+        VITE_API_MODE: import.meta.env.VITE_API_MODE,
+        API_MODE,
+        NODE_ENV: import.meta.env.NODE_ENV,
+        DEV: import.meta.env.DEV
+    });
+}
 
 // 其他配置
 export const CONFIG = {

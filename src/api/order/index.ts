@@ -1,4 +1,4 @@
-import { request } from '@/utils/request';
+import { request } from '@/utils';
 import type { Order, PaginationQuery, PaginationResponse } from '@/types';
 
 /**
@@ -60,7 +60,12 @@ export const updateOrderStatus = (id: number, status: number) => {
  * 导出订单数据
  * @param params 查询参数
  */
-export const exportOrders = (params?: any) => {
+export const exportOrders = (params?: Partial<PaginationQuery & {
+    orderNo?: string;
+    customerName?: string;
+    status?: number;
+    dateRange?: [string, string];
+}>) => {
     return request.post('/order/export', params, {
         responseType: 'blob'
     });

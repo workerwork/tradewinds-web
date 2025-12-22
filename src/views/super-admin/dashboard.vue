@@ -1,16 +1,26 @@
 <template>
-  <div class="super-admin-container" v-loading="loading" element-loading-text="加载仪表盘数据中...">
+  <div class="super-admin-dashboard-container" v-loading="loading" element-loading-text="加载仪表盘数据中...">
     <el-card class="page-header">
-      <h2 class="page-title">超级管理员控制台</h2>
-      <p class="page-description">欢迎使用超级管理员功能，您拥有最高级别的系统权限。</p>
+      <div class="header-content">
+        <div class="header-text">
+          <h2 class="page-title">
+            <el-icon class="title-icon"><DataBoard /></el-icon>
+            超级管理员控制台
+          </h2>
+          <p class="page-description">欢迎使用超级管理员功能，您拥有最高级别的系统权限。</p>
+        </div>
+        <div class="header-actions">
+          <el-button :icon="Refresh" circle @click="getSystemInfo" :loading="loading" />
+        </div>
+      </div>
     </el-card>
 
     <el-row :gutter="20" class="stats-row">
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+      <el-col :xs="24" :sm="12" :md="6">
+        <el-card class="stat-card" shadow="hover" @click="router.push('/super-admin/monitor')">
           <div class="stat-content">
             <div class="stat-icon system-icon">
-              <el-icon><Setting /></el-icon>
+              <el-icon><UserFilled /></el-icon>
             </div>
             <div class="stat-text">
               <h3>{{ totalUsers }}</h3>
@@ -20,11 +30,11 @@
         </el-card>
       </el-col>
 
-      <el-col :span="6">
+      <el-col :xs="24" :sm="12" :md="6">
         <el-card class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon user-icon">
-              <el-icon><UserFilled /></el-icon>
+              <el-icon><ShoppingCart /></el-icon>
             </div>
             <div class="stat-text">
               <h3>{{ totalOrders }}</h3>
@@ -34,8 +44,8 @@
         </el-card>
       </el-col>
 
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+      <el-col :xs="24" :sm="12" :md="6">
+        <el-card class="stat-card" shadow="hover" @click="router.push('/super-admin/logs')">
           <div class="stat-content">
             <div class="stat-icon security-icon">
               <el-icon><Lock /></el-icon>
@@ -48,8 +58,8 @@
         </el-card>
       </el-col>
 
-      <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+      <el-col :xs="24" :sm="12" :md="6">
+        <el-card class="stat-card" shadow="hover" @click="router.push('/super-admin/monitor')">
           <div class="stat-content">
             <div class="stat-icon data-icon">
               <el-icon><DataAnalysis /></el-icon>
@@ -64,62 +74,91 @@
     </el-row>
 
     <el-row :gutter="20" class="content-row">
-      <el-col :span="12">
-        <el-card class="content-card">
+      <el-col :xs="24" :sm="24" :md="12">
+        <el-card class="content-card" shadow="hover">
           <template #header>
-            <span class="card-title">系统监控</span>
+            <div class="card-header">
+              <span class="card-title">
+                <el-icon><Monitor /></el-icon>
+                系统监控
+              </span>
+            </div>
           </template>
           <div class="monitor-content">
             <el-descriptions :column="2" border>
               <el-descriptions-item label="系统状态">
-                <el-tag type="success">正常运行</el-tag>
+                <el-tag type="success" effect="dark">正常运行</el-tag>
               </el-descriptions-item>
-              <el-descriptions-item label="在线用户">{{ onlineUsers }}</el-descriptions-item>
-              <el-descriptions-item label="CPU使用率">{{ cpuUsage }}%</el-descriptions-item>
-              <el-descriptions-item label="内存使用率">{{ memoryUsage }}%</el-descriptions-item>
+              <el-descriptions-item label="在线用户">
+                <el-icon class="desc-icon"><User /></el-icon>
+                {{ onlineUsers }}
+              </el-descriptions-item>
+              <el-descriptions-item label="CPU使用率">
+                <el-icon class="desc-icon"><Cpu /></el-icon>
+                {{ cpuUsage }}%
+              </el-descriptions-item>
+              <el-descriptions-item label="内存使用率">
+                <el-icon class="desc-icon"><Connection /></el-icon>
+                {{ memoryUsage }}%
+              </el-descriptions-item>
             </el-descriptions>
           </div>
         </el-card>
       </el-col>
 
-      <el-col :span="12">
-        <el-card class="content-card">
+      <el-col :xs="24" :sm="24" :md="12">
+        <el-card class="content-card" shadow="hover">
           <template #header>
-            <span class="card-title">快速操作</span>
+            <div class="card-header">
+              <span class="card-title">
+                <el-icon><Operation /></el-icon>
+                快速操作
+              </span>
+            </div>
           </template>
           <div class="quick-actions">
             <el-button type="primary" size="large" class="action-btn" @click="handleSystemBackup">
-              <el-icon><Download /></el-icon>
-              系统备份
+              <el-icon class="btn-icon"><Download /></el-icon>
+              <span class="btn-text">系统备份</span>
             </el-button>
             <el-button type="warning" size="large" class="action-btn" @click="handleSystemMaintenance">
-              <el-icon><Tools /></el-icon>
-              系统维护
+              <el-icon class="btn-icon"><Tools /></el-icon>
+              <span class="btn-text">系统维护</span>
             </el-button>
             <el-button type="info" size="large" class="action-btn" @click="handleSystemLogs">
-              <el-icon><Document /></el-icon>
-              查看日志
+              <el-icon class="btn-icon"><Document /></el-icon>
+              <span class="btn-text">查看日志</span>
             </el-button>
             <el-button type="danger" size="large" class="action-btn" @click="handleEmergencyMode">
-              <el-icon><Warning /></el-icon>
-              紧急模式
+              <el-icon class="btn-icon"><Warning /></el-icon>
+              <span class="btn-text">紧急模式</span>
             </el-button>
           </div>
         </el-card>
       </el-col>
     </el-row>
 
-    <el-card class="recent-activities">
+    <el-card class="recent-activities" shadow="hover">
       <template #header>
-        <span class="card-title">最近活动</span>
+        <div class="card-header">
+          <span class="card-title">
+            <el-icon><Clock /></el-icon>
+            最近活动
+          </span>
+        </div>
       </template>
-      <el-table :data="recentActivities" style="width: 100%">
-        <el-table-column prop="time" label="时间" width="180" />
+      <el-table 
+        :data="recentActivities" 
+        style="width: 100%"
+        :empty-text="'暂无活动记录'"
+        stripe
+      >
+        <el-table-column prop="time" label="时间" width="180" sortable />
         <el-table-column prop="user" label="用户" width="120" />
-        <el-table-column prop="action" label="操作" />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column prop="action" label="操作" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="scope">
-            <el-tag :type="scope.row.status === '成功' ? 'success' : 'danger'">
+            <el-tag :type="scope.row.status === '成功' ? 'success' : 'danger'" effect="dark" size="small">
               {{ scope.row.status }}
             </el-tag>
           </template>
@@ -132,14 +171,19 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Setting, UserFilled, Lock, DataAnalysis, Download, Tools, Document, Warning } from '@element-plus/icons-vue';
+import { 
+  DataBoard, Refresh, UserFilled, ShoppingCart, Lock, DataAnalysis, 
+  Download, Tools, Document, Warning, Monitor, Operation, Clock,
+  User, Cpu, Connection
+} from '@element-plus/icons-vue';
 import { getSuperAdminDashboard, type SuperAdminDashboard } from '@/api/auth';
-import { useUserStore } from '@/stores/user';
-import { useRouter } from 'vue-router';
+import { useSuperAdminAccess } from '@/composables';
+import { formatDateTime } from '@/utils';
+
+// 使用权限检查 composable
+const { checkAccess, executeWithPermission, router } = useSuperAdminAccess();
 
 // 响应式数据
-const userStore = useUserStore();
-const router = useRouter();
 const loading = ref(false);
 const onlineUsers = ref(0);
 const cpuUsage = ref(0);
@@ -154,32 +198,14 @@ const recentActivities = ref<Array<{
   status: string;
 }>>([]);
 
-// 前端权限检查（用户体验优化，真正的权限控制在后端）
-const checkSuperAdminAccess = () => {
-  console.log('SuperAdmin - 前端权限检查:', {
-    用户角色: userStore.roles,
-    是否超级管理员: userStore.hasRole('super_admin')
-  });
-  
-  if (!userStore.hasRole('super_admin')) {
-    console.warn('SuperAdmin - 前端检测到无权限访问');
-    ElMessage.error('您没有权限访问此页面');
-    router.push('/dashboard');
-    return false;
-  }
-  return true;
-};
-
 // 获取系统信息
 const getSystemInfo = async () => {
-  // 前端权限检查（第一层保护）
-  if (!checkSuperAdminAccess()) {
+  if (!checkAccess()) {
     return;
   }
   
   loading.value = true;
   try {
-    console.log('SuperAdmin - 获取仪表盘数据');
     const response = await getSuperAdminDashboard();
     
     // 处理API响应
@@ -202,32 +228,14 @@ const getSystemInfo = async () => {
     // 更新最近活动
     if (data.recentActivities) {
       recentActivities.value = data.recentActivities.map(activity => ({
-        time: activity.timestamp,
+        time: formatDateTime(activity.timestamp) || activity.timestamp,
         user: activity.user,
         action: activity.action,
         status: '成功' // 可以根据实际API返回的状态进行映射
       }));
     }
-    
-    console.log('SuperAdmin - 仪表盘数据加载成功');
-  } catch (error: any) {
-    console.error('SuperAdmin - 获取系统信息失败:', error);
-    
-    // 处理不同类型的错误（后端权限控制）
-    if (error.response?.status === 403) {
-      console.error('SuperAdmin - 后端拒绝访问，权限不足');
-      ElMessage.error('权限不足，无法访问超级管理员功能');
-      router.push('/dashboard');
-      return;
-    } else if (error.response?.status === 401) {
-      console.error('SuperAdmin - 未授权访问');
-      ElMessage.error('身份验证失败，请重新登录');
-      userStore.logout();
-      router.push('/login');
-      return;
-    } else {
-      ElMessage.error('获取仪表盘数据失败：' + (error.message || '未知错误'));
-    }
+  } catch (error: unknown) {
+    ElMessage.error((error as { message?: string })?.message || '获取仪表盘数据失败');
     
     // 使用默认数据
     onlineUsers.value = 0;
@@ -235,7 +243,7 @@ const getSystemInfo = async () => {
     memoryUsage.value = 0;
     recentActivities.value = [
       {
-        time: new Date().toLocaleString(),
+        time: formatDateTime(new Date().toISOString()),
         user: 'system',
         action: '数据加载失败',
         status: '失败'
@@ -246,30 +254,11 @@ const getSystemInfo = async () => {
   }
 };
 
-// 执行需要超级管理员权限的操作
-const executeSuperAdminAction = async (actionName: string, actionFn: () => Promise<void>) => {
-  if (!checkSuperAdminAccess()) {
-    return;
-  }
-  
-  try {
-    await actionFn();
-  } catch (error: any) {
-    if (error.response?.status === 403) {
-      ElMessage.error(`权限不足，无法执行${actionName}操作`);
-    } else if (error.response?.status === 401) {
-      ElMessage.error('身份验证失败，请重新登录');
-      userStore.logout();
-      router.push('/login');
-    } else {
-      console.error(`${actionName}操作失败:`, error);
-    }
-  }
-};
+// 执行需要超级管理员权限的操作（已使用 composable 中的方法）
 
 // 处理系统备份
 const handleSystemBackup = async () => {
-  await executeSuperAdminAction('系统备份', async () => {
+  await executeWithPermission(async () => {
     await ElMessageBox.confirm(
       '确定要执行系统备份吗？此操作可能需要较长时间。',
       '系统备份',
@@ -280,12 +269,12 @@ const handleSystemBackup = async () => {
       }
     );
     ElMessage.success('系统备份已开始执行');
-  });
+  }, '系统备份操作失败');
 };
 
 // 处理系统维护
 const handleSystemMaintenance = async () => {
-  await executeSuperAdminAction('系统维护', async () => {
+  await executeWithPermission(async () => {
     await ElMessageBox.confirm(
       '系统维护模式将暂停所有用户访问，确定要启用吗？',
       '系统维护',
@@ -296,12 +285,12 @@ const handleSystemMaintenance = async () => {
       }
     );
     ElMessage.success('系统维护模式已启用');
-  });
+  }, '系统维护操作失败');
 };
 
 // 查看系统日志
 const handleSystemLogs = () => {
-  if (!checkSuperAdminAccess()) {
+  if (!checkAccess()) {
     return;
   }
   ElMessage.info('正在跳转到系统日志页面...');
@@ -310,7 +299,7 @@ const handleSystemLogs = () => {
 
 // 处理紧急模式
 const handleEmergencyMode = async () => {
-  await executeSuperAdminAction('紧急模式', async () => {
+  await executeWithPermission(async () => {
     await ElMessageBox.confirm(
       '紧急模式将立即终止所有非关键操作，确定要启用吗？',
       '紧急模式',
@@ -321,52 +310,81 @@ const handleEmergencyMode = async () => {
       }
     );
     ElMessage.error('紧急模式已启用');
-  });
+  }, '紧急模式操作失败');
 };
 
 onMounted(() => {
   // 页面加载时进行权限检查
-  console.log('SuperAdmin - 页面加载，开始权限检查');
-  if (checkSuperAdminAccess()) {
+  if (checkAccess()) {
     getSystemInfo();
   }
 });
 </script>
 
 <style scoped lang="scss">
-.super-admin-container {
-  padding: 20px;
-  background-color: #f5f5f5;
+@import '@/styles/variables.scss';
+
+.super-admin-dashboard-container {
+  padding: $spacing-xl;
+  background-color: $bg-color-base;
   min-height: calc(100vh - 60px);
 
   .page-header {
-    margin-bottom: 20px;
+    margin-bottom: $spacing-xl;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
+    box-shadow: $shadow-md;
 
-    .page-title {
-      margin: 0 0 10px 0;
-      font-size: 24px;
-      font-weight: 600;
-    }
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: $spacing-md;
 
-    .page-description {
-      margin: 0;
-      opacity: 0.9;
+      .header-text {
+        flex: 1;
+        min-width: 200px;
+
+        .page-title {
+          margin: 0 0 $spacing-sm 0;
+          font-size: 24px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: $spacing-sm;
+
+          .title-icon {
+            font-size: 28px;
+          }
+        }
+
+        .page-description {
+          margin: 0;
+          opacity: 0.9;
+          font-size: 14px;
+        }
+      }
+
+      .header-actions {
+        display: flex;
+        gap: $spacing-sm;
+      }
     }
   }
 
   .stats-row {
-    margin-bottom: 20px;
+    margin-bottom: $spacing-xl;
 
     .stat-card {
       height: 120px;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: $transition-base;
 
       &:hover {
-        transform: translateY(-5px);
+        transform: translateY(-4px);
+        box-shadow: $shadow-lg;
       }
 
       .stat-content {
@@ -381,9 +399,10 @@ onMounted(() => {
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-right: 15px;
+          margin-right: $spacing-lg;
           font-size: 24px;
           color: white;
+          flex-shrink: 0;
 
           &.system-icon {
             background: linear-gradient(135deg, #ff6b6b, #ee5a52);
@@ -404,16 +423,18 @@ onMounted(() => {
 
         .stat-text {
           flex: 1;
+          min-width: 0;
 
           h3 {
-            margin: 0 0 5px 0;
-            font-size: 18px;
-            color: #333;
+            margin: 0 0 $spacing-xs 0;
+            font-size: 20px;
+            font-weight: 600;
+            color: $text-color-primary;
           }
 
           p {
             margin: 0;
-            color: #666;
+            color: $text-color-secondary;
             font-size: 14px;
           }
         }
@@ -422,42 +443,150 @@ onMounted(() => {
   }
 
   .content-row {
-    margin-bottom: 20px;
+    margin-bottom: $spacing-xl;
 
     .content-card {
-      height: 300px;
+      height: 100%;
+      transition: $transition-base;
 
-      .card-title {
-        font-weight: 600;
-        color: #333;
+      &:hover {
+        box-shadow: $shadow-lg;
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .card-title {
+          display: flex;
+          align-items: center;
+          gap: $spacing-sm;
+          font-weight: 600;
+          color: $text-color-primary;
+        }
       }
 
       .monitor-content {
-        padding-top: 20px;
+        padding-top: $spacing-md;
+
+        .desc-icon {
+          margin-right: $spacing-xs;
+          color: $text-color-secondary;
+          vertical-align: middle;
+        }
       }
 
       .quick-actions {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 15px;
-        padding-top: 20px;
+        gap: $spacing-md;
+        padding-top: $spacing-md;
 
         .action-btn {
-          height: 60px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 5px;
+          height: 80px !important;
+          min-height: 80px !important;
+          padding: $spacing-md $spacing-lg !important;
+          margin: 0 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: $spacing-xs !important;
+          transition: $transition-base;
+          box-sizing: border-box !important;
+          line-height: normal !important;
+
+          &:hover {
+            transform: translateY(-2px);
+          }
+
+          // 重置 Element Plus 按钮的默认样式
+          :deep(.el-icon) {
+            margin: 0 !important;
+          }
+
+          :deep(> span) {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            gap: $spacing-xs !important;
+          }
+
+          .btn-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            line-height: 1;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          .btn-text {
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.4;
+            white-space: nowrap;
+            display: block;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
         }
       }
     }
   }
 
   .recent-activities {
-    .card-title {
-      font-weight: 600;
-      color: #333;
+    transition: $transition-base;
+
+    &:hover {
+      box-shadow: $shadow-lg;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .card-title {
+        display: flex;
+        align-items: center;
+        gap: $spacing-sm;
+        font-weight: 600;
+        color: $text-color-primary;
+      }
+    }
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .super-admin-dashboard-container {
+    padding: $spacing-md;
+
+    .stats-row {
+      .stat-card {
+        margin-bottom: $spacing-md;
+      }
+    }
+
+    .content-row {
+      .content-card {
+        margin-bottom: $spacing-md;
+
+        .quick-actions {
+          grid-template-columns: 1fr;
+        }
+      }
     }
   }
 }

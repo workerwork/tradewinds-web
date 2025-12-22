@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import type { Product, QueryParams, PageResult } from '@/types';
-import { request } from '@/utils/request';
+import { request } from '@/utils';
 
 interface ProductState {
     products: Product[];

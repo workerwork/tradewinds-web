@@ -1,0 +1,471 @@
+/**
+ * Sidebar 菜单样式
+ * 统一管理侧边栏菜单相关的样式
+ */
+
+@import './variables.scss';
+
+// 菜单容器
+.menu-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: visible;
+    /* 允许弹出菜单显示 */
+    padding: $spacing-sm 0;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    -webkit-overflow-scrolling: touch;
+    min-height: 0;
+    /* 允许 flex 子元素收缩 */
+    background: var(--theme-sidebar);
+    position: relative;
+    /* 确保弹出菜单定位正确 */
+    z-index: 1;
+    /* 确保菜单容器在内容之上 */
+
+    &::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    &::-webkit-scrollbar-track,
+    &::-webkit-scrollbar-thumb {
+        display: none !important;
+    }
+}
+
+// Element Plus 菜单样式覆盖
+:deep(.el-menu) {
+    border-right: none;
+    background: transparent !important;
+}
+
+// 菜单项基础样式
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+    transition: $transition-base;
+}
+
+// 菜单项层级样式
+:deep(.menu-level-0.el-menu-item),
+:deep(.menu-level-0 > .el-sub-menu__title) {
+    height: $menu-item-height-level0 !important;
+    line-height: $menu-item-height-level0 !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    padding: 0 $spacing-lg !important;
+    margin: 3px $spacing-sm !important;
+    border-radius: $border-radius-lg !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+:deep(.menu-level-1.el-menu-item),
+:deep(.menu-level-1 > .el-sub-menu__title) {
+    height: $menu-item-height-level1 !important;
+    line-height: $menu-item-height-level1 !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+}
+
+:deep(.menu-level-2.el-menu-item),
+:deep(.menu-level-2 > .el-sub-menu__title) {
+    height: $menu-item-height-level2 !important;
+    line-height: $menu-item-height-level2 !important;
+    font-size: 13px !important;
+    font-weight: 400 !important;
+    opacity: 0.9 !important;
+}
+
+:deep(.menu-level-3.el-menu-item),
+:deep(.menu-level-4.el-menu-item),
+:deep(.menu-level-5.el-menu-item),
+:deep(.menu-level-3 > .el-sub-menu__title),
+:deep(.menu-level-4 > .el-sub-menu__title),
+:deep(.menu-level-5 > .el-sub-menu__title) {
+    height: $menu-item-height-level3 !important;
+    line-height: $menu-item-height-level3 !important;
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    opacity: 0.85;
+}
+
+// 菜单项悬停和激活状态
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+    background: $sidebar-bg-hover !important;
+    color: $sidebar-text-hover !important;
+}
+
+:deep(.el-menu-item.is-active) {
+    background: $sidebar-bg-active !important;
+    color: $sidebar-text-active !important;
+    font-weight: 500;
+}
+
+:deep(.el-sub-menu.is-active > .el-sub-menu__title) {
+    color: $sidebar-text-active !important;
+}
+
+// 菜单图标样式
+:deep(.el-menu-item .el-icon),
+:deep(.el-sub-menu__title .el-icon) {
+    margin-right: $spacing-md;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: $transition-base;
+}
+
+// 弹出菜单样式 - 确保在折叠状态下可见
+:deep(.el-menu--popup) {
+    padding: $spacing-xs !important;
+    min-width: 200px !important;
+    max-width: none !important;
+    background-color: $sidebar-bg-popup !important;
+    z-index: $z-index-dropdown !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    border-radius: $border-radius-md !important;
+}
+
+:deep(.el-menu--popup .el-menu-item) {
+    height: $menu-item-height-base !important;
+    line-height: $menu-item-height-base !important;
+    margin: 1px $spacing-xs !important;
+    border-radius: $border-radius-sm !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    color: $sidebar-text !important;
+    transition: $transition-base !important;
+}
+
+:deep(.el-menu--popup .el-menu-item:hover) {
+    background: $sidebar-bg-hover !important;
+    color: $sidebar-text-hover !important;
+}
+
+:deep(.el-menu--popup .el-menu-item.is-active) {
+    background: $sidebar-bg-active !important;
+    color: $sidebar-text-active !important;
+}
+
+:deep(.el-menu--popup .el-menu) {
+    padding: 0 !important;
+    background: transparent !important;
+}
+
+:deep(.el-menu--popup-container) {
+    min-width: 200px !important;
+    background: $sidebar-bg-popup !important;
+    z-index: $z-index-dropdown !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+// Popper 样式 - 确保弹出菜单可见
+:deep(.el-popper.is-light) {
+    border: none !important;
+    background: $sidebar-bg-popup !important;
+    padding: $spacing-xs !important;
+    z-index: $z-index-dropdown !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+:deep(.el-popper__arrow::before) {
+    background: $sidebar-bg-popup !important;
+    border: none !important;
+}
+
+// 子菜单弹出容器
+:deep(.el-sub-menu__popper) {
+    z-index: $z-index-dropdown !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    background: $sidebar-bg-popup !important;
+}
+
+// 确保弹出菜单的父容器不会隐藏它
+:deep(.el-sub-menu) {
+    position: relative;
+}
+
+:deep(.el-sub-menu.is-opened) {
+    .el-sub-menu__popper {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+}
+
+// 确保弹出菜单在折叠状态下可见
+.sidebar.is-collapsed {
+    :deep(.el-menu--popup-container) {
+        z-index: $z-index-dropdown !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    :deep(.el-popper) {
+        z-index: $z-index-dropdown !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    :deep(.el-sub-menu__popper) {
+        z-index: $z-index-dropdown !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+}
+
+// 全局菜单样式（非 scoped）
+.el-menu--vertical .el-menu {
+    background-color: $sidebar-bg-popup !important;
+}
+
+.el-menu--vertical .el-menu-item {
+    height: $menu-item-height-base !important;
+    line-height: $menu-item-height-base !important;
+    padding: 0 $spacing-lg 0 40px !important;
+    margin: 1px $spacing-sm !important;
+    border-radius: $border-radius-md !important;
+    color: $sidebar-text !important;
+    background: transparent !important;
+    font-size: 14px !important;
+}
+
+.el-menu--vertical .el-menu-item:hover {
+    background: $sidebar-bg-hover !important;
+    color: $sidebar-text-hover !important;
+}
+
+.el-menu--vertical .el-menu-item.is-active {
+    background: $sidebar-bg-active !important;
+    color: $sidebar-text-active !important;
+}
+
+.el-menu--vertical .el-sub-menu.is-active>.el-sub-menu__title {
+    color: $sidebar-text-active !important;
+}
+
+// 贸易看板样式
+.trade-dashboard {
+    height: $menu-item-height-level0 !important;
+    line-height: $menu-item-height-level0 !important;
+    padding: 0 $spacing-lg !important;
+    margin: 3px $spacing-sm !important;
+    border-radius: $border-radius-lg !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    background: $sidebar-bg-item !important;
+    font-weight: 500 !important;
+    font-size: 15px !important;
+}
+
+.trade-dashboard:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: $sidebar-text-hover !important;
+}
+
+.trade-dashboard.is-active {
+    background: $sidebar-bg-active !important;
+    color: $sidebar-text-active !important;
+}
+
+.trade-dashboard .el-icon {
+    margin-right: $spacing-md !important;
+    font-size: 16px !important;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: $transition-base;
+}
+
+// 折叠状态下的菜单样式
+.sidebar.is-collapsed {
+
+    // 确保弹出菜单容器可见 - 使用全局选择器确保生效
+    :deep(.el-menu--popup-container),
+    :deep(.el-sub-menu__popper),
+    :deep(.el-popper) {
+        z-index: $z-index-dropdown !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        position: fixed !important;
+        /* 使用 fixed 定位确保不受父容器影响 */
+    }
+
+    // 菜单容器居中对齐
+    :deep(.menu-container) {
+        display: flex !important;
+        align-items: center !important;
+        padding: $spacing-sm 0 !important;
+    }
+
+    :deep(.el-menu) {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        width: 100% !important;
+    }
+
+    :deep(.el-menu--collapse) {
+
+        .el-sub-menu__title,
+        .el-menu-item {
+            width: 40px !important;
+            height: 40px !important;
+            padding: 0 !important;
+            margin: 2px 0 !important;
+            border-radius: $border-radius-lg !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            position: relative !important;
+        }
+
+        .el-menu-item :deep(.el-icon),
+        .el-sub-menu__title :deep(.el-icon) {
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            font-size: 18px !important;
+            width: 18px !important;
+            height: 18px !important;
+            margin: 0 !important;
+        }
+
+        // 只隐藏侧边栏内的文字和装饰元素
+        .el-menu-item span,
+        .el-sub-menu__title span,
+        .el-sub-menu__icon-arrow,
+        .menu-badge,
+        .el-badge {
+            display: none !important;
+        }
+    }
+
+    // 折叠状态下统一所有按钮的尺寸和对齐
+    // 折叠按钮 - 完全居中
+    :deep(.sidebar-header.is-collapsed) {
+        padding: $spacing-xs 0 !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+
+    :deep(.sidebar-header.is-collapsed .collapse-section) {
+        width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    :deep(.sidebar-header.is-collapsed .collapse-trigger) {
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
+        max-width: 40px !important;
+        min-height: 40px !important;
+        max-height: 40px !important;
+        padding: 0 !important;
+        margin: 2px 0 !important;
+        border-radius: $border-radius-lg !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        position: relative !important;
+        box-sizing: border-box !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    :deep(.sidebar-header.is-collapsed .collapse-trigger .el-icon) {
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        font-size: 18px !important;
+        width: 18px !important;
+        height: 18px !important;
+        margin: 0 !important;
+    }
+
+    // 快捷操作按钮 - 使用组件内条件类
+    :deep(.quick-actions.is-collapsed) {
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 0 !important;
+        padding: $spacing-xs 0 !important;
+        justify-content: flex-start !important;
+    }
+
+    :deep(.quick-actions.is-collapsed .el-tooltip) {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: center !important;
+        margin: 0 !important;
+    }
+
+    :deep(.quick-actions.is-collapsed .el-badge) {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: center !important;
+        margin: 0 !important;
+    }
+
+    :deep(.quick-actions.is-collapsed .action-btn) {
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
+        max-width: 40px !important;
+        min-height: 40px !important;
+        max-height: 40px !important;
+        padding: 0 !important;
+        margin: 2px 0 !important;
+        border-radius: $border-radius-lg !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        position: relative !important;
+        box-sizing: border-box !important;
+        line-height: 1 !important;
+    }
+
+    :deep(.quick-actions.is-collapsed .action-btn .el-icon) {
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        font-size: 18px !important;
+        width: 18px !important;
+        height: 18px !important;
+        margin: 0 !important;
+    }
+}

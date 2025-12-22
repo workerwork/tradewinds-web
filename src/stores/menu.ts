@@ -11,7 +11,7 @@ import {
     normalizeMenuData,
     checkMenuStyleConsistency,
     findStyleDifferences
-} from '@/utils/menu-debug';
+} from '@/utils';
 
 // 组件映射
 const componentMap = {

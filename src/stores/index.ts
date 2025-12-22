@@ -16,6 +16,7 @@ export default store;
 // 导出所有 store
 export * from './user';
 export * from './app';
+export * from './menu';
 export * from './customer';
 export * from './product';
 export * from './order';

@@ -1,58 +1,50 @@
-// 菜单类型枚举
+/**
+ * 菜单相关类型定义
+ */
+
+/**
+ * 菜单类型枚举
+ */
 export enum MenuType {
-    MENU = 'menu',      // 菜单
-    BUTTON = 'button',  // 按钮
-    IFRAME = 'iframe'   // 外部链接
+    MENU = 'menu',
+    BUTTON = 'button',
+    DIR = 'dir'
 }
 
-// 菜单项接口
 export interface MenuItem {
-    id: string | number;
-    parentId?: string | number;
-    name: string;
-    title: string;
-    path: string;
-    component?: string;
-    redirect?: string;
-    icon?: string;
-    type: MenuType;
-    sort: number;
-    visible: boolean;
-    status: number;
-    perms?: string;
-    roles?: string[];
+    id?: string | number
+    parentId?: string | number
+    path: string
+    name?: string
+    title?: string
+    icon?: string
+    component?: string
+    redirect?: string
+    type?: MenuType | string
+    sort?: number
+    visible?: boolean
+    status?: number
+    perms?: string
+    roles?: string[]
+    children?: MenuItem[]
     badge?: {
-        value: string | number;
-        type?: 'primary' | 'success' | 'warning' | 'danger' | 'info';
-    };
+        value?: string | number
+        type?: 'primary' | 'success' | 'warning' | 'danger' | 'info'
+    }
     meta?: {
-        title: string;
-        icon?: string;
-        hidden?: boolean;
-        keepAlive?: boolean;
-        breadcrumb?: boolean | string;
-        activeMenu?: string;
-        roles?: string[];
-    };
-    children?: MenuItem[];
-    createTime?: string;
-    updateTime?: string;
+        title?: string
+        icon?: string
+        hidden?: boolean
+        breadcrumb?: string
+        roles?: string[]
+        [key: string]: any
+    }
+    createTime?: string
+    updateTime?: string
+    [key: string]: any
 }
 
-// 菜单API响应
-export interface MenuResponse {
-    code: number;
-    message: string;
-    data: MenuItem[];
+export interface WorkspaceMenu extends MenuItem {
+    type?: 'workspace'
+    component?: string
 }
-
-// 路由元信息
-export interface RouteMeta {
-    title: string;
-    icon?: string;
-    hidden?: boolean;
-    keepAlive?: boolean;
-    breadcrumb?: boolean | string;
-    activeMenu?: string;
-    roles?: string[];
-} 

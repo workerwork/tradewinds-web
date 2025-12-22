@@ -31,7 +31,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { isExternal } from '@/utils/validate';
+import { isExternal } from '@/utils';
 import type { RouteRecordRaw } from 'vue-router';
 
 interface CustomMeta {

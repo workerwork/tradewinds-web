@@ -17,10 +17,36 @@ class Logger {
     }
 
     /**
+     * 检查是否为 WebSocket 连接错误（Vite 开发服务器相关，可忽略）
+     */
+    private isWebSocketError(error: any): boolean {
+        const errorMessage = error?.message?.toLowerCase() || ''
+        const errorStack = error?.stack?.toLowerCase() || ''
+        const reasonMessage = error?.reason?.message?.toLowerCase() || ''
+
+        return errorMessage.includes('websocket') ||
+            errorMessage.includes('ws://') ||
+            errorMessage.includes('wss://') ||
+            errorMessage.includes('web socket') ||
+            errorStack.includes('websocket') ||
+            errorStack.includes('client:454') ||
+            errorStack.includes('client:802') ||
+            reasonMessage.includes('websocket')
+    }
+
+    /**
      * 设置错误监听
      */
     private setupErrorListener() {
         window.addEventListener('error', (event) => {
+            // 过滤 WebSocket 连接错误
+            if (this.isWebSocketError(event.error)) {
+                // 在开发环境下静默处理
+                if (import.meta.env.DEV) {
+                    return
+                }
+            }
+
             this.error('全局错误', {
                 message: event.message,
                 filename: event.filename,
@@ -31,6 +57,14 @@ class Logger {
         });
 
         window.addEventListener('unhandledrejection', (event) => {
+            // 过滤 WebSocket 连接错误
+            if (this.isWebSocketError(event.reason)) {
+                // 在开发环境下静默处理
+                if (import.meta.env.DEV) {
+                    return
+                }
+            }
+
             this.error('未处理的Promise拒绝', {
                 reason: event.reason
             });
@@ -135,4 +169,5 @@ class Logger {
     }
 }
 
+export { Logger };
 export const logger = new Logger(import.meta.env.VITE_LOG_REPORT_URL); 

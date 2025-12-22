@@ -75,8 +75,7 @@ const updateForm = () => {
         if (permissionAssignmentRef.value && permissionAssignmentRef.value.treeData) {
           const treeData = permissionAssignmentRef.value.treeData;
           const leafPermissions = getLeafPermissions(newData.permissionIds, treeData);
-          console.log('updateForm - 后端返回的完整权限:', newData.permissionIds);
-          console.log('updateForm - 过滤后的叶子权限:', leafPermissions);
+          // 过滤叶子权限，只显示用户选择的权限
           newData.permissionIds = leafPermissions;
         }
         Object.assign(form, newData);
@@ -177,7 +176,6 @@ const getLeafPermissions = (allPermissionIds: (string | number)[], treeData: any
 
 // 保留原有权限id监听，只同步用户选择的权限到父组件
 watch(() => form.permissionIds, (val) => {
-  console.log('RoleForm.vue 权限id变化:', val);
   emit('update:modelValue', { ...form });
 }, { deep: true });
 

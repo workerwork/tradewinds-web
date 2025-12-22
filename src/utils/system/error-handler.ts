@@ -83,8 +83,30 @@ class ErrorHandler {
         })
     }
 
+    // 检查是否为 WebSocket 连接错误（Vite 开发服务器相关，可忽略）
+    private isWebSocketError(err: Error | ErrorWithCode): boolean {
+        const errorMessage = err.message?.toLowerCase() || ''
+        const errorStack = err.stack?.toLowerCase() || ''
+
+        return errorMessage.includes('websocket') ||
+            errorMessage.includes('ws://') ||
+            errorMessage.includes('wss://') ||
+            errorMessage.includes('web socket') ||
+            errorStack.includes('websocket') ||
+            errorStack.includes('client:454') ||
+            errorStack.includes('client:802')
+    }
+
     // 处理 Promise 错误
     public handlePromiseError(err: ErrorWithCode) {
+        // 过滤 WebSocket 连接错误（Vite 开发服务器相关）
+        if (this.isWebSocketError(err)) {
+            // 在开发环境下静默处理，不显示错误提示
+            if (import.meta.env.DEV) {
+                return
+            }
+        }
+
         console.error('Unhandled Promise Rejection:', err)
 
         // 处理特定类型的错误
@@ -141,11 +163,28 @@ class ErrorHandler {
 
         // Promise 错误处理
         window.addEventListener('unhandledrejection', (event) => {
+            // 过滤 WebSocket 连接错误
+            if (this.isWebSocketError(event.reason)) {
+                // 在开发环境下静默处理
+                if (import.meta.env.DEV) {
+                    event.preventDefault()
+                    return
+                }
+            }
             this.handlePromiseError(event.reason)
         })
 
         // 全局错误处理
         window.onerror = (message, source, lineno, colno, error) => {
+            // 过滤 WebSocket 连接错误
+            const errorObj = error || new Error(message as string)
+            if (this.isWebSocketError(errorObj)) {
+                // 在开发环境下静默处理
+                if (import.meta.env.DEV) {
+                    return true
+                }
+            }
+
             console.error('Global Error:', {
                 message,
                 source,
@@ -154,7 +193,7 @@ class ErrorHandler {
                 error
             })
 
-            this.logError('global', error || new Error(message as string), {
+            this.logError('global', errorObj, {
                 source,
                 lineno,
                 colno

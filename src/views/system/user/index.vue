@@ -9,6 +9,7 @@
             :fetch-suggestions="queryUsernameSuggestions"
             placeholder="请输入用户名"
             clearable
+            popper-class="autocomplete-username-popper"
             @input="handleFieldSearch"
             @clear="handleFieldSearch"
             @select="handleFieldSearch"
@@ -21,6 +22,7 @@
             :fetch-suggestions="queryRealNameSuggestions"
             placeholder="请输入姓名"
             clearable
+            popper-class="autocomplete-name-popper"
             @input="handleFieldSearch"
             @clear="handleFieldSearch"
             @select="handleFieldSearch"
@@ -33,6 +35,7 @@
             :fetch-suggestions="queryPhoneSuggestions"
             placeholder="请输入手机号"
             clearable
+            popper-class="autocomplete-phone-popper"
             @input="handleFieldSearch"
             @clear="handleFieldSearch"
             @select="handleFieldSearch"
@@ -45,6 +48,7 @@
             :fetch-suggestions="queryEmailSuggestions"
             placeholder="请输入邮箱"
             clearable
+            popper-class="autocomplete-email-popper"
             @input="handleFieldSearch"
             @clear="handleFieldSearch"
             @select="handleFieldSearch"
@@ -79,13 +83,13 @@
           <span>用户列表</span>
           <div>
             <el-dropdown trigger="click" popper-class="column-setting-popper">
-              <el-button type="primary" plain size="small" class="column-setting-btn" style="margin-right: 10px;">
-                <el-icon style="margin-right: 4px;"><Setting /></el-icon>列设置
+              <el-button type="primary" plain size="small" class="column-setting-btn">
+                <el-icon><Setting /></el-icon>列设置
               </el-button>
               <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item v-for="col in allColumns" :key="col.prop" style="min-width: 160px;">
-                    <el-checkbox v-model="col.visible" style="margin-right: 8px; vertical-align: middle;">{{ col.label }}</el-checkbox>
+                <el-dropdown-menu class="column-setting-menu">
+                  <el-dropdown-item v-for="col in allColumns" :key="col.prop">
+                    <el-checkbox v-model="col.visible">{{ col.label }}</el-checkbox>
                   </el-dropdown-item>
                 </el-dropdown-menu>
               </template>
@@ -201,27 +205,21 @@
     </el-card>
 
     <!-- 用户表单对话框 -->
-    <el-dialog
+    <FormDialog
       v-model="dialogVisible"
+      :dialog-type="dialogType"
       :title="dialogType === 'add' ? '新增用户' : '编辑用户'"
       width="600px"
-      destroy-on-close
-      :close-on-click-modal="false"
+      :loading="submitting"
+      @confirm="handleSubmit"
+      @cancel="close"
     >
       <UserForm 
         ref="userFormRef"
         :model-value="form"
         :is-edit="dialogType === 'edit'"
       />
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleSubmit" :loading="submitting">
-            确定
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
+    </FormDialog>
   </div>
 </template>
 
@@ -235,9 +233,10 @@ import { Plus, Refresh, Setting } from '@element-plus/icons-vue';
 import type { User } from '@/types';
 import { useRoleStore } from '@/stores';
 import { useMenuStore } from '@/stores/menu';
-import { formatDateTime } from '@/utils/format';
+import { formatDateTime, emitter } from '@/utils';
 import { debounce } from 'lodash-es';
 import UserForm from './components/UserForm.vue';
+import FormDialog from '@/components/common/FormDialog.vue';
 import { 
   getUserList, 
   createUser, 
@@ -246,9 +245,12 @@ import {
   deleteUser,
   patchUserStatus
 } from './services/user-service';
-import { emitter } from '@/utils/emitter';
-import { useTablePersist } from '@/composables/useTablePersist'
-import { useSearchHistory } from '@/composables/useSearchHistory'
+import { useTablePersist, useSearchHistory, useDialog } from '@/composables'
+
+// 自动完成建议项类型
+interface AutocompleteSuggestion {
+  value: string;
+}
 
 // 搜索表单
 const searchForm = reactive({
@@ -286,9 +288,6 @@ const allColumns = ref(tableOptions.value.allColumns)
 const total = ref(0)
 const loading = ref(false)
 const userList = ref<User[]>([])
-const dialogVisible = ref(false)
-const dialogType = ref<'add' | 'edit'>('add')
-const submitting = ref(false)
 const userFormRef = ref()
 const form = reactive({
   id: '',
@@ -302,6 +301,34 @@ const form = reactive({
 })
 const roleStore = useRoleStore()
 const menuStore = useMenuStore()
+
+// 使用 useDialog 管理弹窗状态
+const resetForm = () => {
+  form.id = '';
+  form.username = '';
+  form.realName = '';
+  form.phone = '';
+  form.email = '';
+  form.password = '';
+  form.roleIds = [];
+  form.status = 0;
+};
+
+const {
+  dialogVisible,
+  dialogType,
+  submitting,
+  openAdd,
+  openEdit,
+  close,
+  setSubmitting
+} = useDialog({
+  resetForm,
+  onBeforeOpen: async (type) => {
+    // 打开弹窗前强制刷新角色数据
+    await roleStore.fetchRoles(true);
+  }
+});
 
 // 搜索历史管理
 const { addSearchRecord } = useSearchHistory('user-search-history', 10)
@@ -354,14 +381,15 @@ const filteredUserList = computed(() => {
   // 状态过滤 - 由于状态过滤已经在后端处理，这里不需要再过滤
   // 但为了保持一致性，仍然保留前端的过滤逻辑作为兜底
   if (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined) {
-    filtered = filtered.filter(user => user.status === searchForm.status);
+    const statusNum = typeof searchForm.status === 'string' ? parseInt(searchForm.status) : searchForm.status;
+    filtered = filtered.filter(user => user.status === statusNum);
   }
   
   return filtered;
 });
 
 // 联想建议函数
-const queryUsernameSuggestions = (queryString: string, cb: (suggestions: any[]) => void) => {
+const queryUsernameSuggestions = (queryString: string, cb: (suggestions: AutocompleteSuggestion[]) => void) => {
   const suggestions = userList.value
     .filter(user => user.username.toLowerCase().includes(queryString.toLowerCase()))
     .map(user => ({ value: user.username }))
@@ -369,7 +397,7 @@ const queryUsernameSuggestions = (queryString: string, cb: (suggestions: any[]) 
   cb(suggestions);
 };
 
-const queryRealNameSuggestions = (queryString: string, cb: (suggestions: any[]) => void) => {
+const queryRealNameSuggestions = (queryString: string, cb: (suggestions: AutocompleteSuggestion[]) => void) => {
   const suggestions = userList.value
     .filter(user => user.realName.toLowerCase().includes(queryString.toLowerCase()))
     .map(user => ({ value: user.realName }))
@@ -377,7 +405,7 @@ const queryRealNameSuggestions = (queryString: string, cb: (suggestions: any[]) 
   cb(suggestions);
 };
 
-const queryPhoneSuggestions = (queryString: string, cb: (suggestions: any[]) => void) => {
+const queryPhoneSuggestions = (queryString: string, cb: (suggestions: AutocompleteSuggestion[]) => void) => {
   const suggestions = userList.value
     .filter(user => user.phone.includes(queryString))
     .map(user => ({ value: user.phone }))
@@ -385,7 +413,7 @@ const queryPhoneSuggestions = (queryString: string, cb: (suggestions: any[]) => 
   cb(suggestions);
 };
 
-const queryEmailSuggestions = (queryString: string, cb: (suggestions: any[]) => void) => {
+const queryEmailSuggestions = (queryString: string, cb: (suggestions: AutocompleteSuggestion[]) => void) => {
   const suggestions = userList.value
     .filter(user => user.email.toLowerCase().includes(queryString.toLowerCase()))
     .map(user => ({ value: user.email }))
@@ -457,9 +485,9 @@ const fetchUserList = debounce(async () => {
       const keyword = searchKeywords.join(' ')
       addSearchRecord(keyword, filteredUserList.value.length)
     }
-  } catch (error) {
+  } catch (error: any) {
+    ElMessage.error(error?.message || '获取用户列表失败，请稍后重试');
     console.error('获取用户列表失败:', error);
-    ElMessage.error('获取用户列表失败');
   } finally {
     loading.value = false;
   }
@@ -502,77 +530,65 @@ const refreshRoles = async () => {
 };
 
 // 新增用户
-const handleAdd = async () => {
-  dialogType.value = 'add';
-  form.id = '';
-  form.username = '';
-  form.realName = '';
-  form.phone = '';
-  form.email = '';
-  form.password = '';
-  form.roleIds = [];
-  form.status = 0;
-  
-  // 强制刷新角色数据，确保获取最新状态
-  await roleStore.fetchRoles(true);
-  
-  dialogVisible.value = true;
+// 新增用户
+const handleAdd = () => {
+  openAdd();
 };
 
 // 编辑用户
-const handleEdit = async (row: User) => {
-  dialogType.value = 'edit';
+const handleEdit = (row: User) => {
   Object.assign(form, {
     ...row,
     id: String(row.id),
     roleIds: row.roles.map(role => String(role.id))
   });
-  dialogVisible.value = true;
-  // 每次编辑都强制刷新角色数据，保证角色API一定发出
-  await roleStore.fetchRoles(true);
+  openEdit(row);
 };
 
 // 提交表单
 const handleSubmit = async () => {
   if (!userFormRef.value) return;
   const valid = await userFormRef.value.validate();
-  if (valid) {
-    submitting.value = true;
-    try {
-      const userData = userFormRef.value.form;
-      // 只提交可编辑字段
-      const submitData = {
-        id: userData.id,
-        username: userData.username,
-        realName: userData.realName,
-        phone: userData.phone,
-        email: userData.email,
-        password: userData.password,
-        roleIds: userData.roleIds,
-        status: userData.status
-      };
-      if (dialogType.value === 'add') {
-        await createUser(submitData);
-        ElMessage.success('添加成功');
-      } else {
-        await updateUserInfo(submitData.id, submitData);
-        ElMessage.success('更新成功');
-      }
-      dialogVisible.value = false;
-      fetchUserList();
-      
-      // 用户信息变更后刷新菜单栏
-      try {
-        await menuStore.getUserMenus();
-        console.log('用户信息变更后菜单刷新成功');
-      } catch (error) {
-        console.error('用户信息变更后菜单刷新失败:', error);
-      }
-    } catch (error) {
-      console.error('提交表单失败:', error);
-    } finally {
-      submitting.value = false;
+  if (!valid) return;
+
+  setSubmitting(true);
+  try {
+    const userData = userFormRef.value.form;
+    // 只提交可编辑字段
+    const submitData = {
+      id: userData.id,
+      username: userData.username,
+      realName: userData.realName,
+      phone: userData.phone,
+      email: userData.email,
+      password: userData.password,
+      roleIds: userData.roleIds,
+      status: userData.status
+    };
+    
+    if (dialogType.value === 'add') {
+      await createUser(submitData);
+      ElMessage.success('添加成功');
+    } else {
+      await updateUserInfo(submitData.id, submitData);
+      ElMessage.success('更新成功');
     }
+    
+    close();
+    fetchUserList();
+    
+    // 用户信息变更后刷新菜单栏
+    try {
+      await menuStore.getUserMenus();
+    } catch (error) {
+      // 菜单刷新失败不影响主流程，静默处理
+      console.error('用户信息变更后菜单刷新失败:', error);
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.message || '操作失败，请稍后重试');
+    console.error('提交表单失败:', error);
+  } finally {
+    setSubmitting(false);
   }
 };
 
@@ -584,8 +600,11 @@ const handleReset = async (row: User) => {
     });
     await resetUserPassword(String(row.id));
     ElMessage.success('密码重置成功');
-  } catch (error) {
-    console.error('重置密码失败:', error);
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error?.message || '重置密码失败，请稍后重试');
+      console.error('重置密码失败:', error);
+    }
   }
 };
 
@@ -600,10 +619,13 @@ const handleToggleStatus = async (row: User) => {
       }
     );
     await patchUserStatus(row.id, row.status === 0 ? 1 : 0);
-    ElMessage.success('' + (row.status === 0 ? '禁用' : '启用') + '成功');
+    ElMessage.success((row.status === 0 ? '禁用' : '启用') + '成功');
     fetchUserList();
-  } catch (error) {
-    console.error('更新用户状态失败:', error);
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error?.message || '操作失败，请稍后重试');
+      console.error('更新用户状态失败:', error);
+    }
   }
 };
 
@@ -694,7 +716,10 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@import '@/styles/variables.scss';
+
+// ==================== 页面布局 ====================
 .user-management {
   padding: 20px;
 }
@@ -713,6 +738,7 @@ onUnmounted(() => {
   margin-bottom: 20px;
 }
 
+// ==================== 分页容器 ====================
 .pagination-container {
   margin-top: 20px;
   display: flex;
@@ -736,36 +762,133 @@ onUnmounted(() => {
   align-items: center;
 }
 
+// ==================== 角色标签 ====================
 .role-tag {
   margin-right: 4px;
 }
 
+// ==================== 表单样式穿透 ====================
 :deep(.el-form--inline .el-form-item) {
   margin-right: 16px;
 }
 
-.custom-select-popper.el-popper.is-light {
+// ==================== 列设置下拉菜单 ====================
+// Popper 容器样式
+:deep(.column-setting-popper.el-popper) {
+  min-width: 180px !important;
+  width: auto !important;
+  max-width: none !important;
+  padding: 8px 0 !important;
+  border-radius: $border-radius-md !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+// 下拉菜单样式
+:deep(.column-setting-popper .el-dropdown-menu),
+:deep(.column-setting-menu) {
+  padding: 4px 0 !important;
+  border-radius: $border-radius-md !important;
+  min-width: 180px !important;
+  width: auto !important;
+}
+
+// 菜单项样式
+:deep(.column-setting-popper .el-dropdown-menu__item),
+:deep(.column-setting-menu .el-dropdown-menu__item) {
+  padding: 8px 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  transition: $transition-fast !important;
+  min-height: 36px !important;
+  
+  &:hover {
+    background: rgba(64, 158, 255, 0.08) !important;
+  }
+  
+  // Checkbox 样式穿透
+  :deep(.el-checkbox) {
+    width: 100% !important;
+    margin: 0 !important;
+    
+    .el-checkbox__label {
+      padding-left: 8px !important;
+      font-size: 14px !important;
+      color: rgba(0, 0, 0, 0.85) !important;
+      transition: $transition-fast !important;
+    }
+    
+    &:hover .el-checkbox__label {
+      color: #409EFF !important;
+    }
+  }
+  
+  :deep(.el-checkbox__input) {
+    .el-checkbox__inner {
+      transition: $transition-fast !important;
+    }
+  }
+}
+
+// ==================== 列设置按钮 ====================
+.column-setting-btn {
+  border-radius: $border-radius-sm !important;
+  font-size: 14px !important;
+  padding: 0 15px !important;
+  height: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  transition: $transition-base !important;
+  margin-right: 10px !important;
+  
+  :deep(.el-icon) {
+    margin-right: 4px !important;
+    transition: $transition-base !important;
+  }
+  
+  &:hover {
+    :deep(.el-icon) {
+      transform: rotate(90deg) !important;
+    }
+  }
+}
+
+// ==================== 自动完成下拉菜单 ====================
+// 用户名输入框下拉菜单（140px）
+:deep(.autocomplete-username-popper.el-popper),
+:deep(.autocomplete-username-popper.el-autocomplete-suggestion) {
+  min-width: 140px !important;
+  width: 140px !important;
+  max-width: 140px !important;
+}
+
+// 姓名输入框下拉菜单（120px）
+:deep(.autocomplete-name-popper.el-popper),
+:deep(.autocomplete-name-popper.el-autocomplete-suggestion) {
   min-width: 120px !important;
   width: 120px !important;
   max-width: 120px !important;
 }
 
-.column-setting-popper.el-popper {
-  min-width: 180px !important;
-  width: 180px !important;
-  padding: 8px 0;
+// 手机号输入框下拉菜单（140px）
+:deep(.autocomplete-phone-popper.el-popper),
+:deep(.autocomplete-phone-popper.el-autocomplete-suggestion) {
+  min-width: 140px !important;
+  width: 140px !important;
+  max-width: 140px !important;
 }
-.column-setting-popper .el-dropdown-menu__item {
-  padding: 4px 16px;
-  display: flex;
-  align-items: center;
+
+// 邮箱输入框下拉菜单（200px）
+:deep(.autocomplete-email-popper.el-popper),
+:deep(.autocomplete-email-popper.el-autocomplete-suggestion) {
+  min-width: 200px !important;
+  width: 200px !important;
+  max-width: 200px !important;
 }
-.column-setting-btn {
-  border-radius: 4px;
-  font-size: 14px;
-  padding: 0 15px;
-  height: 32px;
-  display: inline-flex;
-  align-items: center;
+
+// ==================== 自定义选择器 Popper ====================
+:deep(.custom-select-popper.el-popper.is-light) {
+  min-width: 120px !important;
+  width: 120px !important;
+  max-width: 120px !important;
 }
 </style> 

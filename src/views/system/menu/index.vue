@@ -7,7 +7,7 @@
           <el-input v-model="searchForm.name" placeholder="请输入菜单名称" clearable />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable>
+          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 120px;" popper-class="custom-select-popper">
             <el-option label="启用" :value="1" />
             <el-option label="禁用" :value="0" />
           </el-select>
@@ -28,7 +28,7 @@
       <template #header>
         <div class="card-header">
           <span>菜单列表</span>
-          <el-button type="primary" @click="handleAdd" v-permission="'system:menu:add'">
+          <el-button type="primary" @click="() => handleAdd()" v-permission="'system:menu:add'">
             <el-icon><Plus /></el-icon>新增菜单
           </el-button>
         </div>
@@ -52,7 +52,7 @@
         </el-table-column>
         <el-table-column prop="type" label="类型" width="80" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.type === 'menu' ? '' : 'info'" size="small">
+            <el-tag :type="row.type === 'menu' ? undefined : 'info'" size="small">
               {{ row.type === 'menu' ? '菜单' : '按钮' }}
             </el-tag>
           </template>
@@ -184,7 +184,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance } from 'element-plus';
 import { Search, Plus, Refresh } from '@element-plus/icons-vue';
 import type { Menu, Permission } from '@/types';
-import { request } from '@/utils/request';
+import { request } from '@/utils';
 
 // 分页参数
 const page = ref(1);
@@ -211,7 +211,7 @@ const submitting = ref(false);
 const formRef = ref<FormInstance>();
 const form = reactive({
   id: '',
-  parentId: undefined as number | undefined,
+  parentId: undefined as string | undefined,
   type: 'menu' as 'menu' | 'button',
   name: '',
   icon: '',
@@ -250,13 +250,15 @@ const getMenuList = async () => {
   loading.value = true;
   try {
     const res = await request.get<Menu[]>('/system/menu/list', {
-      ...searchForm,
-      page: page.value,
-      size: pageSize.value
+      params: {
+        ...searchForm,
+        page: page.value,
+        size: pageSize.value
+      }
     });
     menuList.value = res;
     const rootMenu: Menu = {
-      id: 0,
+      id: '0',
       name: '顶级菜单',
       children: res,
       type: 'menu',
@@ -264,11 +266,14 @@ const getMenuList = async () => {
       path: '',
       component: '',
       code: 'ROOT',
+      parentId: '0',
       sort: 0,
-      status: 1
+      status: 1,
+      description: ''
     };
     menuOptions.value = [rootMenu];
-  } catch (error) {
+  } catch (error: any) {
+    ElMessage.error(error?.message || '获取菜单列表失败，请稍后重试');
     console.error('获取菜单列表失败:', error);
   } finally {
     loading.value = false;
@@ -280,7 +285,7 @@ const getMenuOptions = async () => {
   try {
     const res = await request.get<Permission[]>('/system/menu/tree');
     const rootMenu: Menu = {
-      id: 0,
+      id: '0',
       name: '顶级菜单',
       children: res,
       type: 'menu',
@@ -288,11 +293,14 @@ const getMenuOptions = async () => {
       path: '',
       component: '',
       code: 'ROOT',
+      parentId: '0',
       sort: 0,
-      status: 1
+      status: 1,
+      description: ''
     };
     menuOptions.value = [rootMenu];
-  } catch (error) {
+  } catch (error: any) {
+    ElMessage.error(error?.message || '获取菜单选项失败，请稍后重试');
     console.error('获取菜单选项失败:', error);
   }
 };
@@ -313,7 +321,7 @@ const resetSearch = () => {
 const handleAdd = (row?: Menu) => {
   dialogType.value = 'add';
   form.id = '';
-  form.parentId = row?.id;
+  form.parentId = row?.id ? String(row.id) : undefined;
   form.type = 'menu';
   form.name = '';
   form.icon = '';
@@ -341,8 +349,11 @@ const handleDelete = async (row: Menu) => {
     await request.delete(`/system/menu/delete/${row.id}`);
     ElMessage.success('删除成功');
     getMenuList();
-  } catch (error) {
-    console.error('删除菜单失败:', error);
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error?.message || '删除失败，请稍后重试');
+      console.error('删除菜单失败:', error);
+    }
   }
 };
 
@@ -359,11 +370,12 @@ const handleSubmit = async () => {
           ElMessage.success('添加成功');
         } else {
           await request.put(`/system/menu/update/${form.id}`, form);
-          ElMessage.success('修改成功');
+          ElMessage.success('更新成功');
         }
         dialogVisible.value = false;
         getMenuList();
-      } catch (error) {
+      } catch (error: any) {
+        ElMessage.error(error?.message || '操作失败，请稍后重试');
         console.error('保存菜单失败:', error);
       } finally {
         submitting.value = false;
@@ -378,7 +390,10 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@import '@/styles/variables.scss';
+
+// ==================== 页面布局 ====================
 .menu-management {
   padding: 20px;
 }
@@ -397,12 +412,27 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
+// ==================== 菜单图标 ====================
 .menu-icon {
   margin-right: 4px;
   vertical-align: middle;
+  transition: $transition-base;
 }
 
+// ==================== 表单样式穿透 ====================
 :deep(.el-form--inline .el-form-item) {
   margin-right: 16px;
+}
+
+// ==================== 自定义选择器 Popper ====================
+:deep(.custom-select-popper.el-popper.is-light) {
+  min-width: 120px !important;
+  width: 120px !important;
+  max-width: 120px !important;
+  text-align: center;
+}
+
+:deep(.el-select .el-input__inner) {
+  text-align: center;
 }
 </style> 
