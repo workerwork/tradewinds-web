@@ -19,25 +19,25 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Calendar } from '@element-plus/icons-vue'
-import { DRAWER, LAYOUT } from '@/constants'
+import { computed } from 'vue';
+import { Calendar } from '@element-plus/icons-vue';
+import { DRAWER, LAYOUT } from '@/constants';
 
 const props = defineProps<{
-  modelValue: boolean
-}>()
+  modelValue: boolean;
+}>();
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
-}>()
+  'update:modelValue': [value: boolean];
+}>();
 
 const drawerVisible = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
-})
+  set: value => emit('update:modelValue', value),
+});
 
-const drawerSize = DRAWER.TODO.SIZE
-const zIndex = DRAWER.TODO.Z_INDEX
+const drawerSize = DRAWER.TODO.SIZE;
+const zIndex = DRAWER.TODO.Z_INDEX;
 </script>
 
 <style scoped lang="scss">
@@ -85,6 +85,4 @@ const zIndex = DRAWER.TODO.Z_INDEX
 :deep(.el-drawer__body) {
   padding: 0;
 }
-
 </style>
-

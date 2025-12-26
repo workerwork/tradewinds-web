@@ -1,5 +1,5 @@
 <template>
-  <div class="system-info" v-show="!isCollapsed">
+  <div v-show="!isCollapsed" class="system-info">
     <div class="info-section">
       <div class="info-item">
         <el-icon><User /></el-icon>
@@ -18,16 +18,16 @@
 </template>
 
 <script setup lang="ts">
-import { User, Monitor, InfoFilled } from '@element-plus/icons-vue'
-import { useI18n } from 'vue-i18n'
-import type { SystemInfo } from '@/types/sidebar'
+import { User, Monitor, InfoFilled } from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n';
+import type { SystemInfo } from '@/types/sidebar';
 
 defineProps<{
-  isCollapsed: boolean
-  info: SystemInfo
-}>()
+  isCollapsed: boolean;
+  info: SystemInfo;
+}>();
 
-const { t } = useI18n()
+const { t } = useI18n();
 </script>
 
 <style scoped lang="scss">
@@ -70,4 +70,3 @@ const { t } = useI18n()
   }
 }
 </style>
-

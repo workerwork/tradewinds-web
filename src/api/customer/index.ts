@@ -5,13 +5,17 @@ import type { Customer, PaginationQuery, PaginationResponse } from '@/types';
  * 获取客户列表
  * @param params 查询参数
  */
-export const getCustomerList = (params?: Partial<PaginationQuery & {
-    name?: string;
-    contact?: string;
-    phone?: string;
-    status?: number;
-}>) => {
-    return request.get<PaginationResponse<Customer>>('/customer/list', { params });
+export const getCustomerList = (
+  params?: Partial<
+    PaginationQuery & {
+      name?: string;
+      contact?: string;
+      phone?: string;
+      status?: number;
+    }
+  >
+) => {
+  return request.get<PaginationResponse<Customer>>('/customer/list', { params });
 };
 
 /**
@@ -19,7 +23,7 @@ export const getCustomerList = (params?: Partial<PaginationQuery & {
  * @param data 客户数据
  */
 export const addCustomer = (data: Partial<Customer>) => {
-    return request.post<void>('/customer/add', data);
+  return request.post<void>('/customer/add', data);
 };
 
 /**
@@ -28,7 +32,7 @@ export const addCustomer = (data: Partial<Customer>) => {
  * @param data 客户数据
  */
 export const updateCustomer = (id: number, data: Partial<Customer>) => {
-    return request.put<void>(`/customer/update/${id}`, data);
+  return request.put<void>(`/customer/update/${id}`, data);
 };
 
 /**
@@ -36,7 +40,7 @@ export const updateCustomer = (id: number, data: Partial<Customer>) => {
  * @param id 客户ID
  */
 export const deleteCustomer = (id: number) => {
-    return request.del<void>(`/customer/delete/${id}`);
+  return request.del<void>(`/customer/delete/${id}`);
 };
 
 /**
@@ -44,7 +48,7 @@ export const deleteCustomer = (id: number) => {
  * @param id 客户ID
  */
 export const getCustomerDetail = (id: number) => {
-    return request.get<Customer>(`/customer/detail/${id}`);
+  return request.get<Customer>(`/customer/detail/${id}`);
 };
 
 /**
@@ -53,7 +57,7 @@ export const getCustomerDetail = (id: number) => {
  * @param status 状态
  */
 export const updateCustomerStatus = (id: number, status: number) => {
-    return request.put<void>(`/customer/status/${id}`, { status });
+  return request.put<void>(`/customer/status/${id}`, { status });
 };
 
 /**
@@ -61,21 +65,25 @@ export const updateCustomerStatus = (id: number, status: number) => {
  * @param file Excel文件
  */
 export const importCustomers = (file: File) => {
-    const formData = createFormData(file);
-    return request.post<void>('/customer/import', formData, FILE_UPLOAD_CONFIG);
+  const formData = createFormData(file);
+  return request.post<void>('/customer/import', formData, FILE_UPLOAD_CONFIG);
 };
 
 /**
  * 导出客户数据
  * @param params 查询参数
  */
-export const exportCustomers = (params?: Partial<PaginationQuery & {
-    name?: string;
-    contact?: string;
-    phone?: string;
-    status?: number;
-}>) => {
-    return request.post('/customer/export', params, {
-        responseType: 'blob'
-    });
-}; 
+export const exportCustomers = (
+  params?: Partial<
+    PaginationQuery & {
+      name?: string;
+      contact?: string;
+      phone?: string;
+      status?: number;
+    }
+  >
+) => {
+  return request.post('/customer/export', params, {
+    responseType: 'blob',
+  });
+};

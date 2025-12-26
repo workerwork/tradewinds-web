@@ -2,16 +2,16 @@
   <div v-if="visible" class="search-suggestions">
     <div class="suggestions-header">
       <span class="suggestions-title">搜索建议</span>
-      <el-button 
-        type="text" 
-        size="small" 
-        @click="$emit('clear-history')"
+      <el-button
         v-if="recentSearches.length > 0"
+        type="text"
+        size="small"
+        @click="$emit('clear-history')"
       >
         清除历史
       </el-button>
     </div>
-    
+
     <!-- 最近搜索 -->
     <div v-if="recentSearches.length > 0" class="suggestions-section">
       <div class="section-title">最近搜索</div>
@@ -36,7 +36,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- 热门搜索 -->
     <div v-if="popularSearches.length > 0" class="suggestions-section">
       <div class="section-title">热门搜索</div>
@@ -57,31 +57,31 @@
 </template>
 
 <script setup lang="ts">
-import { Clock, Star, Close } from '@element-plus/icons-vue'
+import { Clock, Star, Close } from '@element-plus/icons-vue';
 
 interface SearchHistoryItem {
-  keyword: string
-  timestamp: number
-  count: number
+  keyword: string;
+  timestamp: number;
+  count: number;
 }
 
 interface Props {
-  visible: boolean
-  recentSearches: SearchHistoryItem[]
-  popularSearches: SearchHistoryItem[]
+  visible: boolean;
+  recentSearches: SearchHistoryItem[];
+  popularSearches: SearchHistoryItem[];
 }
 
-defineProps<Props>()
+defineProps<Props>();
 
 const emit = defineEmits<{
-  'suggestion-click': [keyword: string]
-  'clear-history': []
-  'remove-history': [keyword: string]
-}>()
+  'suggestion-click': [keyword: string];
+  'clear-history': [];
+  'remove-history': [keyword: string];
+}>();
 
 const handleSuggestionClick = (keyword: string) => {
-  emit('suggestion-click', keyword)
-}
+  emit('suggestion-click', keyword);
+};
 </script>
 
 <style scoped>
@@ -166,4 +166,4 @@ const handleSuggestionClick = (keyword: string) => {
 .suggestion-item:hover .remove-btn {
   opacity: 1;
 }
-</style> 
+</style>

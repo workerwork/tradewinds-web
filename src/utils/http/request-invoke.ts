@@ -1,14 +1,15 @@
 // @ts-ignore - Tauri v2 types
 import { invoke } from '@tauri-apps/api/core';
 import { DEBUG } from '@/config';
+import { logger } from '@/utils';
 
 interface InvokeOptions {
     url: string;
     method: string;
-    data?: any;
-    params?: any;
+    data?: unknown;
+    params?: unknown;
     invokeCommand: string;
-    invokeParams?: any;
+    invokeParams?: Record<string, unknown>;
 }
 
 // invoke 请求方法
@@ -23,24 +24,22 @@ export async function request_invoke(options: InvokeOptions) {
     };
 
     if (DEBUG) {
-        console.log('Invoke Request:', {
+        logger.info('Invoke Request', {
             command: invokeCommand,
             params: finalParams
-        });
+        }, 'RequestInvoke');
     }
 
     try {
         const result = await invoke(invokeCommand, finalParams);
 
         if (DEBUG) {
-            console.log('Invoke Response:', result);
+            logger.info('Invoke Response', result, 'RequestInvoke');
         }
 
         return result;
-    } catch (error) {
-        if (DEBUG) {
-            console.error('Invoke error:', error);
-        }
+    } catch (error: unknown) {
+        logger.error('Invoke error', error, 'RequestInvoke');
         throw error;
     }
 } 

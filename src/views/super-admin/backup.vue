@@ -1,5 +1,9 @@
 <template>
-  <div class="super-admin-backup-container" v-loading="loading" element-loading-text="加载备份数据中...">
+  <div
+    v-loading="loading"
+    class="super-admin-backup-container"
+    element-loading-text="加载备份数据中..."
+  >
     <el-card class="page-header">
       <div class="header-content">
         <div class="header-text">
@@ -10,7 +14,7 @@
           <p class="page-description">管理系统数据备份和恢复</p>
         </div>
         <div class="header-actions">
-          <el-button :icon="Refresh" circle @click="refreshBackupList" :loading="refreshing" />
+          <el-button :icon="Refresh" circle :loading="refreshing" @click="refreshBackupList" />
         </div>
       </div>
     </el-card>
@@ -27,12 +31,12 @@
             </div>
           </template>
           <div class="backup-actions">
-            <el-button 
-              type="primary" 
-              size="large" 
-              @click="handleFullBackup" 
+            <el-button
+              type="primary"
+              size="large"
               :loading="backupLoading.full"
               class="backup-btn"
+              @click="handleFullBackup"
             >
               <el-icon class="btn-icon"><Download /></el-icon>
               <div class="btn-content">
@@ -40,12 +44,12 @@
                 <span class="btn-desc">备份所有数据</span>
               </div>
             </el-button>
-            <el-button 
-              type="success" 
-              size="large" 
-              @click="handleIncrementalBackup" 
+            <el-button
+              type="success"
+              size="large"
               :loading="backupLoading.incremental"
               class="backup-btn"
+              @click="handleIncrementalBackup"
             >
               <el-icon class="btn-icon"><FolderOpened /></el-icon>
               <div class="btn-content">
@@ -53,12 +57,12 @@
                 <span class="btn-desc">仅备份变更数据</span>
               </div>
             </el-button>
-            <el-button 
-              type="warning" 
-              size="large" 
-              @click="handleDatabaseBackup" 
+            <el-button
+              type="warning"
+              size="large"
               :loading="backupLoading.database"
               class="backup-btn"
+              @click="handleDatabaseBackup"
             >
               <el-icon class="btn-icon"><DataAnalysis /></el-icon>
               <div class="btn-content">
@@ -78,15 +82,20 @@
                 <el-icon><Clock /></el-icon>
                 备份历史
               </span>
-              <el-button size="small" :icon="Refresh" @click="refreshBackupList" :loading="refreshing">
+              <el-button
+                size="small"
+                :icon="Refresh"
+                :loading="refreshing"
+                @click="refreshBackupList"
+              >
                 刷新
               </el-button>
             </div>
           </template>
-          <el-table 
-            :data="backupHistory" 
-            style="width: 100%" 
+          <el-table
             v-loading="tableLoading"
+            :data="backupHistory"
+            style="width: 100%"
             :empty-text="'暂无备份记录'"
             stripe
           >
@@ -102,7 +111,12 @@
             <el-table-column prop="createTime" label="创建时间" width="160" />
             <el-table-column prop="status" label="状态" width="110" align="center">
               <template #default="scope">
-                <el-tag :type="scope.row.status === '成功' ? 'success' : 'danger'" effect="dark" size="small" class="status-tag">
+                <el-tag
+                  :type="scope.row.status === '成功' ? 'success' : 'danger'"
+                  effect="dark"
+                  size="small"
+                  class="status-tag"
+                >
                   <el-icon class="status-icon">
                     <component :is="scope.row.status === '成功' ? 'CircleCheck' : 'CircleClose'" />
                   </el-icon>
@@ -113,27 +127,27 @@
             <el-table-column label="操作" width="220" align="center" fixed="right">
               <template #default="scope">
                 <div class="action-buttons">
-                  <el-button 
-                    size="small" 
-                    :icon="Download" 
-                    @click="handleDownload(scope.row)"
+                  <el-button
+                    size="small"
+                    :icon="Download"
                     :disabled="scope.row.status !== '成功'"
+                    @click="handleDownload(scope.row)"
                   >
                     下载
                   </el-button>
-                  <el-button 
-                    size="small" 
-                    type="warning" 
-                    :icon="RefreshRight" 
-                    @click="handleRestore(scope.row)"
+                  <el-button
+                    size="small"
+                    type="warning"
+                    :icon="RefreshRight"
                     :disabled="scope.row.status !== '成功'"
+                    @click="handleRestore(scope.row)"
                   >
                     恢复
                   </el-button>
-                  <el-button 
-                    size="small" 
-                    type="danger" 
-                    :icon="Delete" 
+                  <el-button
+                    size="small"
+                    type="danger"
+                    :icon="Delete"
                     @click="handleDelete(scope.row)"
                   >
                     删除
@@ -164,9 +178,9 @@
           </el-col>
           <el-col :xs="24" :sm="6" :md="5">
             <el-form-item label="备份频率">
-              <el-select 
-                v-model="backupSettings.frequency" 
-                placeholder="请选择" 
+              <el-select
+                v-model="backupSettings.frequency"
+                placeholder="请选择"
                 style="width: 100%"
                 popper-class="backup-frequency-select-popper"
               >
@@ -178,9 +192,9 @@
           </el-col>
           <el-col :xs="24" :sm="6" :md="5">
             <el-form-item label="备份时间">
-              <el-time-picker 
-                v-model="backupSettings.time" 
-                format="HH:mm" 
+              <el-time-picker
+                v-model="backupSettings.time"
+                format="HH:mm"
                 value-format="HH:mm"
                 style="width: 100%"
               />
@@ -188,17 +202,17 @@
           </el-col>
           <el-col :xs="24" :sm="6" :md="5">
             <el-form-item label="保留天数">
-              <el-input-number 
-                v-model="backupSettings.retentionDays" 
-                :min="1" 
-                :max="365" 
+              <el-input-number
+                v-model="backupSettings.retentionDays"
+                :min="1"
+                :max="365"
                 style="width: 100%"
               />
             </el-form-item>
           </el-col>
           <el-col :xs="24" :sm="24" :md="5">
             <el-form-item>
-              <el-button type="primary" :icon="Check" @click="saveBackupSettings" :loading="saving">
+              <el-button type="primary" :icon="Check" :loading="saving" @click="saveBackupSettings">
                 保存设置
               </el-button>
               <el-button :icon="RefreshLeft" @click="resetSettings">重置</el-button>
@@ -213,9 +227,19 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { 
-  Download, FolderOpened, Refresh, Clock, Setting, Check, 
-  RefreshLeft, RefreshRight, Delete, CircleCheck, CircleClose, DataAnalysis
+import {
+  Download,
+  FolderOpened,
+  Refresh,
+  Clock,
+  Setting,
+  Check,
+  RefreshLeft,
+  RefreshRight,
+  Delete,
+  CircleCheck,
+  CircleClose,
+  DataAnalysis,
 } from '@element-plus/icons-vue';
 import { useSuperAdminAccess } from '@/composables';
 
@@ -253,7 +277,7 @@ const saving = ref(false);
 const backupLoading = ref<BackupLoading>({
   full: false,
   incremental: false,
-  database: false
+  database: false,
 });
 
 const backupHistory = ref<BackupItem[]>([
@@ -263,7 +287,7 @@ const backupHistory = ref<BackupItem[]>([
     type: '完整备份',
     size: '2.5GB',
     createTime: '2024-03-20 02:00:00',
-    status: '成功'
+    status: '成功',
   },
   {
     id: 2,
@@ -271,7 +295,7 @@ const backupHistory = ref<BackupItem[]>([
     type: '增量备份',
     size: '150MB',
     createTime: '2024-03-19 02:00:00',
-    status: '成功'
+    status: '成功',
   },
   {
     id: 3,
@@ -279,26 +303,32 @@ const backupHistory = ref<BackupItem[]>([
     type: '数据库备份',
     size: '800MB',
     createTime: '2024-03-18 02:00:00',
-    status: '成功'
-  }
+    status: '成功',
+  },
 ]);
 
 const defaultSettings: BackupSettings = {
   enabled: true,
   frequency: 'daily',
   time: '02:00',
-  retentionDays: 30
+  retentionDays: 30,
 };
 
 const backupSettings = ref<BackupSettings>({ ...defaultSettings });
 
 // 获取备份类型颜色
-const getBackupTypeColor = (type: string): 'primary' | 'success' | 'warning' | 'info' | 'danger' => {
+const getBackupTypeColor = (
+  type: string
+): 'primary' | 'success' | 'warning' | 'info' | 'danger' => {
   switch (type) {
-    case '完整备份': return 'primary';
-    case '增量备份': return 'success';
-    case '数据库备份': return 'warning';
-    default: return 'info';
+    case '完整备份':
+      return 'primary';
+    case '增量备份':
+      return 'success';
+    case '数据库备份':
+      return 'warning';
+    default:
+      return 'info';
   }
 };
 
@@ -311,10 +341,10 @@ const handleFullBackup = async () => {
       {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
-        type: 'warning'
+        type: 'warning',
       }
     );
-    
+
     backupLoading.value.full = true;
     try {
       // 模拟备份过程
@@ -392,7 +422,7 @@ const handleRestore = async (backup: BackupItem) => {
       ElMessage.warning('只能恢复成功的备份文件');
       return;
     }
-    
+
     await ElMessageBox.confirm(
       `确定要恢复备份 "${backup.name}" 吗？此操作将覆盖当前数据，且不可恢复！`,
       '确认恢复备份',
@@ -400,10 +430,10 @@ const handleRestore = async (backup: BackupItem) => {
         confirmButtonText: '确定恢复',
         cancelButtonText: '取消',
         type: 'error',
-        dangerouslyUseHTMLString: false
+        dangerouslyUseHTMLString: false,
       }
     );
-    
+
     ElMessage.success(`开始恢复: ${backup.name}`);
     // 这里可以调用实际的恢复API
   }, '恢复备份失败');
@@ -418,10 +448,10 @@ const handleDelete = async (backup: BackupItem) => {
       {
         confirmButtonText: '确定删除',
         cancelButtonText: '取消',
-        type: 'warning'
+        type: 'warning',
       }
     );
-    
+
     // 模拟删除操作
     const index = backupHistory.value.findIndex(item => item.id === backup.id);
     if (index > -1) {
@@ -456,7 +486,7 @@ onMounted(() => {
   if (!checkAccess()) {
     return;
   }
-  
+
   // 加载初始数据
   loading.value = true;
   refreshBackupList().finally(() => {
@@ -801,11 +831,11 @@ onMounted(() => {
 :deep(.backup-frequency-select-popper) {
   min-width: auto !important;
   width: auto !important;
-  
+
   .el-select-dropdown__list {
     min-width: auto !important;
   }
-  
+
   .el-select-dropdown__item {
     min-width: auto !important;
   }
@@ -840,4 +870,4 @@ onMounted(() => {
     }
   }
 }
-</style> 
+</style>

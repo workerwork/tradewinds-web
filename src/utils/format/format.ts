@@ -1,3 +1,5 @@
+import { logger } from '@/utils'
+
 /**
  * 格式化工具函数
  */
@@ -24,9 +26,11 @@ export const formatDateTime = (
             date = new Date(dateTime * (dateTime < 10000000000 ? 1000 : 1));
         } else if (typeof dateTime === 'string') {
             // 尝试解析字符串日期
-            if (/^\d+$/.test(dateTime)) {
+            // 优化：缓存正则表达式，避免重复创建
+            const numericPattern = /^\d+$/;
+            if (numericPattern.test(dateTime)) {
                 // 如果是纯数字字符串，当作时间戳处理
-                const timestamp = parseInt(dateTime);
+                const timestamp = parseInt(dateTime, 10); // 明确指定基数，提升性能
                 date = new Date(timestamp * (timestamp < 10000000000 ? 1000 : 1));
             } else {
                 // 尝试直接解析日期字符串
@@ -38,12 +42,17 @@ export const formatDateTime = (
 
         if (isNaN(date.getTime())) return '--';
 
+        // 优化：使用更高效的数字格式化方法
+        const padZero = (num: number): string => {
+            return num < 10 ? `0${num}` : String(num);
+        };
+
         const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
+        const month = padZero(date.getMonth() + 1);
+        const day = padZero(date.getDate());
+        const hours = padZero(date.getHours());
+        const minutes = padZero(date.getMinutes());
+        const seconds = padZero(date.getSeconds());
 
         switch (format) {
             case 'date':
@@ -54,12 +63,12 @@ export const formatDateTime = (
             default:
                 return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
         }
-    } catch (error) {
-        console.warn('时间格式化失败:', {
+    } catch (error: unknown) {
+        logger.warn('时间格式化失败', {
             输入值: dateTime,
             输入类型: typeof dateTime,
             错误信息: error
-        });
+        }, 'Format');
         return '--';
     }
 };
@@ -92,8 +101,8 @@ export const formatRelativeTime = (dateTime: string | Date | null | undefined): 
         if (minutes > 0) return `${minutes}分钟前`;
         if (seconds > 0) return `${seconds}秒前`;
         return '刚刚';
-    } catch (error) {
-        console.warn('相对时间格式化失败:', dateTime, error);
+    } catch (error: unknown) {
+        logger.warn('相对时间格式化失败', { dateTime, error }, 'Format');
         return '--';
     }
 };
@@ -106,13 +115,16 @@ export const formatRelativeTime = (dateTime: string | Date | null | undefined): 
 export const formatFileSize = (bytes: number | null | undefined): string => {
     if (bytes === null || bytes === undefined || bytes < 0) return '--';
 
-    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    // 优化：使用常量数组，避免重复创建
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'] as const;
     let size = bytes;
     let unitIndex = 0;
+    const maxIndex = units.length - 1;
 
-    while (size >= 1024 && unitIndex < units.length - 1) {
-        size /= 1024;
-        unitIndex++;
+    // 优化：使用 Math.log2 计算单位索引，比循环更高效
+    if (size >= 1024) {
+        unitIndex = Math.min(Math.floor(Math.log2(size) / 10), maxIndex);
+        size = size / Math.pow(1024, unitIndex);
     }
 
     return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;

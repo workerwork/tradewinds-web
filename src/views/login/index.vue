@@ -63,6 +63,10 @@
 </template>
 
 <script setup lang="ts">
+// 定义组件名称，用于 keep-alive 排除
+defineOptions({
+  name: 'Login'
+});
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
@@ -70,9 +74,13 @@ import { User, Lock, View, Hide } from '@element-plus/icons-vue';
 import type { FormInstance } from 'element-plus';
 import { useUserStore } from '@/stores/user';
 import { authAPI } from '@/api/auth';
+import { useErrorHandler } from '@/composables';
+import { logger } from '@/utils';
+import { DEBUG } from '@/config';
 
 const router = useRouter();
 const userStore = useUserStore();
+const { handleApiError } = useErrorHandler();
 const loginFormRef = ref<FormInstance>();
 const loading = ref(false);
 const showPassword = ref(false);
@@ -101,7 +109,9 @@ const handleLogin = async () => {
     await loginFormRef.value.validate();
     loading.value = true;
     
-    console.log('开始登录:', loginForm.username);
+    if (DEBUG) {
+      logger.info('开始登录', { username: loginForm.username }, 'Login');
+    }
 
     // 使用userStore.login方法，确保用户信息被正确设置
     await userStore.login(loginForm.username.trim(), loginForm.password);
@@ -114,19 +124,14 @@ const handleLogin = async () => {
     }
 
     ElMessage.success('登录成功');
-    router.push('/');
-  } catch (error: any) {
-    console.error('登录错误:', error);
-    // 根据错误类型显示不同的错误信息
-    if (error.code === 401) {
-      ElMessage.error('用户名或密码错误');
-    } else if (error.response?.data?.message) {
-      ElMessage.error(error.response.data.message);
-    } else if (error.message) {
-      ElMessage.error(error.message);
-    } else {
-      ElMessage.error('登录失败，请重试');
-    }
+    
+    // 跳转到 dashboard
+    router.push('/dashboard').catch(() => {
+      // 如果跳转失败，尝试跳转到根路径
+      router.push('/');
+    });
+  } catch (error: unknown) {
+    handleApiError(error, '登录失败，请重试', 'Login');
   } finally {
     loading.value = false;
   }

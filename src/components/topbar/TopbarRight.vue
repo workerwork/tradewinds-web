@@ -1,22 +1,22 @@
 <template>
   <div class="topbar-right">
-    <slot />
-    
+    <slot></slot>
+
     <!-- 用户信息 -->
     <UserProfile @command="handleCommand" />
   </div>
 </template>
 
 <script setup lang="ts">
-import UserProfile from './UserProfile.vue'
+import UserProfile from './UserProfile.vue';
 
 const emit = defineEmits<{
-  command: [command: string]
-}>()
+  command: [command: string];
+}>();
 
 const handleCommand = (command: string) => {
-  emit('command', command)
-}
+  emit('command', command);
+};
 </script>
 
 <style scoped lang="scss">
@@ -30,4 +30,3 @@ const handleCommand = (command: string) => {
   justify-content: flex-end;
 }
 </style>
-

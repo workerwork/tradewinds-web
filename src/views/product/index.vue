@@ -101,18 +101,8 @@
     </div>
 
     <!-- 编辑对话框 -->
-    <el-dialog
-      :title="dialogTitle"
-      v-model="dialogVisible"
-      width="600px"
-      append-to-body
-    >
-      <el-form
-        ref="formRef"
-        :model="formData"
-        :rules="formRules"
-        label-width="80px"
-      >
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px" append-to-body>
+      <el-form ref="formRef" :model="formData" :rules="formRules" label-width="80px">
         <el-form-item label="产品名称" prop="name">
           <el-input v-model="formData.name" placeholder="请输入产品名称" />
         </el-form-item>
@@ -127,20 +117,10 @@
           </el-select>
         </el-form-item>
         <el-form-item label="产品价格" prop="price">
-          <el-input-number
-            v-model="formData.price"
-            :precision="2"
-            :step="0.1"
-            :min="0"
-          />
+          <el-input-number v-model="formData.price" :precision="2" :step="0.1" :min="0" />
         </el-form-item>
         <el-form-item label="库存数量" prop="stock">
-          <el-input-number
-            v-model="formData.stock"
-            :precision="0"
-            :step="1"
-            :min="0"
-          />
+          <el-input-number v-model="formData.stock" :precision="0" :step="1" :min="0" />
         </el-form-item>
         <el-form-item label="产品图片" prop="image">
           <el-upload
@@ -206,7 +186,7 @@ const productTypes = [
   { label: '服装', value: 2 },
   { label: '食品', value: 3 },
   { label: '家具', value: 4 },
-  { label: '其他', value: 99 }
+  { label: '其他', value: 99 },
 ];
 
 // 查询参数
@@ -215,7 +195,7 @@ const queryParams = reactive({
   pageSize: 10,
   name: '',
   type: undefined as number | undefined,
-  status: undefined as number | undefined
+  status: undefined as number | undefined,
 });
 
 // 表单数据
@@ -226,7 +206,7 @@ const formData = reactive<Partial<Product>>({
   stock: 0,
   image: '',
   status: 1,
-  description: ''
+  description: '',
 });
 
 // 表单校验规则
@@ -234,13 +214,13 @@ const formRules = {
   name: [{ required: true, message: '请输入产品名称', trigger: 'blur' }],
   type: [{ required: true, message: '请选择产品类型', trigger: 'change' }],
   price: [{ required: true, message: '请输入产品价格', trigger: 'blur' }],
-  stock: [{ required: true, message: '请输入库存数量', trigger: 'blur' }]
+  stock: [{ required: true, message: '请输入库存数量', trigger: 'blur' }],
 };
 
 // 对话框相关
 const dialogVisible = ref(false);
 const dialogType = ref<'add' | 'edit'>('add');
-const dialogTitle = computed(() => dialogType.value === 'add' ? '新增产品' : '编辑产品');
+const dialogTitle = computed(() => (dialogType.value === 'add' ? '新增产品' : '编辑产品'));
 
 // 初始化
 onMounted(async () => {
@@ -278,7 +258,7 @@ const handleAdd = () => {
     stock: 0,
     image: '',
     status: 1,
-    description: ''
+    description: '',
   });
 };
 
@@ -293,7 +273,7 @@ const handleEdit = (row: Product) => {
 const handleDelete = async (row: Product) => {
   try {
     await ElMessageBox.confirm('确认删除该产品吗？', '提示', {
-      type: 'warning'
+      type: 'warning',
     });
     await productStore.deleteProduct(row.id);
     ElMessage.success('删除成功');
@@ -305,15 +285,15 @@ const handleDelete = async (row: Product) => {
 // 提交表单
 const handleSubmit = async () => {
   if (!formRef.value) return;
-  
+
   await formRef.value.validate();
-  
+
   if (dialogType.value === 'add') {
     await productStore.addProduct(formData);
   } else {
     await productStore.updateProduct(formData.id!, formData);
   }
-  
+
   dialogVisible.value = false;
   ElMessage.success(dialogType.value === 'add' ? '添加成功' : '更新成功');
 };
@@ -478,4 +458,4 @@ const handleCurrentChange = (val: number) => {
   font-size: 28px;
   margin-bottom: 8px;
 }
-</style> 
+</style>

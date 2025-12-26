@@ -5,10 +5,10 @@
     </div>
 
     <!-- 调试信息卡片（来自overview.vue） -->
-    <el-card class="debug-info" v-if="showDebugInfo">
+    <el-card v-if="showDebugInfo" class="debug-info">
       <template #header>
         <span>用户状态调试信息</span>
-        <el-button style="float: right;" @click="refreshDebugInfo">刷新</el-button>
+        <el-button style="float: right" @click="refreshDebugInfo">刷新</el-button>
       </template>
       <el-descriptions :column="2" border>
         <el-descriptions-item label="Token状态">
@@ -40,7 +40,7 @@
           {{ localStorageToken ? '存在' : '不存在' }}
         </el-descriptions-item>
       </el-descriptions>
-      <div style="margin-top: 20px;">
+      <div style="margin-top: 20px">
         <el-button type="warning" @click="testTokenClear">测试清除Token</el-button>
         <el-button type="info" @click="testUserInfo">测试获取用户信息</el-button>
       </div>
@@ -119,13 +119,21 @@
     </el-row>
 
     <!-- 图表区域（来自overview.vue） -->
-    <el-row :gutter="20" style="margin-top: 20px;">
+    <el-row :gutter="20" style="margin-top: 20px">
       <el-col :span="12">
         <el-card>
           <template #header>
             <span>用户增长趋势</span>
           </template>
-          <div style="height: 300px; display: flex; align-items: center; justify-content: center; color: #999;">
+          <div
+            style="
+              height: 300px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: #999;
+            "
+          >
             图表区域（需要集成图表库）
           </div>
         </el-card>
@@ -135,7 +143,15 @@
           <template #header>
             <span>销售统计</span>
           </template>
-          <div style="height: 300px; display: flex; align-items: center; justify-content: center; color: #999;">
+          <div
+            style="
+              height: 300px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: #999;
+            "
+          >
             图表区域（需要集成图表库）
           </div>
         </el-card>
@@ -261,4 +277,4 @@ onMounted(() => {
 .chart-container {
   height: 300px;
 }
-</style> 
+</style>

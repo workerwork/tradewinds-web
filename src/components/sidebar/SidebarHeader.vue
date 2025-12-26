@@ -1,6 +1,6 @@
 <template>
   <div class="sidebar-header" :class="{ 'is-collapsed': isCollapsed }">
-    <div class="logo-section" v-if="!isCollapsed">
+    <div v-if="!isCollapsed" class="logo-section">
       <div class="logo-container">
         <div class="logo-icon">
           <el-icon><OfficeBuilding /></el-icon>
@@ -12,10 +12,7 @@
       </div>
     </div>
     <div class="collapse-section">
-      <el-icon 
-        class="collapse-trigger"
-        @click="$emit('toggle')"
-      >
+      <el-icon class="collapse-trigger" @click="$emit('toggle')">
         <component :is="isCollapsed ? Expand : Fold" />
       </el-icon>
     </div>
@@ -23,18 +20,18 @@
 </template>
 
 <script setup lang="ts">
-import { OfficeBuilding, Expand, Fold } from '@element-plus/icons-vue'
-import { useUserDisplayName } from '@/composables'
+import { OfficeBuilding, Expand, Fold } from '@element-plus/icons-vue';
+import { useUserDisplayName } from '@/composables';
 
 defineProps<{
-  isCollapsed: boolean
-}>()
+  isCollapsed: boolean;
+}>();
 
 defineEmits<{
-  toggle: []
-}>()
+  toggle: [];
+}>();
 
-const { userDisplayName } = useUserDisplayName()
+const { userDisplayName } = useUserDisplayName();
 </script>
 
 <style scoped lang="scss">
@@ -92,13 +89,18 @@ const { userDisplayName } = useUserDisplayName()
   width: 40px;
   height: 40px;
   border-radius: $border-radius-lg;
-  background: linear-gradient(135deg, rgba(var(--theme-sidebar-rgb), 1), rgba(var(--theme-sidebar-rgb), 0.7));
+  background: linear-gradient(
+    135deg,
+    rgba(var(--theme-sidebar-rgb), 1),
+    rgba(var(--theme-sidebar-rgb), 0.7)
+  );
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 12px rgba(64, 158, 255, 0.4);
   flex-shrink: 0;
-  transition: $transition-base;
+  transition: all 0.2s ease;
+  will-change: transform, box-shadow;
 
   &:hover {
     transform: translateY(-1px);
@@ -108,7 +110,7 @@ const { userDisplayName } = useUserDisplayName()
   :deep(.el-icon) {
     font-size: 20px;
     color: white;
-    transition: $transition-base;
+    transition: all 0.2s ease;
   }
 }
 
@@ -121,21 +123,23 @@ const { userDisplayName } = useUserDisplayName()
   cursor: pointer;
   font-size: 18px;
   color: rgba(255, 255, 255, 0.7);
-  transition: $transition-base;
-  padding: $spacing-sm;
-  border-radius: $border-radius-sm;
+  transition: color 0.2s ease;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  will-change: color;
 
   &:hover {
     color: #ffffff;
-    background: rgba(255, 255, 255, 0.1);
+  }
+
+  &:active {
+    transform: scale(0.95);
   }
 
   :deep(.el-icon) {
-    transition: $transition-base;
+    transition: all 0.2s ease;
   }
 }
 
@@ -157,33 +161,9 @@ const { userDisplayName } = useUserDisplayName()
 }
 
 .sidebar-header.is-collapsed .collapse-trigger {
-  background: rgba(255, 255, 255, 0.1) !important;
-  border-radius: $border-radius-lg !important;
-  padding: 0 !important;
   font-size: 18px !important;
-  width: 40px !important;
-  height: 40px !important;
-  min-width: 40px !important;
-  max-width: 40px !important;
-  min-height: 40px !important;
-  max-height: 40px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  margin: 2px 0 !important;
-  position: relative !important;
-  box-sizing: border-box !important;
-}
-
-.sidebar-header.is-collapsed .collapse-trigger .el-icon {
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-  transform: translate(-50%, -50%) !important;
-  font-size: 18px !important;
-  width: 18px !important;
-  height: 18px !important;
-  margin: 0 !important;
 }
 </style>
-

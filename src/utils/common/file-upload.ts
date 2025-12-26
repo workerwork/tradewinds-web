@@ -9,17 +9,16 @@
  * @returns FormData 实例
  */
 export function createFormData(file: File, fieldName: string = 'file'): FormData {
-    const formData = new FormData();
-    formData.append(fieldName, file);
-    return formData;
+  const formData = new FormData();
+  formData.append(fieldName, file);
+  return formData;
 }
 
 /**
  * 文件上传请求配置
  */
 export const FILE_UPLOAD_CONFIG = {
-    headers: {
-        'Content-Type': 'multipart/form-data'
-    }
+  headers: {
+    'Content-Type': 'multipart/form-data',
+  },
 } as const;
-

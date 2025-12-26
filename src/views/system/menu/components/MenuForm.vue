@@ -1,10 +1,5 @@
 <template>
-  <el-form
-    ref="formRef"
-    :model="form"
-    :rules="rules"
-    label-width="100px"
-  >
+  <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
     <el-form-item label="上级菜单">
       <el-tree-select
         v-model="form.parentId"
@@ -41,7 +36,7 @@
         <el-input v-model="form.component" placeholder="请输入组件路径" />
       </el-form-item>
     </template>
-    <el-form-item label="权限标识" prop="permission" v-if="form.type === 'button'">
+    <el-form-item v-if="form.type === 'button'" label="权限标识" prop="permission">
       <el-input v-model="form.permission" placeholder="请输入权限标识" />
     </el-form-item>
     <el-form-item label="排序" prop="sort">
@@ -67,12 +62,12 @@ import type { Menu } from '@/types';
 const props = defineProps({
   modelValue: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   menuOptions: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 });
 
 const emit = defineEmits(['update:modelValue', 'validate']);
@@ -88,72 +83,86 @@ const form = reactive<Partial<Menu>>({
   component: '',
   permission: '',
   sort: 0,
-  status: 1
+  status: 1,
 });
 
 // 表单校验规则
 const rules = reactive<FormRules>({
   name: [
     { required: true, message: '请输入菜单名称', trigger: 'blur' },
-    { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
+    { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' },
   ],
-  type: [
-    { required: true, message: '请选择菜单类型', trigger: 'change' }
-  ],
+  type: [{ required: true, message: '请选择菜单类型', trigger: 'change' }],
   path: [
-    { required: true, message: '请输入路由路径', trigger: 'blur', 
+    {
+      required: true,
+      message: '请输入路由路径',
+      trigger: 'blur',
       validator: (rule, value, callback) => {
         if (form.type === 'menu' && !value) {
           callback(new Error('请输入路由路径'));
         } else {
           callback();
         }
-      } 
-    }
+      },
+    },
   ],
   component: [
-    { required: true, message: '请输入组件路径', trigger: 'blur',
+    {
+      required: true,
+      message: '请输入组件路径',
+      trigger: 'blur',
       validator: (rule, value, callback) => {
         if (form.type === 'menu' && !value) {
           callback(new Error('请输入组件路径'));
         } else {
           callback();
         }
-      }
-    }
+      },
+    },
   ],
   permission: [
-    { required: true, message: '请输入权限标识', trigger: 'blur',
+    {
+      required: true,
+      message: '请输入权限标识',
+      trigger: 'blur',
       validator: (rule, value, callback) => {
         if (form.type === 'button' && !value) {
           callback(new Error('请输入权限标识'));
         } else {
           callback();
         }
-      }
-    }
+      },
+    },
   ],
-  sort: [
-    { required: true, message: '请输入排序', trigger: 'blur' }
-  ]
+  sort: [{ required: true, message: '请输入排序', trigger: 'blur' }],
 });
 
 // 监听 modelValue 变化
-watch(() => props.modelValue, (val) => {
-  if (val) {
-    Object.assign(form, val);
-  }
-}, { deep: true, immediate: true });
+watch(
+  () => props.modelValue,
+  val => {
+    if (val) {
+      Object.assign(form, val);
+    }
+  },
+  { deep: true, immediate: true }
+);
 
 // 监听表单变化
-watch(form, (val) => {
-  emit('update:modelValue', { ...val });
-}, { deep: true });
+watch(
+  form,
+  val => {
+    emit('update:modelValue', { ...val });
+  },
+  { deep: true }
+);
 
 // 表单验证
 const validate = async () => {
   if (!formRef.value) return false;
-  return formRef.value.validate()
+  return formRef.value
+    .validate()
     .then(() => {
       emit('validate', true);
       return true;
@@ -175,7 +184,7 @@ const resetForm = () => {
 defineExpose({
   validate,
   resetForm,
-  formRef
+  formRef,
 });
 </script>
 
@@ -183,4 +192,4 @@ defineExpose({
 .el-form {
   max-width: 600px;
 }
-</style> 
+</style>

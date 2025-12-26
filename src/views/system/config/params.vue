@@ -152,6 +152,7 @@ import {
   Delete
 } from '@element-plus/icons-vue'
 import { getParamList, addParam, updateParam, deleteParam, batchDeleteParams } from '@/api/system'
+import { useErrorHandler } from '@/composables'
 
 interface ParamItem {
   id: number
@@ -176,6 +177,9 @@ const tableData = ref<ParamItem[]>([])
 
 // 选中行
 const selectedRows = ref<ParamItem[]>([])
+
+// 错误处理
+const { handleApiError } = useErrorHandler()
 
 // 分页
 const pagination = reactive({
@@ -238,8 +242,8 @@ const fetchData = async () => {
     const { data } = await getParamList(params)
     tableData.value = data.list
     pagination.total = data.total
-  } catch (error) {
-    console.error('获取参数列表失败:', error)
+  } catch (error: unknown) {
+    handleApiError(error, '获取参数列表失败', 'ConfigParams')
   } finally {
     loading.value = false
   }
@@ -301,8 +305,8 @@ const handleDelete = (row: ParamItem) => {
       await deleteParam(row.id)
       ElMessage.success('删除成功')
       fetchData()
-    } catch (error) {
-      console.error('删除失败:', error)
+    } catch (error: unknown) {
+      handleApiError(error, '删除失败', 'ConfigParams')
     }
   })
 }
@@ -327,8 +331,8 @@ const handleBatchDelete = () => {
       await batchDeleteParams(ids)
       ElMessage.success('删除成功')
       fetchData()
-    } catch (error) {
-      console.error('批量删除失败:', error)
+    } catch (error: unknown) {
+      handleApiError(error, '批量删除失败', 'ConfigParams')
     }
   })
 }
@@ -338,8 +342,8 @@ const handleStatusChange = async (row: ParamItem) => {
   try {
     await updateParam(row.id, { status: row.status })
     ElMessage.success(`状态更新成功：${row.status === '0' ? '启用' : '停用'}`)
-  } catch (error) {
-    console.error('状态更新失败:', error)
+  } catch (error: unknown) {
+    handleApiError(error, '状态更新失败', 'ConfigParams')
     // 恢复状态
     row.status = row.status === '0' ? '1' : '0'
   }
@@ -361,8 +365,8 @@ const handleSubmit = async () => {
         }
         dialogVisible.value = false
         fetchData()
-      } catch (error) {
-        console.error('保存失败:', error)
+      } catch (error: unknown) {
+        handleApiError(error, '保存失败', 'ConfigParams')
       } finally {
         submitLoading.value = false
       }

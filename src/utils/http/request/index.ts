@@ -8,4 +8,4 @@
 export { request } from '../request-axios';
 
 // 导出 invoke 请求方法
-export { request_invoke } from '../request-invoke'; 
+export { request_invoke } from '../request-invoke';

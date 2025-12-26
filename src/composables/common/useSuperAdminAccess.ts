@@ -3,6 +3,7 @@ import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { useUserStore } from '@/stores';
 import { DEBUG } from '@/config';
+import { logger } from '@/utils';
 
 /**
  * 超级管理员权限检查 Composable
@@ -27,7 +28,7 @@ export function useSuperAdminAccess() {
     const checkAccess = (redirectPath: string = '/dashboard'): boolean => {
         if (!isSuperAdmin.value) {
             if (DEBUG) {
-                console.warn('SuperAdmin - 权限检查失败，用户无超级管理员权限');
+                logger.warn('SuperAdmin - 权限检查失败，用户无超级管理员权限', undefined, 'SuperAdminAccess');
             }
             ElMessage.error('您没有权限访问此页面');
             router.push(redirectPath);

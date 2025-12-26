@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import type { Product, QueryParams, PageResult } from '@/types';
-import { request } from '@/utils';
+import { request, logger } from '@/utils';
 
 interface ProductState {
     products: Product[];
@@ -35,9 +35,8 @@ export const useProductStore = defineStore('product', {
                 });
                 this.products = list;
                 this.total = total;
-            } catch (error) {
-                // 错误处理
-                console.error('获取产品列表失败:', error);
+            } catch (error: unknown) {
+                logger.error('获取产品列表失败', error, 'ProductStore');
                 throw error;
             } finally {
                 this.loading = false;
@@ -49,8 +48,8 @@ export const useProductStore = defineStore('product', {
             try {
                 await request.post('/api/products', data);
                 await this.getProducts();
-            } catch (error) {
-                console.error('添加产品失败:', error);
+            } catch (error: unknown) {
+                logger.error('添加产品失败', error, 'ProductStore');
                 throw error;
             }
         },
@@ -60,8 +59,8 @@ export const useProductStore = defineStore('product', {
             try {
                 await request.put(`/api/products/${id}`, data);
                 await this.getProducts();
-            } catch (error) {
-                console.error('更新产品失败:', error);
+            } catch (error: unknown) {
+                logger.error('更新产品失败', error, 'ProductStore');
                 throw error;
             }
         },
@@ -71,8 +70,8 @@ export const useProductStore = defineStore('product', {
             try {
                 await request.delete(`/api/products/${id}`);
                 await this.getProducts();
-            } catch (error) {
-                console.error('删除产品失败:', error);
+            } catch (error: unknown) {
+                logger.error('删除产品失败', error, 'ProductStore');
                 throw error;
             }
         },
@@ -84,8 +83,8 @@ export const useProductStore = defineStore('product', {
                 formData.append('file', file);
                 const result = await request.post<{ url: string }>('/api/upload', formData);
                 return result;
-            } catch (error) {
-                console.error('上传图片失败:', error);
+            } catch (error: unknown) {
+                logger.error('上传图片失败', error, 'ProductStore');
                 throw error;
             }
         },
@@ -95,8 +94,8 @@ export const useProductStore = defineStore('product', {
             try {
                 await request.post('/api/products/import', file);
                 await this.getProducts();
-            } catch (error) {
-                console.error('导入产品失败:', error);
+            } catch (error: unknown) {
+                logger.error('导入产品失败', error, 'ProductStore');
                 throw error;
             }
         },
@@ -115,8 +114,8 @@ export const useProductStore = defineStore('product', {
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-            } catch (error) {
-                console.error('导出产品失败:', error);
+            } catch (error: unknown) {
+                logger.error('导出产品失败', error, 'ProductStore');
                 throw error;
             }
         }

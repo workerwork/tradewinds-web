@@ -6,7 +6,7 @@ import {
     updateRoleStatus as changeRoleStatus,
     assignRolePermissions as assignPermissionsApi
 } from '@/api/system/role';
-import { request } from '@/utils';
+import { request, logger, extractPaginationData } from '@/utils';
 import { getPermissionList as fetchPermissionList } from '@/api/system/permission';
 
 /**
@@ -20,30 +20,74 @@ export async function getRoleList(params: Partial<PaginationQuery & { name?: str
     }
     try {
         const response = await fetchRoleList(query);
-        // 现在 response 就是 data 字段内容
-        const r = response as any;
-        const roles: any[] =
-            Array.isArray(r.items) ? r.items :
-                Array.isArray(r.list) ? r.list :
-                    Array.isArray(r.roles) ? r.roles :
-                        Array.isArray(r) ? r : [];
-        const totalCount = r.total || roles.length || 0;
+        // 使用统一的分页数据提取工具
+        const { items: roles, total: totalCount } = extractPaginationData<unknown>(response, {
+            category: 'RoleService',
+            logPrefix: 'RoleService - 提取角色列表',
+            arrayFieldNames: ['roles']
+        });
+        // 规范化角色ID：支持UUID字符串或数字
+        const normalizeRoleId = (id: unknown, index: number, roleObj: Record<string, unknown>): string | number => {
+            if (typeof id === 'number') {
+                if (isNaN(id)) {
+                    logger.warn(`角色数据第${index}条：ID为NaN`, { role: roleObj }, 'RoleService');
+                }
+                return id;
+            }
+            if (typeof id === 'string') {
+                if (id.trim() === '') {
+                    logger.error(`角色数据第${index}条：ID为空字符串`, { role: roleObj }, 'RoleService');
+                    return '';
+                }
+                return id;
+            }
+            if (id == null) {
+                logger.error(`角色数据第${index}条：ID缺失`, { role: roleObj }, 'RoleService');
+                return '';
+            }
+            return String(id);
+        };
+
+        // 验证角色ID是否有效
+        const isValidRoleId = (id: string | number): boolean => {
+            if (id == null) return false;
+            if (typeof id === 'number' && isNaN(id)) return false;
+            if (typeof id === 'string' && id.trim() === '') return false;
+            return true;
+        };
+
         // 确保角色数据格式一致，时间和权限字段兼容多种命名
-        const normalizedRoles = roles.map((role: any) => ({
-            ...role,
-            name: role.name || '',
-            code: role.code || '',
-            createTime: role.createTime || role.created_at || role.createdAt || role.create_time || '',
-            updateTime: role.updateTime || role.updated_at || role.updatedAt || role.update_time || '',
-            permissions: Array.isArray(role.permissions) ? role.permissions
-                : Array.isArray(role.rolePermissions) ? role.rolePermissions
-                    : Array.isArray(role.perms) ? role.perms
-                        : [],
-            status: typeof role.status === 'number' ? role.status : parseInt(role.status) || 0
-        }));
-        return { roles: normalizedRoles, total: totalCount };
-    } catch (error) {
-        console.error('获取角色列表失败:', error);
+        const normalizedRoles = roles
+            .map((role: unknown, index: number) => {
+                const roleObj = role as Record<string, unknown>;
+                const normalizedId = normalizeRoleId(roleObj.id, index, roleObj);
+
+                return {
+                    ...roleObj,
+                    id: normalizedId,
+                    name: (roleObj.name || '') as string,
+                    code: (roleObj.code || '') as string,
+                    description: (roleObj.description || '') as string,
+                    createTime: (roleObj.createTime || roleObj.created_at || roleObj.createdAt || roleObj.create_time || '') as string,
+                    updateTime: (roleObj.updateTime || roleObj.updated_at || roleObj.updatedAt || roleObj.update_time || '') as string,
+                    permissions: Array.isArray(roleObj.permissions) ? roleObj.permissions
+                        : Array.isArray(roleObj.rolePermissions) ? roleObj.rolePermissions
+                            : Array.isArray(roleObj.perms) ? roleObj.perms
+                                : [],
+                    status: typeof roleObj.status === 'number' ? roleObj.status : Number(roleObj.status) || 0
+                } as Role;
+            })
+            .filter((role: Role) => {
+                // 过滤掉ID无效的角色数据
+                if (!isValidRoleId(role.id)) {
+                    logger.warn('过滤掉ID无效的角色数据', { role }, 'RoleService');
+                    return false;
+                }
+                return true;
+            });
+        return { roles: normalizedRoles as Role[], total: totalCount };
+    } catch (error: unknown) {
+        logger.error('获取角色列表失败', error, 'RoleService');
         throw error;
     }
 }
@@ -51,15 +95,16 @@ export async function getRoleList(params: Partial<PaginationQuery & { name?: str
 /**
  * 创建角色
  */
-export async function createRole(roleData: any) {
+export async function createRole(roleData: Partial<Role>) {
     return addRole(roleData);
 }
 
 /**
  * 更新角色
  */
-export async function updateRole(id: string, roleData: any) {
-    return updateRoleApi(id, roleData);
+export async function updateRole(id: string, roleData: Partial<Role>) {
+    // 参考用户管理的实现：在 body 中也包含 id
+    return updateRoleApi(id, { ...roleData, id });
 }
 
 /**
@@ -91,11 +136,38 @@ export async function updateRolePermissions(id: string, permissionIds: string[])
     return request.put(`/system/roles/${id}/permissions`, { permissionIds });
 }
 
+// 权限树缓存（避免重复请求）
+let permissionTreeCache: { data: unknown; timestamp: number } | null = null;
+const CACHE_DURATION = 5 * 60 * 1000; // 缓存 5 分钟
+
 /**
  * 获取权限树
+ * 注意：从日志看，正确的路径是 /system/permissions/tree（复数形式）
  */
 export async function getPermissionTree() {
-    return request.get('/system/permissions/tree');
+    // 检查缓存
+    if (permissionTreeCache && Date.now() - permissionTreeCache.timestamp < CACHE_DURATION) {
+        return permissionTreeCache.data;
+    }
+
+    // 直接使用复数形式（与 permission/index.vue 保持一致，从日志看这个路径是正确的）
+    // 从日志可以看到：/system/permissions/tree 返回 200 和 Array(4) 数据
+    const data = await request.get('/system/permissions/tree');
+
+    // 更新缓存
+    permissionTreeCache = {
+        data,
+        timestamp: Date.now()
+    };
+
+    return data;
+}
+
+/**
+ * 清除权限树缓存（当权限数据更新时调用）
+ */
+export function clearPermissionTreeCache() {
+    permissionTreeCache = null;
 }
 
 /**

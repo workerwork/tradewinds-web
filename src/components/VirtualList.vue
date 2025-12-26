@@ -30,7 +30,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useThrottleFn } from '@vueuse/core';
 
 const props = defineProps<{
-  data: any[];
+  data: unknown[];
   itemHeight: number;
   bufferSize?: number;
 }>();

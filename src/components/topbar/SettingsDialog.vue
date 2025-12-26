@@ -1,29 +1,25 @@
 <template>
-  <el-dialog
-    v-model="dialogVisible"
-    title="系统设置"
-    width="600px"
-  >
+  <el-dialog v-model="dialogVisible" title="系统设置" width="600px">
     <el-tabs v-model="activeTab">
       <el-tab-pane label="界面设置" name="interface">
         <el-form label-width="120px">
           <el-form-item label="顶栏颜色">
-            <el-color-picker 
-              v-model="topbarColor" 
-              @change="changeTopbarColor" 
-              :predefine="predefineTopbarColors" 
+            <el-color-picker
+              v-model="topbarColor"
+              :predefine="predefineTopbarColors"
+              @change="changeTopbarColor"
             />
-            <el-button size="small" style="margin-left: 12px;" @click="resetTopbarColor">
+            <el-button size="small" style="margin-left: 12px" @click="resetTopbarColor">
               还原
             </el-button>
           </el-form-item>
           <el-form-item label="侧边栏颜色">
-            <el-color-picker 
-              v-model="sidebarColor" 
-              @change="changeSidebarColor" 
-              :predefine="predefineSidebarColors" 
+            <el-color-picker
+              v-model="sidebarColor"
+              :predefine="predefineSidebarColors"
+              @change="changeSidebarColor"
             />
-            <el-button size="small" style="margin-left: 12px;" @click="resetSidebarColor">
+            <el-button size="small" style="margin-left: 12px" @click="resetSidebarColor">
               还原
             </el-button>
           </el-form-item>
@@ -34,7 +30,7 @@
             </el-select>
           </el-form-item>
           <el-form-item label="侧边栏">
-            <el-switch 
+            <el-switch
               v-model="settings.sidebarCollapsed"
               active-text="折叠"
               inactive-text="展开"
@@ -59,7 +55,7 @@
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveSettings" :loading="savingSettings">
+        <el-button type="primary" :loading="savingSettings" @click="saveSettings">
           保存设置
         </el-button>
       </span>
@@ -68,18 +64,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
-import { useTopbarSettings } from '@/composables'
+import { computed, watch } from 'vue';
+import { useTopbarSettings } from '@/composables';
 
 const props = defineProps<{
-  modelValue: boolean
-  isCollapse: boolean
-}>()
+  modelValue: boolean;
+  isCollapse: boolean;
+}>();
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
-  'update:isCollapse': [value: boolean]
-}>()
+  'update:modelValue': [value: boolean];
+  'update:isCollapse': [value: boolean];
+}>();
 
 const {
   activeTab,
@@ -95,20 +91,23 @@ const {
   resetSidebarColor,
   onLanguageChange,
   saveSettings,
-  showSettings
-} = useTopbarSettings(props, emit)
+  showSettings,
+} = useTopbarSettings(props, emit);
 
 const dialogVisible = computed({
   get: () => props.modelValue,
-  set: (val) => emit('update:modelValue', val)
-})
+  set: val => emit('update:modelValue', val),
+});
 
 // 当对话框打开时，重新加载设置
-watch(() => props.modelValue, (newValue) => {
-  if (newValue) {
-    showSettings()
+watch(
+  () => props.modelValue,
+  newValue => {
+    if (newValue) {
+      showSettings();
+    }
   }
-})
+);
 </script>
 
 <style scoped lang="scss">
@@ -122,4 +121,3 @@ watch(() => props.modelValue, (newValue) => {
   margin-left: $spacing-md;
 }
 </style>
-

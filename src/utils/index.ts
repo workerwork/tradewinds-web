@@ -23,7 +23,7 @@ export * from './debug/menu-debug';
 export { installErrorHandler } from './system/error-handler';
 export { installPerformanceMonitor } from './system/performance';
 export { installComponentCleanup } from './system/component-cleanup';
-export { Logger } from './system/logger';
+export { Logger, logger } from './system/logger';
 
 // 验证相关
 export * from './validation/validate';
@@ -31,4 +31,7 @@ export * from './validation/validate';
 // 通用工具
 export { emitter } from './common/emitter';
 export { createFormData, FILE_UPLOAD_CONFIG } from './common/file-upload';
+export { extractArrayData, extractObjectData, extractPaginationData } from './common/data-adapter';
+export type { PaginationResult } from './common/data-adapter';
+export { buildSearchParams, addStatusParam } from './common/search-params';
 

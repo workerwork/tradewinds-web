@@ -22,10 +22,10 @@
 </template>
 
 <script setup lang="ts">
-import { Bell } from '@element-plus/icons-vue'
-import { useTopbarAnnouncement } from '@/composables'
+import { Bell } from '@element-plus/icons-vue';
+import { useTopbarAnnouncement } from '@/composables';
 
-const { systemNotices, getNoticeText } = useTopbarAnnouncement()
+const { systemNotices, getNoticeText } = useTopbarAnnouncement();
 </script>
 
 <style scoped lang="scss">
@@ -90,4 +90,3 @@ const { systemNotices, getNoticeText } = useTopbarAnnouncement()
   transition: $transition-base;
 }
 </style>
-

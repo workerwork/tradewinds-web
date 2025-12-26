@@ -1,4 +1,5 @@
 import { ref, onMounted, onUnmounted } from 'vue'
+import { logger } from '@/utils'
 
 /**
  * 顶栏全屏功能 Composable
@@ -9,14 +10,14 @@ export function useTopbarFullscreen() {
 
     const toggleFullscreen = () => {
         if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(() => {
+            document.documentElement.requestFullscreen().catch((error: unknown) => {
                 // 全屏请求失败（用户拒绝或浏览器不支持）
-                console.warn('全屏请求失败')
+                logger.warn('全屏请求失败', error, 'TopbarFullscreen')
             })
         } else {
-            document.exitFullscreen().catch(() => {
+            document.exitFullscreen().catch((error: unknown) => {
                 // 退出全屏失败
-                console.warn('退出全屏失败')
+                logger.warn('退出全屏失败', error, 'TopbarFullscreen')
             })
         }
     }

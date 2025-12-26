@@ -5,13 +5,14 @@
     :width="width"
     :close-on-click-modal="closeOnClickModal"
     :destroy-on-close="destroyOnClose"
+    append-to-body
     @close="handleClose"
   >
-    <slot />
+    <slot ></slot>
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="handleCancel">{{ cancelText }}</el-button>
-        <el-button type="primary" @click="handleConfirm" :loading="loading">
+        <el-button type="primary" :loading="loading" @click="handleConfirm">
           {{ confirmText }}
         </el-button>
       </span>
@@ -47,14 +48,14 @@ const props = withDefaults(defineProps<Props>(), {
   destroyOnClose: true,
   loading: false,
   cancelText: '取消',
-  confirmText: '确定'
+  confirmText: '确定',
 });
 
 const emit = defineEmits<Emits>();
 
 const dialogVisible = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
+  set: value => emit('update:modelValue', value),
 });
 
 const title = computed(() => {
@@ -86,3 +87,13 @@ const handleClose = () => {
 }
 </style>
 
+<style>
+/* 确保对话框不会裁剪下拉菜单（tree-select、select 等） */
+.el-dialog__body {
+  overflow: visible !important;
+}
+
+.el-dialog {
+  overflow: visible !important;
+}
+</style>

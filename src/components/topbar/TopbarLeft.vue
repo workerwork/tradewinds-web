@@ -8,19 +8,19 @@
 </template>
 
 <script setup lang="ts">
-import { Expand, Fold } from '@element-plus/icons-vue'
-import { useI18n } from 'vue-i18n'
+import { Expand, Fold } from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n';
 
 defineProps<{
-  isCollapse: boolean
-}>()
+  isCollapse: boolean;
+}>();
 
 defineEmits<{
-  toggle: []
-}>()
+  toggle: [];
+}>();
 
-const { t } = useI18n()
-const title = t('system.title')
+const { t } = useI18n();
+const title = t('system.title');
 </script>
 
 <style scoped lang="scss">
@@ -41,7 +41,7 @@ const title = t('system.title')
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   &:hover {
     color: #fff;
     transform: scale(1.1);
@@ -62,4 +62,3 @@ const title = t('system.title')
   white-space: nowrap;
 }
 </style>
-

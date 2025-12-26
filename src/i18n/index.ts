@@ -3,13 +3,13 @@ import en from '../locales/en';
 import zhCN from '../locales/zh-CN';
 
 const i18n = createI18n({
-    legacy: false,
-    locale: localStorage.getItem('language') || 'zh-CN',
-    fallbackLocale: 'zh-CN',
-    messages: {
-        'en': en,
-        'zh-CN': zhCN
-    }
+  legacy: false,
+  locale: localStorage.getItem('language') || 'zh-CN',
+  fallbackLocale: 'zh-CN',
+  messages: {
+    en,
+    'zh-CN': zhCN,
+  },
 });
 
-export default i18n; 
+export default i18n;

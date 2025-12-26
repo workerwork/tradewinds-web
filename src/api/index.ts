@@ -16,12 +16,12 @@ export * as configApi from './system/config';
 
 // 系统参数 API (支持 invoke 模式)
 export {
-    getParamList,
-    addParam,
-    updateParam,
-    deleteParam,
-    batchDeleteParams,
-    getParamValue
+  getParamList,
+  addParam,
+  updateParam,
+  deleteParam,
+  batchDeleteParams,
+  getParamValue,
 } from './system';
 
 // 认证相关模块
@@ -33,9 +33,4 @@ import * as contactRecordApi from './contact-record';
 import * as productApi from './product';
 import * as orderApi from './order';
 
-export {
-    customerApi,
-    contactRecordApi,
-    productApi,
-    orderApi
-}; 
+export { customerApi, contactRecordApi, productApi, orderApi };

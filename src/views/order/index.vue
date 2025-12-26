@@ -4,4 +4,4 @@ import OrderList from './OrderList.vue';
 
 <template>
   <OrderList />
-</template> 
+</template>

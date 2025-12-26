@@ -12,18 +12,11 @@
       <el-tree-select
         v-model="form.parentId"
         :data="parentOptions"
-        :props="{ label: 'name', value: 'id', children: 'children', disabled: 'disabled' }"
+        :props="{ label: 'name', value: 'id', children: 'children' } as any"
         placeholder="请选择父权限"
         check-strictly
         clearable
-        :filterable="true"
-        :disabled="isEdit && !form.id"
-        :default-expand-all="true"
-        :render-after-expand="false"
-        :node-key="'id'"
-        :show-checkbox="false"
-        :highlight-current="true"
-        :expand-on-click-node="false"
+        style="width: 100%"
       />
     </el-form-item>
     <el-form-item label="权限编码" prop="code">
@@ -34,7 +27,12 @@
       />
     </el-form-item>
     <el-form-item label="权限类型" prop="type">
-      <el-select v-model="form.type" style="width: 100%">
+      <el-select 
+        v-model="form.type" 
+        style="width: 100%" 
+        popper-class="permission-form-select-popper"
+        teleported
+      >
         <el-option label="菜单" value="menu" />
         <el-option label="按钮" value="button" />
         <el-option label="API" value="api" />
@@ -47,7 +45,14 @@
       <el-input v-model="form.component" placeholder="如 @/views/system/permission/index.vue，仅菜单权限填写" />
     </el-form-item>
     <el-form-item label="图标" prop="icon">
-      <el-select v-model="form.icon" placeholder="请选择图标" filterable style="width: 100%">
+      <el-select 
+        v-model="form.icon" 
+        placeholder="请选择图标" 
+        filterable 
+        style="width: 100%" 
+        popper-class="permission-form-select-popper"
+        teleported
+      >
         <el-option v-for="(comp, key) in iconMap" :key="key" :label="key" :value="key">
           <el-icon style="margin-right: 8px;"><component :is="comp" /></el-icon>
           <span>{{ key }}</span>
@@ -78,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, defineProps, defineEmits, watch } from 'vue';
+import { ref, reactive, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { User, Menu, HomeFilled, Setting, Lock, Bell, Folder, Document, Edit, Delete, Star, Warning, InfoFilled, Tools, DataAnalysis, Monitor, PieChart, Tickets, Message, ChatLineRound, Calendar, Collection, Connection, Upload, Download, Link, Compass, Flag, Key, List, Location, Notification, OfficeBuilding, Postcard, Promotion, QuestionFilled, Reading, RefreshRight, School, Service, Shop, ShoppingCart, Stopwatch, Suitcase, SwitchButton, Timer, TrendCharts, Trophy, UploadFilled, UserFilled, Van, VideoCamera, Wallet, ZoomIn, ZoomOut } from '@element-plus/icons-vue';
 
@@ -238,6 +243,8 @@ const validate = async () => {
 const resetForm = () => {
   if (!formRef.value) return;
   formRef.value.resetFields();
+  // 清除所有验证状态，避免在打开对话框时显示验证错误
+  formRef.value.clearValidate();
 };
 
 // 暴露方法给父组件
@@ -251,12 +258,12 @@ defineExpose({
 
 // 监听表单变化，更新 modelValue，保证 parentId 字段一定存在且为 null
 watch(form, (newVal) => {
-  let parentId = newVal.parentId;
-  if (parentId === '' || parentId === undefined || parentId === 0 || parentId === '0') {
+  let parentId: string | number | null = newVal.parentId as string | number | null;
+  if (parentId === '' || parentId === undefined || (typeof parentId === 'number' && parentId === 0) || parentId === '0') {
     parentId = null;
   }
   // 明确传递 parentId 字段
-  const emitObj = { ...newVal, parentId };
+  const emitObj = { ...newVal, parentId } as Record<string, unknown>;
   // 防止 parentId 被删除
   if (!('parentId' in emitObj)) emitObj.parentId = null;
   emit('update:modelValue', emitObj);
@@ -285,5 +292,14 @@ function isSelfOrDescendant(node) {
 <style scoped>
 :deep(.el-form-item__label) {
   font-weight: 500;
+}
+</style>
+
+<style>
+/* ==================== 对话框内下拉菜单 z-index ==================== */
+/* 确保对话框内的 el-select 下拉菜单正常显示 */
+.permission-form-select-popper,
+.permission-form-select-popper.el-popper {
+  z-index: 3000 !important;
 }
 </style> 

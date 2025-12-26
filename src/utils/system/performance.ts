@@ -1,3 +1,6 @@
+import { logger } from '@/utils'
+import { DEBUG } from '@/config'
+
 interface PerformanceMetrics {
     fcp: number // First Contentful Paint
     lcp: number // Largest Contentful Paint
@@ -97,6 +100,8 @@ class PerformanceMonitor {
     private observeCLS() {
         let clsValue = 0
         let clsEntries: any[] = []
+        let lastReportTime = 0
+        const REPORT_INTERVAL = 1000 // 每秒最多报告一次
 
         const clsObserver = new PerformanceObserver((entryList) => {
             for (const entry of entryList.getEntries()) {
@@ -108,41 +113,123 @@ class PerformanceMonitor {
             }
 
             this.metrics.cls = clsValue
-            this.reportMetric('CLS', clsValue)
+
+            // 限制报告频率：只在值变化较大或间隔时间足够长时报告
+            const now = Date.now()
+            const shouldReport =
+                now - lastReportTime >= REPORT_INTERVAL || // 间隔时间足够
+                clsValue >= 0.1 // CLS值达到警告阈值（0.1是Google推荐的"需要改进"阈值）
+
+            if (shouldReport) {
+                this.reportMetric('CLS', clsValue)
+                lastReportTime = now
+            }
         })
 
         clsObserver.observe({ entryTypes: ['layout-shift'] })
+
+        // 页面卸载时报告最终CLS值
+        window.addEventListener('beforeunload', () => {
+            if (this.metrics.cls && this.metrics.cls > 0) {
+                this.reportMetric('CLS (Final)', this.metrics.cls)
+            }
+        })
     }
 
     // 捕获导航时间
     private captureNavigationTiming() {
         window.addEventListener('load', () => {
-            setTimeout(() => {
-                const navigationEntry = performance.getEntriesByType('navigation')[0]
+            // 使用 requestIdleCallback 优化性能，避免阻塞主线程
+            const captureTiming = () => {
+                const navigationEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
+                if (!navigationEntry) return;
+
                 this.metrics.navigationTiming = navigationEntry
-                this.metrics.ttfb = (navigationEntry as any).responseStart
-                this.reportMetric('Navigation Timing', navigationEntry)
-            }, 0)
+                this.metrics.ttfb = navigationEntry.responseStart - navigationEntry.requestStart
+
+                // 只打印关键指标，而不是整个对象
+                if (DEBUG) {
+                    const summary = {
+                        dns: navigationEntry.domainLookupEnd - navigationEntry.domainLookupStart,
+                        tcp: navigationEntry.connectEnd - navigationEntry.connectStart,
+                        request: navigationEntry.responseStart - navigationEntry.requestStart,
+                        response: navigationEntry.responseEnd - navigationEntry.responseStart,
+                        domProcessing: navigationEntry.domComplete - navigationEntry.domInteractive,
+                        load: navigationEntry.loadEventEnd - navigationEntry.loadEventStart,
+                        total: navigationEntry.loadEventEnd - navigationEntry.fetchStart
+                    }
+                    this.reportMetric('Navigation Timing', summary)
+                }
+            };
+
+            // 优先使用 requestIdleCallback，降级到 setTimeout
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(captureTiming, { timeout: 2000 });
+            } else {
+                setTimeout(captureTiming, 0);
+            }
         })
     }
 
     // 捕获资源加载时间
     private captureResourceTiming() {
         window.addEventListener('load', () => {
-            setTimeout(() => {
+            // 使用 requestIdleCallback 优化性能，避免阻塞主线程
+            const captureTiming = () => {
                 const resourceEntries = performance.getEntriesByType('resource')
                 this.metrics.resourceTiming = resourceEntries
-                this.reportMetric('Resource Timing', resourceEntries)
-            }, 0)
+
+                // 只打印摘要信息，避免打印大量对象
+                if (DEBUG) {
+                    const summary = {
+                        total: resourceEntries.length,
+                        byType: this.summarizeResourcesByType(resourceEntries),
+                        slowest: this.getSlowestResources(resourceEntries, 5)
+                    }
+                    this.reportMetric('Resource Timing', summary)
+                }
+            };
+
+            // 优先使用 requestIdleCallback，降级到 setTimeout
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(captureTiming, { timeout: 2000 });
+            } else {
+                setTimeout(captureTiming, 0);
+            }
         })
     }
 
+    // 按类型汇总资源
+    private summarizeResourcesByType(entries: PerformanceEntry[]): Record<string, number> {
+        const summary: Record<string, number> = {}
+        entries.forEach(entry => {
+            const initiatorType = (entry as PerformanceResourceTiming).initiatorType || 'unknown'
+            summary[initiatorType] = (summary[initiatorType] || 0) + 1
+        })
+        return summary
+    }
+
+    // 获取最慢的资源
+    private getSlowestResources(entries: PerformanceEntry[], limit: number = 5): Array<{ name: string; duration: number; type: string }> {
+        return entries
+            .map(entry => {
+                const resource = entry as PerformanceResourceTiming
+                return {
+                    name: resource.name,
+                    duration: resource.duration,
+                    type: resource.initiatorType || 'unknown'
+                }
+            })
+            .sort((a, b) => b.duration - a.duration)
+            .slice(0, limit)
+    }
+
     // 报告性能指标
-    private reportMetric(name: string, value: any) {
-        if (import.meta.env.PROD) {
-            // TODO: 实现性能指标上报
-            console.log(`Performance Metric - ${name}:`, value)
+    private reportMetric(name: string, value: unknown) {
+        if (DEBUG) {
+            logger.info(`Performance Metric - ${name}`, value, 'Performance')
         }
+        // TODO: 在生产环境实现性能指标上报
     }
 
     // 获取所有性能指标
@@ -170,8 +257,8 @@ class PerformanceMonitor {
             if (measures.length > 0) {
                 this.reportMetric(name, measures[0].duration)
             }
-        } catch (error) {
-            console.error(`Error measuring ${name}:`, error)
+        } catch (error: unknown) {
+            logger.error(`Error measuring ${name}`, error, 'Performance')
         }
     }
 }

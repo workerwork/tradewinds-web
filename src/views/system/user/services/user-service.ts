@@ -1,4 +1,4 @@
-import type { User, PaginationResponse } from '@/types';
+import type { User, PaginationResponse, PaginationQuery } from '@/types';
 import {
     getUserList as fetchUserList,
     addUser,
@@ -6,13 +6,14 @@ import {
     resetUserPassword as resetPassword,
     patchUserStatus as patchUserStatusApi
 } from '@/api/system/user';
+import { logger, extractPaginationData } from '@/utils';
 
 interface ApiResponse<T> {
     code?: number;
     success?: boolean;
     message?: string | null;
     data?: T;
-    users?: any[];
+    users?: unknown[];
     total?: number;
 }
 
@@ -26,34 +27,40 @@ interface PageData<T> {
 /**
  * 获取用户列表
  */
-export async function getUserList(params: any) {
+export async function getUserList(params: Partial<PaginationQuery & { name?: string; username?: string; status?: number }>) {
     try {
         const response = await fetchUserList(params);
-        // 现在 response 就是 data 字段内容
-        const r = response as any;
-        const users: any[] =
-            Array.isArray(r.items) ? r.items :
-                Array.isArray(r.list) ? r.list :
-                    Array.isArray(r.users) ? r.users :
-                        Array.isArray(r) ? r : [];
-        const totalCount = r.total || users.length || 0;
+        // 使用统一的分页数据提取工具
+        const { items: users, total: totalCount } = extractPaginationData<unknown>(response, {
+            category: 'UserService',
+            logPrefix: 'UserService - 提取用户列表',
+            arrayFieldNames: ['users']
+        });
         // 确保用户数据格式一致，时间字段兼容多种命名
-        const normalizedUsers = users.map((user: any) => ({
-            ...user,
-            id: String(user.id || ''),
-            realName: user.realName || user.real_name || user.name || user.nickname || user.display_name || user.displayName || '',
-            username: user.username || user.user_name || user.name || '',
-            createTime: user.createTime || user.created_at || user.createdAt || user.create_time || '',
-            updateTime: user.updateTime || user.updated_at || user.updatedAt || user.update_time || '',
-            roles: Array.isArray(user.roles) ? user.roles : [],
-            permissions: Array.isArray(user.permissions) ? user.permissions : [],
-            status: typeof user.status === 'number' ? user.status : parseInt(user.status) || 0
-        }));
+        const normalizedUsers = users.map((user: unknown) => {
+            const userObj = user as Record<string, unknown>;
+            return {
+                ...user,
+                id: String(userObj.id || ''),
+                realName: (userObj.realName || userObj.real_name || userObj.name || userObj.nickname || userObj.display_name || userObj.displayName || '') as string,
+                username: (userObj.username || userObj.user_name || userObj.name || '') as string,
+                createTime: (userObj.createTime || userObj.created_at || userObj.createdAt || userObj.create_time || '') as string,
+                updateTime: (userObj.updateTime || userObj.updated_at || userObj.updatedAt || userObj.update_time || '') as string,
+                roles: Array.isArray(userObj.roles) ? userObj.roles : [],
+                permissions: Array.isArray(userObj.permissions) ? userObj.permissions : [],
+                status: typeof userObj.status === 'number' ? userObj.status : Number(userObj.status) || 0
+            };
+        });
         // 移除snake_case冗余字段
-        normalizedUsers.forEach(u => { delete u.real_name; delete u.user_name; delete u.display_name; });
+        normalizedUsers.forEach(u => {
+            const uObj = u as Record<string, unknown>;
+            delete uObj.real_name;
+            delete uObj.user_name;
+            delete uObj.display_name;
+        });
         return { users: normalizedUsers, total: totalCount };
-    } catch (error) {
-        console.error('获取用户列表失败:', error);
+    } catch (error: unknown) {
+        logger.error('获取用户列表失败', error, 'UserService');
         throw error;
     }
 }
@@ -61,14 +68,14 @@ export async function getUserList(params: any) {
 /**
  * 创建用户
  */
-export async function createUser(userData: any) {
+export async function createUser(userData: Partial<User>) {
     return addUser(userData);
 }
 
 /**
  * 更新用户
  */
-export async function updateUserInfo(id: string, userData: any) {
+export async function updateUserInfo(id: string, userData: Partial<User>) {
     return updateUser(id, { ...userData, id });
 }
 

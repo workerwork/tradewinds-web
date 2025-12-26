@@ -1,5 +1,9 @@
 <template>
-  <div class="super-admin-logs-container" v-loading="initialLoading" element-loading-text="加载日志数据中...">
+  <div
+    v-loading="initialLoading"
+    class="super-admin-logs-container"
+    element-loading-text="加载日志数据中..."
+  >
     <el-card class="page-header">
       <div class="header-content">
         <div class="header-text">
@@ -10,7 +14,7 @@
           <p class="page-description">查看系统操作日志和审计记录</p>
         </div>
         <div class="header-actions">
-          <el-button :icon="Refresh" circle @click="loadLogs" :loading="loading" />
+          <el-button :icon="Refresh" circle :loading="loading" @click="loadLogs" />
         </div>
       </div>
     </el-card>
@@ -19,9 +23,9 @@
       <div class="filter-bar">
         <el-form :inline="true" :model="searchForm" class="filter-form">
           <el-form-item label="日志级别">
-            <el-select 
-              v-model="searchForm.level" 
-              placeholder="请选择" 
+            <el-select
+              v-model="searchForm.level"
+              placeholder="请选择"
               clearable
               style="width: 150px"
             >
@@ -33,9 +37,9 @@
             </el-select>
           </el-form-item>
           <el-form-item label="操作用户">
-            <el-input 
-              v-model="searchForm.user" 
-              placeholder="请输入用户名" 
+            <el-input
+              v-model="searchForm.user"
+              placeholder="请输入用户名"
               clearable
               style="width: 180px"
             />
@@ -53,26 +57,29 @@
             />
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" :icon="Search" @click="searchLogs" :loading="loading">
+            <el-button type="primary" :icon="Search" :loading="loading" @click="searchLogs">
               查询
             </el-button>
-            <el-button :icon="Refresh" @click="resetSearch">
-              重置
-            </el-button>
-            <el-button type="success" :icon="Download" @click="exportLogs" :loading="exporting">
+            <el-button :icon="Refresh" @click="resetSearch"> 重置 </el-button>
+            <el-button type="success" :icon="Download" :loading="exporting" @click="exportLogs">
               导出
             </el-button>
-            <el-button type="danger" :icon="Delete" @click="clearAllLogs" :disabled="logList.length === 0">
+            <el-button
+              type="danger"
+              :icon="Delete"
+              :disabled="logList.length === 0"
+              @click="clearAllLogs"
+            >
               清空
             </el-button>
           </el-form-item>
         </el-form>
       </div>
 
-      <el-table 
-        :data="logList" 
-        style="width: 100%" 
+      <el-table
         v-loading="loading"
+        :data="logList"
+        style="width: 100%"
         :empty-text="'暂无日志数据'"
         stripe
         @selection-change="handleSelectionChange"
@@ -96,17 +103,21 @@
         <el-table-column prop="userAgent" label="用户代理" min-width="200" show-overflow-tooltip />
         <el-table-column prop="result" label="结果" width="100" align="center">
           <template #default="scope">
-            <el-tag :type="scope.row.result === '成功' ? 'success' : 'danger'" effect="dark" size="small">
+            <el-tag
+              :type="scope.row.result === '成功' ? 'success' : 'danger'"
+              effect="dark"
+              size="small"
+            >
               {{ scope.row.result }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="120" align="center" fixed="right">
           <template #default="scope">
-            <el-button 
-              size="small" 
-              type="primary" 
-              :icon="View" 
+            <el-button
+              size="small"
+              type="primary"
+              :icon="View"
               link
               @click="viewDetails(scope.row)"
             >
@@ -117,13 +128,13 @@
       </el-table>
 
       <div class="table-footer">
-        <div class="batch-actions" v-if="selectedLogs.length > 0">
-          <el-button 
-            size="small" 
-            type="danger" 
-            :icon="Delete" 
-            @click="batchDeleteLogs"
+        <div v-if="selectedLogs.length > 0" class="batch-actions">
+          <el-button
+            size="small"
+            type="danger"
+            :icon="Delete"
             :loading="deleting"
+            @click="batchDeleteLogs"
           >
             批量删除 ({{ selectedLogs.length }})
           </el-button>
@@ -134,21 +145,16 @@
           :page-sizes="[10, 20, 50, 100]"
           :total="pagination.total"
           layout="total, sizes, prev, pager, next, jumper"
+          class="pagination"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
-          class="pagination"
         />
       </div>
     </el-card>
 
     <!-- 详情对话框 -->
-    <el-dialog 
-      v-model="detailVisible" 
-      title="日志详情" 
-      width="70%"
-      :close-on-click-modal="false"
-    >
-      <el-descriptions :column="2" border v-if="currentLog" class="log-descriptions">
+    <el-dialog v-model="detailVisible" title="日志详情" width="70%" :close-on-click-modal="false">
+      <el-descriptions v-if="currentLog" :column="2" border class="log-descriptions">
         <el-descriptions-item label="时间" :span="2">
           <el-icon class="desc-icon"><Clock /></el-icon>
           {{ currentLog.time }}
@@ -204,13 +210,32 @@
 <script setup lang="ts">
 import { ref, onMounted, type Component } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { 
-  Document, Refresh, Search, Download, Delete, View,
-  Clock, User, Connection, Operation, Link, Timer, Monitor,
-  InfoFilled, WarningFilled, CircleCloseFilled, QuestionFilled
+import {
+  Document,
+  Refresh,
+  Search,
+  Download,
+  Delete,
+  View,
+  Clock,
+  User,
+  Connection,
+  Operation,
+  Link,
+  Timer,
+  Monitor,
+  InfoFilled,
+  WarningFilled,
+  CircleCloseFilled,
+  QuestionFilled,
 } from '@element-plus/icons-vue';
 import { useSuperAdminAccess } from '@/composables';
-import { getLogList, exportLogs as exportLogsAPI, clearLogs, batchDeleteLogs as batchDeleteLogsAPI } from '@/api/system/log';
+import {
+  getLogList,
+  exportLogs as exportLogsAPI,
+  clearLogs,
+  batchDeleteLogs as batchDeleteLogsAPI,
+} from '@/api/system/log';
 import type { Log } from '@/types';
 
 // 使用权限检查 composable
@@ -248,13 +273,13 @@ const selectedLogs = ref<LogItem[]>([]);
 const searchForm = ref<SearchForm>({
   level: '',
   user: '',
-  dateRange: null
+  dateRange: null,
 });
 
 const pagination = ref({
   current: 1,
   size: 20,
-  total: 0
+  total: 0,
 });
 
 const logList = ref<LogItem[]>([
@@ -269,7 +294,7 @@ const logList = ref<LogItem[]>([
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     result: '成功',
     duration: 152,
-    details: '用户admin登录成功，IP地址：192.168.1.100'
+    details: '用户admin登录成功，IP地址：192.168.1.100',
   },
   {
     id: 2,
@@ -282,7 +307,7 @@ const logList = ref<LogItem[]>([
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     result: '失败',
     duration: 89,
-    details: '用户user1登录失败，原因：密码错误，连续失败次数：3'
+    details: '用户user1登录失败，原因：密码错误，连续失败次数：3',
   },
   {
     id: 3,
@@ -295,29 +320,39 @@ const logList = ref<LogItem[]>([
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     result: '成功',
     duration: 30000,
-    details: '系统完整备份完成，备份文件：backup_2024-03-20.tar.gz，大小：2.5GB'
-  }
+    details: '系统完整备份完成，备份文件：backup_2024-03-20.tar.gz，大小：2.5GB',
+  },
 ]);
 
 // 获取日志级别颜色
 const getLevelColor = (level: string): 'primary' | 'warning' | 'danger' | 'info' => {
   switch (level) {
-    case 'INFO': return 'primary';
-    case 'WARN': return 'warning';
-    case 'ERROR': return 'danger';
-    case 'DEBUG': return 'info';
-    default: return 'info';
+    case 'INFO':
+      return 'primary';
+    case 'WARN':
+      return 'warning';
+    case 'ERROR':
+      return 'danger';
+    case 'DEBUG':
+      return 'info';
+    default:
+      return 'info';
   }
 };
 
 // 获取日志级别图标
 const getLevelIcon = (level: string): Component => {
   switch (level) {
-    case 'INFO': return InfoFilled;
-    case 'WARN': return WarningFilled;
-    case 'ERROR': return CircleCloseFilled;
-    case 'DEBUG': return QuestionFilled;
-    default: return InfoFilled;
+    case 'INFO':
+      return InfoFilled;
+    case 'WARN':
+      return WarningFilled;
+    case 'ERROR':
+      return CircleCloseFilled;
+    case 'DEBUG':
+      return QuestionFilled;
+    default:
+      return InfoFilled;
   }
 };
 
@@ -336,7 +371,7 @@ const loadLogs = async () => {
       // });
       // logList.value = response.data.list;
       // pagination.value.total = response.data.total;
-      
+
       // 模拟API调用
       await new Promise(resolve => setTimeout(resolve, 500));
       pagination.value.total = logList.value.length;
@@ -358,7 +393,7 @@ const resetSearch = () => {
   searchForm.value = {
     level: '',
     user: '',
-    dateRange: null
+    dateRange: null,
   };
   pagination.value.current = 1;
   loadLogs();
@@ -376,7 +411,7 @@ const exportLogs = async () => {
       //   type: searchForm.value.level || undefined,
       //   dateRange: searchForm.value.dateRange || undefined
       // });
-      // 
+      //
       // // 创建下载链接
       // const blob = new Blob([response.data], { type: 'application/vnd.ms-excel' });
       // const url = URL.createObjectURL(blob);
@@ -387,7 +422,7 @@ const exportLogs = async () => {
       // link.click();
       // document.body.removeChild(link);
       // URL.revokeObjectURL(url);
-      
+
       // 模拟导出
       await new Promise(resolve => setTimeout(resolve, 1000));
       ElMessage.success('日志导出成功');
@@ -401,19 +436,15 @@ const exportLogs = async () => {
 const clearAllLogs = async () => {
   await executeWithPermission(async () => {
     try {
-      await ElMessageBox.confirm(
-        '确定要清空所有日志吗？此操作不可恢复！',
-        '确认清空日志',
-        {
-          confirmButtonText: '确定清空',
-          cancelButtonText: '取消',
-          type: 'error'
-        }
-      );
+      await ElMessageBox.confirm('确定要清空所有日志吗？此操作不可恢复！', '确认清空日志', {
+        confirmButtonText: '确定清空',
+        cancelButtonText: '取消',
+        type: 'error',
+      });
 
       // 这里可以调用实际的API
       // await clearLogs();
-      
+
       // 模拟清空
       await new Promise(resolve => setTimeout(resolve, 500));
       logList.value = [];
@@ -447,7 +478,7 @@ const batchDeleteLogs = async () => {
         {
           confirmButtonText: '确定删除',
           cancelButtonText: '取消',
-          type: 'warning'
+          type: 'warning',
         }
       );
 
@@ -456,7 +487,7 @@ const batchDeleteLogs = async () => {
         // 这里可以调用实际的API
         // const ids = selectedLogs.value.map(log => log.id);
         // await batchDeleteLogsAPI(ids);
-        
+
         // 模拟删除
         await new Promise(resolve => setTimeout(resolve, 500));
         const ids = selectedLogs.value.map(log => log.id);
@@ -491,7 +522,7 @@ onMounted(() => {
   if (!checkAccess()) {
     return;
   }
-  
+
   // 加载初始数据
   initialLoading.value = true;
   loadLogs().finally(() => {
@@ -717,4 +748,4 @@ onMounted(() => {
     }
   }
 }
-</style> 
+</style>

@@ -11,29 +11,17 @@
         <el-row :gutter="20">
           <el-col :span="8">
             <el-form-item label="客户名称">
-              <el-input
-                v-model="searchForm.name"
-                placeholder="请输入客户名称"
-                clearable
-              />
+              <el-input v-model="searchForm.name" placeholder="请输入客户名称" clearable />
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item label="联系人">
-              <el-input
-                v-model="searchForm.contact"
-                placeholder="请输入联系人"
-                clearable
-              />
+              <el-input v-model="searchForm.contact" placeholder="请输入联系人" clearable />
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item label="联系电话">
-              <el-input
-                v-model="searchForm.phone"
-                placeholder="请输入联系电话"
-                clearable
-              />
+              <el-input v-model="searchForm.phone" placeholder="请输入联系电话" clearable />
             </el-form-item>
           </el-col>
         </el-row>
@@ -77,7 +65,7 @@
         </div>
       </template>
 
-      <el-table :data="searchResults" style="width: 100%" v-loading="loading">
+      <el-table v-loading="loading" :data="searchResults" style="width: 100%">
         <el-table-column type="selection" width="55" />
         <el-table-column prop="id" label="客户ID" width="100" />
         <el-table-column prop="name" label="客户名称" />
@@ -117,23 +105,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { ElMessage } from 'element-plus'
-import { useRouter } from 'vue-router'
+import { ref, reactive } from 'vue';
+import { ElMessage } from 'element-plus';
+import { useRouter } from 'vue-router';
 
-const router = useRouter()
-const loading = ref(false)
-const currentPage = ref(1)
-const pageSize = ref(10)
-const total = ref(100)
+const router = useRouter();
+const loading = ref(false);
+const currentPage = ref(1);
+const pageSize = ref(10);
+const total = ref(100);
 
 const searchForm = reactive({
   name: '',
   contact: '',
   phone: '',
   status: '',
-  dateRange: []
-})
+  dateRange: [],
+});
 
 // 模拟搜索结果数据
 const searchResults = ref([
@@ -145,7 +133,7 @@ const searchResults = ref([
     email: 'example@example.com',
     address: '北京市朝阳区xxx街道xxx号',
     status: 'active',
-    createTime: '2024-03-15 14:30:00'
+    createTime: '2024-03-15 14:30:00',
   },
   {
     id: '2',
@@ -155,54 +143,54 @@ const searchResults = ref([
     email: 'example2@example.com',
     address: '上海市浦东新区xxx路xxx号',
     status: 'inactive',
-    createTime: '2024-03-14 09:15:00'
-  }
-])
+    createTime: '2024-03-14 09:15:00',
+  },
+]);
 
 const handleSearch = () => {
-  loading.value = true
+  loading.value = true;
   // 模拟搜索请求
   setTimeout(() => {
-    loading.value = false
+    loading.value = false;
     ElMessage({
       type: 'success',
-      message: '搜索完成'
-    })
-  }, 1000)
-}
+      message: '搜索完成',
+    });
+  }, 1000);
+};
 
 const resetSearch = () => {
-  searchForm.name = ''
-  searchForm.contact = ''
-  searchForm.phone = ''
-  searchForm.status = ''
-  searchForm.dateRange = []
-}
+  searchForm.name = '';
+  searchForm.contact = '';
+  searchForm.phone = '';
+  searchForm.status = '';
+  searchForm.dateRange = [];
+};
 
 const handleExport = () => {
   ElMessage({
     type: 'success',
-    message: '导出成功'
-  })
-}
+    message: '导出成功',
+  });
+};
 
 const viewDetail = (row: any) => {
-  router.push(`/customer/info?id=${row.id}`)
-}
+  router.push(`/customer/info?id=${row.id}`);
+};
 
 const handleEdit = (row: any) => {
-  router.push(`/customer/info?id=${row.id}&edit=true`)
-}
+  router.push(`/customer/info?id=${row.id}&edit=true`);
+};
 
 const handleSizeChange = (val: number) => {
-  pageSize.value = val
-  handleSearch()
-}
+  pageSize.value = val;
+  handleSearch();
+};
 
 const handleCurrentChange = (val: number) => {
-  currentPage.value = val
-  handleSearch()
-}
+  currentPage.value = val;
+  handleSearch();
+};
 </script>
 
 <style scoped>
@@ -241,4 +229,4 @@ const handleCurrentChange = (val: number) => {
 :deep(.el-date-editor) {
   width: 100%;
 }
-</style> 
+</style>

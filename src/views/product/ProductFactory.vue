@@ -8,7 +8,7 @@
         </div>
       </template>
 
-      <el-table :data="factoryList" style="width: 100%" v-loading="loading">
+      <el-table v-loading="loading" :data="factoryList" style="width: 100%">
         <el-table-column prop="id" label="工厂ID" width="100" />
         <el-table-column prop="name" label="工厂名称" />
         <el-table-column prop="contact" label="联系人" />
@@ -104,25 +104,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { useRouter } from 'vue-router'
+import { ref, reactive } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { useRouter } from 'vue-router';
 
-const router = useRouter()
-const loading = ref(false)
-const currentPage = ref(1)
-const pageSize = ref(10)
-const total = ref(0)
-const dialogVisible = ref(false)
-const dialogType = ref('add')
+const router = useRouter();
+const loading = ref(false);
+const currentPage = ref(1);
+const pageSize = ref(10);
+const total = ref(0);
+const dialogVisible = ref(false);
+const dialogType = ref('add');
 
 const productOptions = [
   { value: '电子产品', label: '电子产品' },
   { value: '服装', label: '服装' },
   { value: '家具', label: '家具' },
   { value: '玩具', label: '玩具' },
-  { value: '五金', label: '五金' }
-]
+  { value: '五金', label: '五金' },
+];
 
 const factoryList = ref([
   {
@@ -134,9 +134,9 @@ const factoryList = ref([
     address: '广东省深圳市xxx工业园',
     mainProducts: ['电子产品', '玩具'],
     status: 'active',
-    notes: '优质供应商'
-  }
-])
+    notes: '优质供应商',
+  },
+]);
 
 const form = reactive({
   id: '',
@@ -147,71 +147,67 @@ const form = reactive({
   address: '',
   mainProducts: [],
   status: 'active',
-  notes: ''
-})
+  notes: '',
+});
 
 const resetForm = () => {
-  form.id = ''
-  form.name = ''
-  form.contact = ''
-  form.phone = ''
-  form.email = ''
-  form.address = ''
-  form.mainProducts = []
-  form.status = 'active'
-  form.notes = ''
-}
+  form.id = '';
+  form.name = '';
+  form.contact = '';
+  form.phone = '';
+  form.email = '';
+  form.address = '';
+  form.mainProducts = [];
+  form.status = 'active';
+  form.notes = '';
+};
 
 const handleAdd = () => {
-  dialogType.value = 'add'
-  resetForm()
-  dialogVisible.value = true
-}
+  dialogType.value = 'add';
+  resetForm();
+  dialogVisible.value = true;
+};
 
 const handleEdit = (row: any) => {
-  dialogType.value = 'edit'
-  Object.assign(form, row)
-  dialogVisible.value = true
-}
+  dialogType.value = 'edit';
+  Object.assign(form, row);
+  dialogVisible.value = true;
+};
 
 const handleDelete = (row: any) => {
-  ElMessageBox.confirm(
-    `确认删除工厂 ${row.name} 吗？`,
-    '警告',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    }
-  ).then(() => {
+  ElMessageBox.confirm(`确认删除工厂 ${row.name} 吗？`, '警告', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(() => {
     ElMessage({
       type: 'success',
       message: '删除成功',
-    })
-  })
-}
+    });
+  });
+};
 
 const viewProducts = (row: any) => {
-  router.push(`/product/info?factoryId=${row.id}`)
-}
+  router.push(`/product/info?factoryId=${row.id}`);
+};
 
 const handleSubmit = () => {
   ElMessage({
     type: 'success',
     message: dialogType.value === 'add' ? '添加成功' : '更新成功',
-  })
-  dialogVisible.value = false
-}
+  });
+  dialogVisible.value = false;
+};
 
 const handleSizeChange = (val: number) => {
-  pageSize.value = val
+  pageSize.value = val;
   // 重新加载数据
-}
+};
 
 const handleCurrentChange = (val: number) => {
-  currentPage.value = val
+  currentPage.value = val;
   // 重新加载数据
-}
+};
 </script>
 
 <style scoped>
@@ -240,4 +236,4 @@ const handleCurrentChange = (val: number) => {
 :deep(.el-select) {
   width: 100%;
 }
-</style> 
+</style>

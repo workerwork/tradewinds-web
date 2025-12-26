@@ -1,10 +1,5 @@
 <template>
-  <el-form
-    ref="formRef"
-    :model="form"
-    :rules="rules"
-    label-width="100px"
-  >
+  <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
     <el-form-item label="字典标签" prop="dictLabel">
       <el-input v-model="form.dictLabel" placeholder="请输入字典标签" />
     </el-form-item>
@@ -21,12 +16,7 @@
       </el-radio-group>
     </el-form-item>
     <el-form-item label="备注" prop="remark">
-      <el-input
-        v-model="form.remark"
-        type="textarea"
-        placeholder="请输入备注"
-        :rows="3"
-      />
+      <el-input v-model="form.remark" type="textarea" placeholder="请输入备注" :rows="3" />
     </el-form-item>
   </el-form>
 </template>
@@ -50,12 +40,12 @@ interface DictData {
 const props = defineProps({
   modelValue: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   dictTypeId: {
     type: [Number, String],
-    required: true
-  }
+    required: true,
+  },
 });
 
 const emit = defineEmits(['update:modelValue', 'validate']);
@@ -68,50 +58,59 @@ const form = reactive<DictData>({
   dictValue: '',
   dictSort: 0,
   status: '0',
-  remark: ''
+  remark: '',
 });
 
 // 表单校验规则
 const rules = reactive<FormRules>({
   dictLabel: [
     { required: true, message: '请输入字典标签', trigger: 'blur' },
-    { min: 1, max: 100, message: '长度在 1 到 100 个字符', trigger: 'blur' }
+    { min: 1, max: 100, message: '长度在 1 到 100 个字符', trigger: 'blur' },
   ],
   dictValue: [
     { required: true, message: '请输入字典键值', trigger: 'blur' },
-    { min: 1, max: 100, message: '长度在 1 到 100 个字符', trigger: 'blur' }
+    { min: 1, max: 100, message: '长度在 1 到 100 个字符', trigger: 'blur' },
   ],
-  dictSort: [
-    { required: true, message: '请输入排序', trigger: 'blur' }
-  ],
-  status: [
-    { required: true, message: '请选择状态', trigger: 'change' }
-  ]
+  dictSort: [{ required: true, message: '请输入排序', trigger: 'blur' }],
+  status: [{ required: true, message: '请选择状态', trigger: 'change' }],
 });
 
 // 监听 modelValue 变化
-watch(() => props.modelValue, (val) => {
-  if (val) {
-    Object.assign(form, val);
-  }
-}, { deep: true, immediate: true });
+watch(
+  () => props.modelValue,
+  val => {
+    if (val) {
+      Object.assign(form, val);
+    }
+  },
+  { deep: true, immediate: true }
+);
 
 // 监听 dictTypeId 变化
-watch(() => props.dictTypeId, (val) => {
-  if (val) {
-    form.dictTypeId = val;
-  }
-}, { immediate: true });
+watch(
+  () => props.dictTypeId,
+  val => {
+    if (val) {
+      form.dictTypeId = val;
+    }
+  },
+  { immediate: true }
+);
 
 // 监听表单变化
-watch(form, (val) => {
-  emit('update:modelValue', { ...val });
-}, { deep: true });
+watch(
+  form,
+  val => {
+    emit('update:modelValue', { ...val });
+  },
+  { deep: true }
+);
 
 // 表单验证
 const validate = async () => {
   if (!formRef.value) return false;
-  return formRef.value.validate()
+  return formRef.value
+    .validate()
     .then(() => {
       emit('validate', true);
       return true;
@@ -133,7 +132,7 @@ const resetForm = () => {
 defineExpose({
   validate,
   resetForm,
-  formRef
+  formRef,
 });
 </script>
 
@@ -141,4 +140,4 @@ defineExpose({
 .el-form {
   max-width: 600px;
 }
-</style> 
+</style>

@@ -33,9 +33,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, defineProps, defineEmits, watch } from 'vue';
+import { ref, reactive, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import PermissionAssignment from './PermissionAssignment.vue';
+import type { Permission } from '@/types';
 
 const props = defineProps({
   modelValue: {
@@ -55,36 +56,50 @@ const formRef = ref<FormInstance>();
 
 // 表单数据
 const form = reactive({
-  id: '',
+  id: '' as string | number,
   name: '',
   code: '',
   description: '',
   status: 0,
-  permissionIds: []
+  permissionIds: [] as (string | number)[]
 });
 
 // 监听 props.modelValue 变化，更新表单数据
+// 参考用户管理的实现：直接使用 Object.assign
 const updateForm = () => {
-  if (props.modelValue) {
-    const newData = { ...props.modelValue };
+  if (props.modelValue && Object.keys(props.modelValue).length > 0) {
+    // 保存当前的 id，避免被空值覆盖
+    const currentId = form.id;
+    Object.assign(form, props.modelValue);
+    // 如果 props.modelValue.id 是空值，保持原来的 id
+    if (!props.modelValue.id || (typeof props.modelValue.id === 'string' && props.modelValue.id.trim() === '')) {
+      form.id = currentId;
+    }
     
     // 如果有权限数据且有权限树数据，过滤出叶子权限
-    if (newData.permissionIds && newData.permissionIds.length > 0) {
-      // 延迟处理，确保权限树数据已加载
+    if (props.modelValue.permissionIds && props.modelValue.permissionIds.length > 0) {
+      // 延迟处理权限过滤，确保权限树数据已加载
       setTimeout(() => {
         if (permissionAssignmentRef.value && permissionAssignmentRef.value.treeData) {
           const treeData = permissionAssignmentRef.value.treeData;
-          const leafPermissions = getLeafPermissions(newData.permissionIds, treeData);
-          // 过滤叶子权限，只显示用户选择的权限
-          newData.permissionIds = leafPermissions;
+          const leafPermissions = getLeafPermissions(props.modelValue.permissionIds, treeData);
+          // 只更新权限字段
+          form.permissionIds = leafPermissions;
+        } else {
+          // 如果权限树还没加载，直接使用原始权限数据
+          form.permissionIds = props.modelValue.permissionIds;
         }
-        Object.assign(form, newData);
       }, 100);
     } else {
-      Object.assign(form, newData);
+      form.permissionIds = props.modelValue.permissionIds || [];
     }
   }
 };
+
+// 监听 props.modelValue 变化，更新表单数据（参考用户管理的实现）
+watch(() => props.modelValue, () => {
+  updateForm();
+}, { deep: true });
 
 // 实时同步所有字段到父组件
 watch(form, (val) => {
@@ -94,18 +109,25 @@ watch(form, (val) => {
 // 权限分配组件引用
 const permissionAssignmentRef = ref();
 
+// 权限树节点接口
+interface PermissionTreeNode {
+  id: string | number;
+  children?: PermissionTreeNode[];
+  [key: string]: unknown;
+}
+
 // 自动包含父权限的函数
-const getPermissionsWithParents = (selectedIds: (string | number)[], treeData: any[]) => {
+const getPermissionsWithParents = (selectedIds: (string | number)[], treeData: PermissionTreeNode[]) => {
   if (!selectedIds || selectedIds.length === 0 || !treeData || treeData.length === 0) {
     return selectedIds || [];
   }
 
   // 创建id到节点的映射和id到父节点的映射
-  const nodeMap = new Map();
-  const parentMap = new Map();
+  const nodeMap = new Map<string | number, PermissionTreeNode>();
+  const parentMap = new Map<string | number, string | number>();
   
-  const buildMaps = (nodes: any[], parent: any = null) => {
-    nodes.forEach((node: any) => {
+  const buildMaps = (nodes: PermissionTreeNode[], parent: PermissionTreeNode | null = null) => {
+    nodes.forEach((node: PermissionTreeNode) => {
       nodeMap.set(node.id, node);
       if (parent) {
         parentMap.set(node.id, parent.id);
@@ -135,16 +157,16 @@ const getPermissionsWithParents = (selectedIds: (string | number)[], treeData: a
 };
 
 // 过滤出叶子权限（用户实际选择的权限，不包括因为层级关系自动添加的父权限）
-const getLeafPermissions = (allPermissionIds: (string | number)[], treeData: any[]) => {
+const getLeafPermissions = (allPermissionIds: (string | number)[], treeData: PermissionTreeNode[]) => {
   if (!allPermissionIds || allPermissionIds.length === 0 || !treeData || treeData.length === 0) {
     return allPermissionIds || [];
   }
 
   // 创建id到节点的映射
-  const nodeMap = new Map();
+  const nodeMap = new Map<string | number, PermissionTreeNode>();
   
-  const buildNodeMap = (nodes: any[]) => {
-    nodes.forEach((node: any) => {
+  const buildNodeMap = (nodes: PermissionTreeNode[]) => {
+    nodes.forEach((node: PermissionTreeNode) => {
       nodeMap.set(node.id, node);
       if (node.children && node.children.length) {
         buildNodeMap(node.children);
@@ -195,8 +217,8 @@ const getPermissionIdsWithParents = () => {
   return selectedIds;
 };
 
-// 初始化表单
-updateForm();
+// 注意：不需要在初始化时调用 updateForm
+// updateForm 会通过 watch 自动调用，当 props.modelValue 有有效 id 时
 
 // 表单验证规则
 const rules = reactive<FormRules>({
@@ -220,6 +242,8 @@ const validate = async () => {
 const resetForm = () => {
   if (!formRef.value) return;
   formRef.value.resetFields();
+  // 清除所有验证状态，避免在打开对话框时显示验证错误
+  formRef.value.clearValidate();
 };
 
 // 暴露方法给父组件

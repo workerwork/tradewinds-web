@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import type { User, Role } from '@/types';
+import type { User, Role, Permission } from '@/types';
 import { authAPI } from '@/api/auth';
 import { useStorage } from '@vueuse/core';
 import { useMenuStore } from '@/stores/menu';
 import router from '@/router';
+import { logger, extractObjectData } from '@/utils';
+import { DEBUG } from '@/config';
 
 export const useUserStore = defineStore('user', () => {
     // 状态
@@ -18,22 +20,21 @@ export const useUserStore = defineStore('user', () => {
 
     // 设置 token
     const setToken = (newToken: string) => {
-        console.log('UserStore - 设置 token:', newToken ? '已设置' : '已清除');
+        if (DEBUG) {
+            logger.info('UserStore - 设置 token', { hasToken: !!newToken }, 'UserStore');
+        }
         token.value = newToken;
     };
 
     // 设置用户信息
     const setUserInfo = (user: User) => {
-        console.log('UserStore - 设置用户信息 - 完整数据:', {
-            原始用户信息: user,
-            角色信息: user.roles,
-            角色类型: typeof user.roles,
-            是否数组: Array.isArray(user.roles),
-            数据结构: {
-                用户字段: Object.keys(user),
-                角色字段: user.roles ? (Array.isArray(user.roles) ? '数组' : Object.keys(user.roles)) : '无角色'
-            }
-        });
+        if (DEBUG) {
+            logger.info('UserStore - 设置用户信息', {
+                用户ID: user.id,
+                用户名: user.username,
+                角色数量: user.roles?.length || 0
+            }, 'UserStore');
+        }
 
         // 确保字段有值，使用loginUsername作为fallback
         const processedUser = { ...user };
@@ -52,8 +53,8 @@ export const useUserStore = defineStore('user', () => {
                 '';
         }
         // 移除snake_case冗余字段
-        delete processedUser.real_name;
-        delete processedUser.display_name;
+        delete (processedUser as any).real_name;
+        delete (processedUser as any).display_name;
 
         // 处理用户名字段映射
         if (!processedUser.username || processedUser.username.trim() === '') {
@@ -65,18 +66,18 @@ export const useUserStore = defineStore('user', () => {
                 'user';
         }
 
-        console.log('UserStore - 用户信息字段处理:', {
-            原始用户信息: user,
-            处理后用户信息: processedUser,
-            realName变化: {
-                原始: user.realName,
-                处理后: processedUser.realName
-            },
-            username变化: {
-                原始: user.username,
-                处理后: processedUser.username
-            }
-        });
+        if (DEBUG) {
+            logger.info('UserStore - 用户信息字段处理', {
+                realName变化: {
+                    原始: user.realName,
+                    处理后: processedUser.realName
+                },
+                username变化: {
+                    原始: user.username,
+                    处理后: processedUser.username
+                }
+            }, 'UserStore');
+        }
 
         // 创建新的对象引用以确保响应式更新
         userInfo.value = processedUser;
@@ -85,233 +86,280 @@ export const useUserStore = defineStore('user', () => {
         // 处理角色
         const processedRoles = Array.isArray(user.roles)
             ? user.roles.map((role: Role | string) => {
-                console.log('UserStore - 处理角色:', {
-                    角色数据: role,
-                    数据类型: typeof role,
-                    是字符串: typeof role === 'string',
-                    字段列表: typeof role === 'object' ? Object.keys(role) : [],
-                    代码: typeof role === 'object' ? role.code : null,
-                    名称: typeof role === 'object' ? role.name : role
-                });
                 // 优先使用角色代码，如果没有则使用角色名称
                 const roleName = typeof role === 'string' ? role : (role.code || role.name);
-                console.log('UserStore - 提取的角色标识:', roleName);
+                if (DEBUG) {
+                    logger.info('UserStore - 处理角色', { roleName }, 'UserStore');
+                }
                 return roleName.toLowerCase();
             })
             : ['user'];
 
         roles.value = processedRoles;
 
-        console.log('UserStore - 更新后的状态:', {
-            用户信息: !!userInfo.value,
-            权限列表: permissions.value,
-            原始角色: user.roles,
-            处理后角色: processedRoles,
-            最终角色: roles.value,
-            角色检查测试: {
-                'super_admin检查': hasRole('super_admin'),
-                'admin检查': hasRole('admin'),
-                '包含超级管理员': roles.value.includes('超级管理员'),
-                '包含super_admin': roles.value.includes('super_admin')
-            }
-        });
+        if (DEBUG) {
+            logger.info('UserStore - 更新后的状态', {
+                用户信息: !!userInfo.value,
+                权限列表: permissions.value,
+                原始角色: user.roles,
+                处理后角色: processedRoles,
+                最终角色: roles.value
+            }, 'UserStore');
+        }
     };
 
     // 获取用户信息
     const getUserInfo = async () => {
         try {
-            console.log('开始获取用户信息');
+            if (DEBUG) {
+                logger.info('开始获取用户信息', undefined, 'UserStore');
+            }
             const response = await authAPI.getUserInfo();
-            console.log('后台返回的原始用户信息:', {
-                完整响应: response,
-                数据结构: {
+            if (DEBUG) {
+                logger.info('后台返回的原始用户信息', {
                     是否有data字段: 'data' in response,
-                    顶层字段: Object.keys(response),
+                    顶层字段: Object.keys(response as unknown as Record<string, unknown>),
                     数据类型: typeof response
-                }
-            });
+                }, 'UserStore');
+            }
 
             // 处理不同的响应格式
             const userDataRaw = 'data' in response ? response.data : response;
             // 适配后端返回结构
             let userData: User;
-            // 只有 userDataRaw 是对象且含有 user/roles/permissions 字段时才做适配
-            if (userDataRaw && typeof userDataRaw === 'object' && (
-                'user' in userDataRaw || 'roles' in userDataRaw || 'permissions' in userDataRaw
-            )) {
-                const userDataRawAny = userDataRaw as any;
-                console.log('UserStore - 检测到复合数据结构:', {
-                    userDataRaw: userDataRaw,
-                    '有user字段': 'user' in userDataRaw,
-                    '有roles字段': 'roles' in userDataRaw,
-                    '有permissions字段': 'permissions' in userDataRaw,
-                    'user字段内容': userDataRawAny.user,
-                    'userDataRaw所有字段': Object.keys(userDataRaw)
+
+            // 尝试使用数据适配工具提取用户数据
+            try {
+                const extractedData = extractObjectData<Record<string, unknown>>(userDataRaw, {
+                    category: 'UserStore',
+                    logPrefix: 'UserStore - 提取用户数据'
                 });
 
-                // 兼容后端返回 { user, roles, permissions }
-                let raw: any;
-                if ('user' in userDataRaw) {
-                    const userContainer = userDataRawAny.user;
-                    // 检查是否存在嵌套的user对象
-                    if (userContainer && typeof userContainer === 'object' && 'user' in userContainer) {
-                        // 嵌套结构：data.user.user 才是真正的用户数据
-                        raw = userContainer.user;
-                        console.log('UserStore - 检测到嵌套用户结构，从 data.user.user 提取用户数据');
+                // 只有 userDataRaw 是对象且含有 user/roles/permissions 字段时才做适配
+                if (extractedData && typeof extractedData === 'object' && (
+                    'user' in extractedData || 'roles' in extractedData || 'permissions' in extractedData
+                )) {
+                    const userDataRawAny = extractedData as Record<string, unknown>;
+                    if (DEBUG) {
+                        logger.info('UserStore - 检测到复合数据结构', {
+                            '有user字段': 'user' in extractedData,
+                            '有roles字段': 'roles' in extractedData,
+                            '有permissions字段': 'permissions' in extractedData
+                        }, 'UserStore');
+                    }
+
+                    // 兼容后端返回 { user, roles, permissions }
+                    let raw: Record<string, unknown>;
+                    if ('user' in userDataRawAny) {
+                        const userContainer = userDataRawAny.user as Record<string, unknown>;
+                        // 检查是否存在嵌套的user对象
+                        if (userContainer && typeof userContainer === 'object' && 'user' in userContainer) {
+                            // 嵌套结构：data.user.user 才是真正的用户数据
+                            raw = userContainer.user as Record<string, unknown>;
+                            if (DEBUG) {
+                                logger.info('UserStore - 检测到嵌套用户结构，从 data.user.user 提取用户数据', undefined, 'UserStore');
+                            }
+                        } else {
+                            // 正常结构：data.user 就是用户数据
+                            raw = userContainer;
+                            if (DEBUG) {
+                                logger.info('UserStore - 正常用户结构，从 data.user 提取用户数据', undefined, 'UserStore');
+                            }
+                        }
                     } else {
-                        // 正常结构：data.user 就是用户数据
+                        raw = userDataRawAny;
+                        if (DEBUG) {
+                            logger.info('UserStore - 直接从 data 提取用户数据', undefined, 'UserStore');
+                        }
+                    }
+
+                    // 提取字段值
+                    const mappedId = typeof raw?.id === 'string' ? raw.id : Number(raw?.id || 0);
+                    const mappedUsername = (raw?.username || raw?.user_name || raw?.name || loginUsername.value || '') as string;
+                    const mappedRealName = (raw?.real_name || raw?.realName || raw?.name || raw?.nickname || raw?.displayName || raw?.display_name || loginUsername.value || '') as string;
+                    const mappedAvatar = (raw?.avatar || '') as string;
+                    const mappedEmail = (raw?.email || '') as string;
+                    const mappedPhone = (raw?.phone || '') as string;
+                    const mappedStatus = Number(raw?.status || 0);
+                    const mappedCreateTime = (raw?.created_at || raw?.createTime || '') as string;
+                    const mappedUpdateTime = (raw?.updated_at || raw?.updateTime || '') as string;
+
+                    if (DEBUG) {
+                        logger.info('UserStore - 字段映射结果', {
+                            mappedId,
+                            mappedUsername,
+                            mappedRealName
+                        }, 'UserStore');
+                    }
+
+                    // 提取角色和权限数据（可能在嵌套结构中）
+                    let rolesData: unknown[], permissionsData: unknown[];
+                    if ('user' in userDataRawAny) {
+                        const userContainer = userDataRawAny.user as Record<string, unknown>;
+                        if (userContainer && typeof userContainer === 'object' && 'user' in userContainer) {
+                            // 嵌套结构：角色和权限在 data.user.roles 和 data.user.permissions
+                            rolesData = (userContainer.roles as unknown[]) || [];
+                            permissionsData = (userContainer.permissions as unknown[]) || [];
+                            if (DEBUG) {
+                                logger.info('UserStore - 从嵌套结构提取角色权限数据', undefined, 'UserStore');
+                            }
+                        } else {
+                            // 正常结构：角色和权限在顶层
+                            rolesData = (userDataRawAny.roles as unknown[]) || [];
+                            permissionsData = (userDataRawAny.permissions as unknown[]) || [];
+                            if (DEBUG) {
+                                logger.info('UserStore - 从顶层提取角色权限数据', undefined, 'UserStore');
+                            }
+                        }
+                    } else {
+                        rolesData = (userDataRawAny.roles as unknown[]) || [];
+                        permissionsData = (userDataRawAny.permissions as unknown[]) || [];
+                        if (DEBUG) {
+                            logger.info('UserStore - 从直接结构提取角色权限数据', undefined, 'UserStore');
+                        }
+                    }
+
+                    if (DEBUG) {
+                        logger.info('UserStore - 角色权限提取结果', {
+                            rolesCount: rolesData.length,
+                            permissionsCount: permissionsData.length
+                        }, 'UserStore');
+                    }
+
+                    userData = {
+                        id: String(mappedId),
+                        username: mappedUsername,
+                        realName: mappedRealName,
+                        avatar: mappedAvatar,
+                        email: mappedEmail,
+                        phone: mappedPhone,
+                        roles: rolesData.map((role: unknown) => {
+                            const roleObj = role as Record<string, unknown>;
+                            return {
+                                id: Number(roleObj.id || 0),
+                                name: (roleObj.name || '') as string,
+                                code: (roleObj.code || '') as string,
+                                description: (roleObj.description || '') as string,
+                                permissions: (Array.isArray(roleObj.permissions) ? roleObj.permissions : []) as Permission[],
+                                status: Number(roleObj.status || 0),
+                                createTime: (roleObj.created_at || roleObj.createTime || '') as string,
+                                updateTime: (roleObj.updated_at || roleObj.updateTime || '') as string
+                            } as Role;
+                        }),
+                        permissions: permissionsData.map((p: unknown) => {
+                            const pObj = p as Record<string, unknown>;
+                            return (pObj.name || pObj.code || p) as string;
+                        }),
+                        status: mappedStatus,
+                        createTime: mappedCreateTime,
+                        updateTime: mappedUpdateTime
+                    };
+                } else {
+                    // 如果 extractObjectData 返回的数据不符合预期，使用原始数据
+                    userData = userDataRaw as unknown as User;
+                }
+            } catch (error: unknown) {
+                // 如果数据适配失败，回退到原始逻辑
+                if (DEBUG) {
+                    logger.warn('UserStore - 数据适配失败，使用原始逻辑', error, 'UserStore');
+                }
+                const userDataRawAny = userDataRaw as unknown as Record<string, unknown>;
+
+                // 兼容后端返回 { user, roles, permissions }
+                let raw: Record<string, unknown>;
+                if ('user' in userDataRawAny) {
+                    const userContainer = userDataRawAny.user as Record<string, unknown>;
+                    if (userContainer && typeof userContainer === 'object' && 'user' in userContainer) {
+                        raw = userContainer.user as Record<string, unknown>;
+                    } else {
                         raw = userContainer;
-                        console.log('UserStore - 正常用户结构，从 data.user 提取用户数据');
                     }
                 } else {
                     raw = userDataRawAny;
-                    console.log('UserStore - 直接从 data 提取用户数据');
                 }
-
-                console.log('UserStore - 提取的raw对象:', {
-                    raw对象: raw,
-                    raw是否存在: !!raw,
-                    raw类型: typeof raw,
-                    raw所有字段: raw ? Object.keys(raw) : 'raw为空'
-                });
-
-                console.log('UserStore - 字段映射详细日志:', {
-                    原始数据: raw,
-                    '字段映射过程': {
-                        'id映射': {
-                            '原始值': raw?.id,
-                            '原始类型': typeof raw?.id,
-                            '映射后': typeof raw?.id === 'string' ? raw.id : Number(raw?.id || 0)
-                        },
-                        'realName映射': {
-                            'real_name': raw?.real_name,
-                            'realName': raw?.realName,
-                            'name': raw?.name,
-                            '最终值': raw?.real_name || raw?.realName || raw?.name || raw?.nickname || raw?.displayName || raw?.display_name || loginUsername.value || ''
-                        },
-                        'username映射': {
-                            'username': raw?.username,
-                            'user_name': raw?.user_name,
-                            '最终值': raw?.username || raw?.user_name || raw?.name || loginUsername.value || ''
-                        },
-                        'createTime映射': {
-                            'created_at': raw?.created_at,
-                            'createTime': raw?.createTime,
-                            '最终值': raw?.created_at || raw?.createTime || ''
-                        }
-                    }
-                });
 
                 // 提取字段值
                 const mappedId = typeof raw?.id === 'string' ? raw.id : Number(raw?.id || 0);
-                const mappedUsername = raw?.username || raw?.user_name || raw?.name || loginUsername.value || '';
-                const mappedRealName = raw?.real_name || raw?.realName || raw?.name || raw?.nickname || raw?.displayName || raw?.display_name || loginUsername.value || '';
-                const mappedAvatar = raw?.avatar || '';
-                const mappedEmail = raw?.email || '';
-                const mappedPhone = raw?.phone || '';
+                const mappedUsername = (raw?.username || raw?.user_name || raw?.name || loginUsername.value || '') as string;
+                const mappedRealName = (raw?.real_name || raw?.realName || raw?.name || raw?.nickname || raw?.displayName || raw?.display_name || loginUsername.value || '') as string;
+                const mappedAvatar = (raw?.avatar || '') as string;
+                const mappedEmail = (raw?.email || '') as string;
+                const mappedPhone = (raw?.phone || '') as string;
                 const mappedStatus = Number(raw?.status || 0);
-                const mappedCreateTime = raw?.created_at || raw?.createTime || '';
-                const mappedUpdateTime = raw?.updated_at || raw?.updateTime || '';
+                const mappedCreateTime = (raw?.created_at || raw?.createTime || '') as string;
+                const mappedUpdateTime = (raw?.updated_at || raw?.updateTime || '') as string;
 
-                console.log('UserStore - 字段映射结果:', {
-                    mappedId,
-                    mappedUsername,
-                    mappedRealName,
-                    mappedAvatar,
-                    mappedEmail,
-                    mappedPhone,
-                    mappedStatus,
-                    mappedCreateTime,
-                    mappedUpdateTime
-                });
-
-                // 提取角色和权限数据（可能在嵌套结构中）
-                let rolesData, permissionsData;
-                if ('user' in userDataRaw) {
-                    const userContainer = userDataRawAny.user;
-                    if (userContainer && typeof userContainer === 'object' && 'user' in userContainer) {
-                        // 嵌套结构：角色和权限在 data.user.roles 和 data.user.permissions
-                        rolesData = userContainer.roles || [];
-                        permissionsData = userContainer.permissions || [];
-                        console.log('UserStore - 从嵌套结构提取角色权限数据');
-                    } else {
-                        // 正常结构：角色和权限在顶层
-                        rolesData = userDataRawAny.roles || [];
-                        permissionsData = userDataRawAny.permissions || [];
-                        console.log('UserStore - 从顶层提取角色权限数据');
-                    }
-                } else {
-                    rolesData = userDataRawAny.roles || [];
-                    permissionsData = userDataRawAny.permissions || [];
-                    console.log('UserStore - 从直接结构提取角色权限数据');
-                }
-
-                console.log('UserStore - 角色权限提取结果:', {
-                    rolesData,
-                    permissionsData,
-                    rolesCount: rolesData.length,
-                    permissionsCount: permissionsData.length
-                });
+                // 提取角色和权限数据
+                let rolesData: unknown[] = (userDataRawAny.roles as unknown[]) || [];
+                let permissionsData: unknown[] = (userDataRawAny.permissions as unknown[]) || [];
 
                 userData = {
-                    id: mappedId,
+                    id: String(mappedId),
                     username: mappedUsername,
                     realName: mappedRealName,
                     avatar: mappedAvatar,
                     email: mappedEmail,
                     phone: mappedPhone,
-                    roles: rolesData.map((role: any) => ({
-                        id: Number(role.id),
-                        name: role.name || '',
-                        code: role.code || '',
-                        description: role.description || '',
-                        permissions: Array.isArray(role.permissions) ? role.permissions : [],
-                        status: Number(role.status),
-                        createTime: role.created_at || role.createTime || '',
-                        updateTime: role.updated_at || role.updateTime || ''
-                    })),
-                    permissions: permissionsData.map((p: any) => p.name || p.code || p),
+                    roles: rolesData.map((role: unknown) => {
+                        const roleObj = role as Record<string, unknown>;
+                        return {
+                            id: Number(roleObj.id || 0),
+                            name: (roleObj.name || '') as string,
+                            code: (roleObj.code || '') as string,
+                            description: (roleObj.description || '') as string,
+                            permissions: (Array.isArray(roleObj.permissions) ? roleObj.permissions : []) as Permission[],
+                            status: Number(roleObj.status || 0),
+                            createTime: (roleObj.created_at || roleObj.createTime || '') as string,
+                            updateTime: (roleObj.updated_at || roleObj.updateTime || '') as string
+                        } as Role;
+                    }),
+                    permissions: permissionsData.map((p: unknown) => {
+                        const pObj = p as Record<string, unknown>;
+                        return (pObj.name || pObj.code || p) as string;
+                    }),
                     status: mappedStatus,
                     createTime: mappedCreateTime,
                     updateTime: mappedUpdateTime
                 };
-            } else {
+            }
+
+            // 如果 try 块中没有设置 userData，使用原始数据
+            if (!userData) {
                 // 直接的用户对象格式，也需要字段映射
-                const rawData = userDataRaw as any;
-                console.log('UserStore - 直接用户对象字段映射:', {
-                    原始数据: rawData,
-                    '字段检查': {
+                const rawData = userDataRaw as unknown as Record<string, unknown>;
+                if (DEBUG) {
+                    logger.info('UserStore - 直接用户对象字段映射', {
                         'real_name': rawData.real_name,
                         'created_at': rawData.created_at,
                         'id类型': typeof rawData.id
-                    }
-                });
+                    }, 'UserStore');
+                }
 
                 // 确保直接格式也进行字段映射
                 userData = {
-                    ...rawData,
-                    id: typeof rawData.id === 'string' ? rawData.id : Number(rawData.id),
-                    realName: rawData.real_name || rawData.realName || rawData.name || loginUsername.value || '',
-                    createTime: rawData.created_at || rawData.createTime || '',
-                    updateTime: rawData.updated_at || rawData.updateTime || '',
-                    roles: rawData.roles || [],
-                    permissions: rawData.permissions || []
+                    ...(rawData as any),
+                    id: typeof rawData.id === 'string' ? rawData.id : String(rawData.id || ''),
+                    realName: (rawData.real_name || rawData.realName || rawData.name || loginUsername.value || '') as string,
+                    createTime: (rawData.created_at || rawData.createTime || '') as string,
+                    updateTime: (rawData.updated_at || rawData.updateTime || '') as string,
+                    roles: (Array.isArray(rawData.roles) ? rawData.roles : []) as Role[],
+                    permissions: (Array.isArray(rawData.permissions) ? rawData.permissions : []) as string[]
                 };
             }
-            console.log('提取的用户数据:', {
-                完整数据: userData,
-                字段列表: Object.keys(userData),
-                角色数据: userData.roles,
-                角色类型: userData.roles ? typeof userData.roles : 'undefined'
-            });
+            if (DEBUG) {
+                logger.info('提取的用户数据', {
+                    字段列表: Object.keys(userData),
+                    角色数量: userData.roles?.length || 0
+                }, 'UserStore');
+            }
 
             if (!userData || !userData.roles) {
-                console.error('用户数据格式错误:', {
+                logger.error('用户数据格式错误', {
                     有用户数据: !!userData,
                     用户数据类型: typeof userData,
                     有角色数据: !!userData?.roles,
                     角色数据类型: typeof userData?.roles
-                });
+                }, 'UserStore');
                 throw new Error('用户数据格式错误：缺少必要的角色信息');
             }
 
@@ -319,8 +367,8 @@ export const useUserStore = defineStore('user', () => {
             setUserInfo(userData);
 
             return response;
-        } catch (error) {
-            console.error('获取用户信息失败:', error);
+        } catch (error: unknown) {
+            logger.error('获取用户信息失败', error, 'UserStore');
             throw error;
         }
     };
@@ -328,7 +376,9 @@ export const useUserStore = defineStore('user', () => {
     // 登录
     const login = async (username: string, password: string) => {
         try {
-            console.log('UserStore - 开始登录:', username);
+            if (DEBUG) {
+                logger.info('UserStore - 开始登录', { username }, 'UserStore');
+            }
 
             // 先清除之前的状态，避免缓存冲突
             clearUserState();
@@ -339,7 +389,9 @@ export const useUserStore = defineStore('user', () => {
             loginUsername.value = username;
 
             const response = await authAPI.login({ username, password });
-            console.log('UserStore - 登录成功，获取到响应');
+            if (DEBUG) {
+                logger.info('UserStore - 登录成功，获取到响应', undefined, 'UserStore');
+            }
 
             // 处理不同的响应格式
             const { token: newToken, user } = 'data' in response ? response.data : response;
@@ -358,11 +410,15 @@ export const useUserStore = defineStore('user', () => {
             // 无论登录响应是否有用户信息，都主动获取完整的用户信息
             // 这样确保用户信息是最新且完整的
             try {
-                console.log('UserStore - 开始获取完整用户信息');
+                if (DEBUG) {
+                    logger.info('UserStore - 开始获取完整用户信息', undefined, 'UserStore');
+                }
                 await getUserInfo();
-                console.log('UserStore - 完整用户信息获取成功');
-            } catch (getUserInfoError) {
-                console.warn('UserStore - 获取完整用户信息失败，使用登录响应中的用户信息:', getUserInfoError);
+                if (DEBUG) {
+                    logger.info('UserStore - 完整用户信息获取成功', undefined, 'UserStore');
+                }
+            } catch (getUserInfoError: unknown) {
+                logger.warn('UserStore - 获取完整用户信息失败，使用登录响应中的用户信息', getUserInfoError, 'UserStore');
                 // 如果获取用户信息失败，但登录响应中没有用户信息，抛出错误
                 if (!user) {
                     throw new Error('登录成功但无法获取用户信息');
@@ -386,18 +442,20 @@ export const useUserStore = defineStore('user', () => {
                 });
             } catch (e) { }
 
-            console.log('UserStore - 登录状态设置完成:', {
-                token有效: !!token.value,
-                用户信息: !!userInfo.value,
-                用户名: userInfo.value?.username,
-                真实姓名: userInfo.value?.realName,
-                角色数量: roles.value.length,
-                权限数量: permissions.value.length
-            });
+            if (DEBUG) {
+                logger.info('UserStore - 登录状态设置完成', {
+                    token有效: !!token.value,
+                    用户信息: !!userInfo.value,
+                    用户名: userInfo.value?.username,
+                    真实姓名: userInfo.value?.realName,
+                    角色数量: roles.value.length,
+                    权限数量: permissions.value.length
+                }, 'UserStore');
+            }
 
             return userInfo.value;
-        } catch (error) {
-            console.error('UserStore - 登录失败:', error);
+        } catch (error: unknown) {
+            logger.error('UserStore - 登录失败', error, 'UserStore');
             // 登录失败时确保清除状态
             clearUserState();
             menuStore.clearMenus();
@@ -407,7 +465,9 @@ export const useUserStore = defineStore('user', () => {
 
     // 清除所有用户状态（本地方法，不调用API）
     const clearUserState = () => {
-        console.log('UserStore - 清除所有用户状态');
+        if (DEBUG) {
+            logger.info('UserStore - 清除所有用户状态', undefined, 'UserStore');
+        }
         setToken('');
         userInfo.value = null;
         permissions.value = [];
@@ -425,22 +485,28 @@ export const useUserStore = defineStore('user', () => {
                     localStorage.removeItem(key);
                 }
             });
-        } catch (error) {
-            console.warn('清除localStorage失败:', error);
+        } catch (error: unknown) {
+            logger.warn('清除localStorage失败', error, 'UserStore');
         }
 
-        console.log('UserStore - 用户状态清除完成');
+        if (DEBUG) {
+            logger.info('UserStore - 用户状态清除完成', undefined, 'UserStore');
+        }
     };
 
     // 登出
     const logout = async () => {
-        console.log('UserStore - 开始登出');
+        if (DEBUG) {
+            logger.info('UserStore - 开始登出', undefined, 'UserStore');
+        }
         try {
             // 先调用登出接口
             await authAPI.logout();
-            console.log('UserStore - 登出API调用成功');
-        } catch (error) {
-            console.error('UserStore - 登出请求失败:', error);
+            if (DEBUG) {
+                logger.info('UserStore - 登出API调用成功', undefined, 'UserStore');
+            }
+        } catch (error: unknown) {
+            logger.error('UserStore - 登出请求失败', error, 'UserStore');
             // 即使请求失败也继续清除本地状态
         } finally {
             // 清除本地状态

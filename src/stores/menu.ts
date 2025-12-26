@@ -4,13 +4,16 @@ import type { RouteRecordRaw } from 'vue-router';
 import { getUserMenus as getMenusAPI } from '@/api/auth';
 import { MenuItem, MenuType } from '@/types/menu';
 import Layout from '@/layout/index.vue';
+import { DEBUG } from '@/config';
 // @ts-ignore
 import {
     debugMenuStructure,
     checkMultiLevelMenus,
     normalizeMenuData,
     checkMenuStyleConsistency,
-    findStyleDifferences
+    findStyleDifferences,
+    extractArrayData,
+    logger
 } from '@/utils';
 
 // 组件映射
@@ -60,35 +63,36 @@ export const useMenuStore = defineStore('menu', () => {
     const routes = ref<RouteRecordRaw[]>([]);
     const loading = ref(false);
 
-    const normalizeMenu = (menu: any): MenuItem => {
+    const normalizeMenu = (menu: unknown): MenuItem => {
+        const menuObj = menu as Record<string, unknown>;
         return {
-            id: menu.id,
-            parentId: menu.parent_id || menu.parentId,
-            name: menu.name,
-            title: menu.title || menu.name,
-            path: menu.path || '',
-            component: menu.component,
-            redirect: menu.redirect,
-            icon: menu.icon,
-            type: menu.type || MenuType.MENU,
-            sort: menu.sort || 0,
-            visible: menu.visible !== false,
-            status: menu.status || 1,
-            perms: menu.perms,
-            roles: menu.roles || [],
+            id: menuObj.id as string | number,
+            parentId: (menuObj.parent_id || menuObj.parentId) as string | number | undefined,
+            name: menuObj.name as string,
+            title: (menuObj.title || menuObj.name) as string,
+            path: (menuObj.path || '') as string,
+            component: menuObj.component as string | undefined,
+            redirect: menuObj.redirect as string | undefined,
+            icon: menuObj.icon as string | undefined,
+            type: (menuObj.type || MenuType.MENU) as MenuType,
+            sort: (menuObj.sort || 0) as number,
+            visible: menuObj.visible !== false,
+            status: (menuObj.status || 1) as number,
+            perms: menuObj.perms as string | undefined,
+            roles: (Array.isArray(menuObj.roles) ? menuObj.roles : []) as string[],
             meta: {
-                title: menu.title || menu.name,
-                icon: menu.icon,
-                hidden: menu.hidden || false,
-                breadcrumb: menu.title || menu.name,
-                roles: menu.roles || [],
-                ...menu.meta
+                title: (menuObj.title || menuObj.name) as string,
+                icon: menuObj.icon as string | undefined,
+                hidden: (menuObj.hidden || false) as boolean,
+                breadcrumb: (menuObj.title || menuObj.name) as string,
+                roles: (Array.isArray(menuObj.roles) ? menuObj.roles : []) as string[],
+                ...(menuObj.meta as Record<string, unknown> | undefined)
             },
-            children: Array.isArray(menu.children)
-                ? menu.children.map(normalizeMenu)
+            children: Array.isArray(menuObj.children)
+                ? (menuObj.children as unknown[]).map(normalizeMenu)
                 : [],
-            createTime: menu.createTime || menu.create_time || new Date().toISOString(),
-            updateTime: menu.updateTime || menu.update_time
+            createTime: (menuObj.createTime || menuObj.create_time || new Date().toISOString()) as string,
+            updateTime: (menuObj.updateTime || menuObj.update_time) as string | undefined
         };
     };
 
@@ -119,7 +123,7 @@ export const useMenuStore = defineStore('menu', () => {
         return null;
     };
 
-    const menuToRoute = (menu: MenuItem, isTopLevel = true): any => {
+    const menuToRoute = (menu: MenuItem, isTopLevel = true): RouteRecordRaw | null => {
         const isLeaf = !menu.children || menu.children.length === 0;
 
         // 顶级菜单必须使用Layout布局，即使是叶子节点
@@ -152,7 +156,7 @@ export const useMenuStore = defineStore('menu', () => {
                             }
                         }
                     ]
-                };
+                } as unknown as RouteRecordRaw;
             } else {
                 // 顶级分组节点：有path + Layout + children
                 return {
@@ -166,8 +170,8 @@ export const useMenuStore = defineStore('menu', () => {
                         hidden: !menu.visible,
                         roles: menu.roles
                     },
-                    children: menu.children.map(child => menuToRoute(child, false)).flat().filter(Boolean)
-                };
+                    children: menu.children.map(child => menuToRoute(child, false)).flat().filter(Boolean) as RouteRecordRaw[]
+                } as unknown as RouteRecordRaw;
             }
         }
 
@@ -185,10 +189,12 @@ export const useMenuStore = defineStore('menu', () => {
                     hidden: !menu.visible,
                     roles: menu.roles
                 }
-            };
+            } as unknown as RouteRecordRaw;
         }
         // 其它分组节点：只递归 children，不生成自身
-        return menu.children.map(child => menuToRoute(child, false)).flat().filter(Boolean);
+        // 注意：这里返回 null，因为分组节点本身不应该生成路由
+        // 只有叶子节点才生成路由
+        return null;
     };
 
     const buildMenuTree = (menuList: MenuItem[]): MenuItem[] => {
@@ -218,12 +224,12 @@ export const useMenuStore = defineStore('menu', () => {
     };
 
     // 修正版递归将对象格式的菜单转为数组格式，children 字段始终为数组
-    function deepObjectToArray(obj: any): any[] {
+    function deepObjectToArray(obj: unknown): unknown[] {
         if (Array.isArray(obj)) {
             return obj.map(deepObjectToArray).flat();
         } else if (typeof obj === 'object' && obj !== null) {
-            const newObj = { ...obj };
-            if (newObj.children) {
+            const newObj = { ...(obj as Record<string, unknown>) };
+            if ('children' in newObj && newObj.children) {
                 newObj.children = deepObjectToArray(newObj.children);
             } else {
                 newObj.children = [];
@@ -236,99 +242,32 @@ export const useMenuStore = defineStore('menu', () => {
     const getUserMenus = async () => {
         try {
             loading.value = true;
-            console.log('MenuStore - 开始获取用户菜单');
+            logger.info('MenuStore - 开始获取用户菜单', undefined, 'MenuStore');
 
             const response = await getMenusAPI();
-            console.log('MenuStore - 后端返回的菜单数据:', {
-                数据类型: typeof response,
-                数据结构: response,
-                是否数组: Array.isArray(response),
-                数据长度: Array.isArray(response) ? response.length : '不是数组',
-                原始数据: JSON.stringify(response).substring(0, 200) + '...'
-            });
 
-            // 由于axios拦截器已经处理了错误状态，如果能执行到这里说明请求成功
-            // 拦截器会直接返回data.data部分，即MenuItem[]数组
-            let menuData: any[];
-
-            if (Array.isArray(response)) {
-                // 直接是数组格式
-                menuData = response;
-                console.log('MenuStore - 识别为数组格式');
-            } else if (response && typeof response === 'object' && 'code' in response) {
-                // 完整响应格式（可能是某些情况下拦截器没有处理）
-                console.log('MenuStore - 识别为完整响应格式，code:', response.code);
-                if ((response.code === 200 || response.code === 0) && response.data) {
-                    menuData = response.data;
+            // 使用数据适配工具提取菜单数据
+            let menuData: unknown[];
+            try {
+                menuData = extractArrayData<unknown>(response, {
+                    category: 'MenuStore',
+                    logPrefix: 'MenuStore - 提取菜单数据'
+                });
+            } catch (error) {
+                // 如果提取失败，尝试递归转换对象为数组
+                if (response && typeof response === 'object' && !Array.isArray(response)) {
+                    menuData = deepObjectToArray(response);
                 } else {
-                    throw new Error(response.message || '菜单数据获取失败');
+                    throw error;
                 }
-            } else if (response && typeof response === 'object' && response.data && Array.isArray(response.data)) {
-                // 嵌套在data字段中
-                console.log('MenuStore - 识别为嵌套data格式');
-                menuData = response.data;
-            } else if (response && typeof response === 'object' && response.data && Array.isArray(response.data.menus)) {
-                // 嵌套在data.menus字段中
-                console.log('MenuStore - 识别为data.menus格式');
-                menuData = response.data.menus;
-            } else if (response && typeof response === 'object' && response.menus && Array.isArray(response.menus)) {
-                // 嵌套在menus字段中
-                console.log('MenuStore - 识别为menus字段格式');
-                menuData = response.menus;
-            } else if (response && typeof response === 'object' && response.menu && Array.isArray(response.menu)) {
-                // 嵌套在menu字段中
-                console.log('MenuStore - 识别为menu字段格式');
-                menuData = response.menu;
-            } else if (response && typeof response === 'object' && response.items && Array.isArray(response.items)) {
-                // 嵌套在items字段中
-                console.log('MenuStore - 识别为items字段格式');
-                menuData = response.items;
-            } else if (response && typeof response === 'object') {
-                // 尝试寻找任何数组类型的字段
-                console.log('MenuStore - 尝试在对象中寻找数组字段');
-                let foundArray = false;
-                for (const key in response) {
-                    if (Array.isArray(response[key])) {
-                        console.log('MenuStore - 找到数组字段:', key);
-                        menuData = response[key];
-                        foundArray = true;
-                        break;
-                    }
-                }
-
-                if (!foundArray) {
-                    // 如果没有找到数组，尝试将整个对象转换为数组
-                    console.log('MenuStore - 尝试将对象转换为数组');
-                    const objKeys = Object.keys(response);
-                    if (objKeys.length > 0) {
-                        const tempArray = [];
-                        for (const key of objKeys) {
-                            if (typeof response[key] === 'object' && response[key] !== null) {
-                                tempArray.push({
-                                    id: key,
-                                    ...response[key]
-                                });
-                            }
-                        }
-                        if (tempArray.length > 0) {
-                            menuData = tempArray;
-                            console.log('MenuStore - 成功将对象转换为数组');
-                        } else {
-                            throw new Error('菜单数据格式错误: 无法将对象转换为数组');
-                        }
-                    } else {
-                        throw new Error('菜单数据格式错误: 空对象');
-                    }
-                }
-            } else {
-                console.error('MenuStore - 未知的菜单数据格式:', response);
-                throw new Error('菜单数据格式错误');
             }
 
-            console.log('MenuStore - 提取的菜单数据:', {
-                数据条数: menuData.length,
-                第一条数据示例: menuData[0] || null
-            });
+            if (DEBUG) {
+                logger.info('MenuStore - 提取的菜单数据', {
+                    数据条数: menuData.length,
+                    第一条数据示例: menuData[0] || null
+                }, 'MenuStore');
+            }
 
             // menuData 赋值后，递归转为数组格式，兼容对象格式
             if (!Array.isArray(menuData)) {
@@ -336,7 +275,7 @@ export const useMenuStore = defineStore('menu', () => {
             }
 
             if (!Array.isArray(menuData) || menuData.length === 0) {
-                console.warn('MenuStore - 菜单数据为空或格式错误');
+                logger.warn('MenuStore - 菜单数据为空或格式错误', undefined, 'MenuStore');
                 menus.value = [];
                 routes.value = [];
                 return [];
@@ -345,45 +284,56 @@ export const useMenuStore = defineStore('menu', () => {
             // 先进行数据规范化
             const normalizedData = normalizeMenuData(menuData);
             const normalizedMenus = normalizedData.map(normalizeMenu);
-            console.log('MenuStore - 标准化后的菜单:', normalizedMenus);
+            if (DEBUG) {
+                logger.info('MenuStore - 标准化后的菜单', normalizedMenus, 'MenuStore');
+            }
 
             const menuTree = buildMenuTree(normalizedMenus);
-            console.log('MenuStore - 构建的菜单树:', menuTree);
+            if (DEBUG) {
+                logger.info('MenuStore - 构建的菜单树', menuTree, 'MenuStore');
+            }
 
             // 检查菜单样式一致性
-            console.log('=== 菜单样式一致性检查 ===');
+            if (DEBUG) {
+                logger.info('=== 菜单样式一致性检查 ===', undefined, 'MenuStore');
+            }
             checkMenuStyleConsistency(menuTree);
             findStyleDifferences(menuTree);
 
             // 只保留一级菜单为顶层路由，不再包裹 / Layout
-            const topLevelRoutes: any[] = menuTree.map(menu => menuToRoute(menu)).flat().filter(Boolean);
+            const topLevelRoutes: RouteRecordRaw[] = menuTree.map(menu => menuToRoute(menu)).flat().filter(Boolean) as RouteRecordRaw[];
 
-            console.log('MenuStore - 生成的路由:', topLevelRoutes);
+            if (DEBUG) {
+                logger.info('MenuStore - 生成的路由', topLevelRoutes, 'MenuStore');
+            }
 
             menus.value = menuTree;
             routes.value = topLevelRoutes;
+            // 清空缓存，因为菜单数据已更新
+            menuPathCache.clear();
 
             debugMenuStructure(menuTree);
             checkMultiLevelMenus(menuTree);
 
             // 自动打印所有动态路由结构，便于分析嵌套问题
-            console.log('【动态路由结构】', JSON.stringify(topLevelRoutes, null, 2));
-
-            // 打印最终 menus.value 结构，便于调试
-            console.log('最终 menus.value:', JSON.stringify(menus.value, null, 2));
+            if (DEBUG) {
+                logger.info('【动态路由结构】', JSON.stringify(topLevelRoutes, null, 2), 'MenuStore');
+                logger.info('最终 menus.value', JSON.stringify(menus.value, null, 2), 'MenuStore');
+            }
 
             return topLevelRoutes;
         } catch (error) {
-            console.error('MenuStore - 获取用户菜单错误:', error);
+            logger.error('MenuStore - 获取用户菜单错误', error, 'MenuStore');
             // 确保错误信息包含中文字符能正确显示
             if (error instanceof Error) {
                 const message = error.message;
-                // 检查是否包含乱码或编码问题
-                console.error('MenuStore - 错误信息编码检查:', {
-                    原始消息: message,
-                    消息长度: message.length,
-                    字符编码: [...message].map(c => c.charCodeAt(0)),
-                });
+                if (DEBUG) {
+                    logger.info('MenuStore - 错误信息编码检查', {
+                        原始消息: message,
+                        消息长度: message.length,
+                        字符编码: [...message].map(c => c.charCodeAt(0)),
+                    }, 'MenuStore');
+                }
             }
             throw error;
         } finally {
@@ -391,12 +341,22 @@ export const useMenuStore = defineStore('menu', () => {
         }
     };
 
+    // 菜单路径查找缓存（提升性能）
+    const menuPathCache = new Map<string, MenuItem | null>();
+
     const clearMenus = () => {
         menus.value = [];
         routes.value = [];
+        // 清空缓存，避免使用过期的菜单数据
+        menuPathCache.clear();
     };
 
     const findMenuByPath = (targetPath: string): MenuItem | null => {
+        // 检查缓存
+        if (menuPathCache.has(targetPath)) {
+            return menuPathCache.get(targetPath)!;
+        }
+
         const findInMenus = (menuList: MenuItem[]): MenuItem | null => {
             for (const menu of menuList) {
                 if (menu.path === targetPath) {
@@ -410,7 +370,10 @@ export const useMenuStore = defineStore('menu', () => {
             return null;
         };
 
-        return findInMenus(menus.value);
+        const result = findInMenus(menus.value);
+        // 缓存结果
+        menuPathCache.set(targetPath, result);
+        return result;
     };
 
     return {

@@ -1,5 +1,9 @@
 <template>
-  <div class="super-admin-config-container" v-loading="loading" element-loading-text="加载配置数据中...">
+  <div
+    v-loading="loading"
+    class="super-admin-config-container"
+    element-loading-text="加载配置数据中..."
+  >
     <el-card class="page-header">
       <div class="header-content">
         <div class="header-text">
@@ -10,7 +14,7 @@
           <p class="page-description">管理系统全局配置参数</p>
         </div>
         <div class="header-actions">
-          <el-button :icon="Refresh" circle @click="loadConfig" :loading="loading" />
+          <el-button :icon="Refresh" circle :loading="loading" @click="loadConfig" />
         </div>
       </div>
     </el-card>
@@ -24,18 +28,28 @@
               基础配置
             </span>
           </template>
-          <el-form :model="basicConfig" :rules="basicRules" ref="basicFormRef" label-width="140px" class="config-form">
+          <el-form
+            ref="basicFormRef"
+            :model="basicConfig"
+            :rules="basicRules"
+            label-width="140px"
+            class="config-form"
+          >
             <el-form-item label="系统名称" prop="systemName">
               <el-input v-model="basicConfig.systemName" placeholder="请输入系统名称" clearable />
             </el-form-item>
             <el-form-item label="系统版本" prop="systemVersion">
-              <el-input v-model="basicConfig.systemVersion" placeholder="请输入系统版本" clearable />
+              <el-input
+                v-model="basicConfig.systemVersion"
+                placeholder="请输入系统版本"
+                clearable
+              />
             </el-form-item>
             <el-form-item label="系统描述" prop="systemDescription">
-              <el-input 
-                type="textarea" 
-                v-model="basicConfig.systemDescription" 
-                :rows="4" 
+              <el-input
+                v-model="basicConfig.systemDescription"
+                type="textarea"
+                :rows="4"
                 placeholder="请输入系统描述"
                 maxlength="500"
                 show-word-limit
@@ -55,22 +69,28 @@
               安全配置
             </span>
           </template>
-          <el-form :model="securityConfig" :rules="securityRules" ref="securityFormRef" label-width="140px" class="config-form">
+          <el-form
+            ref="securityFormRef"
+            :model="securityConfig"
+            :rules="securityRules"
+            label-width="140px"
+            class="config-form"
+          >
             <el-form-item label="登录失败次数限制" prop="maxLoginAttempts">
-              <el-input-number 
-                v-model="securityConfig.maxLoginAttempts" 
-                :min="1" 
-                :max="10" 
+              <el-input-number
+                v-model="securityConfig.maxLoginAttempts"
+                :min="1"
+                :max="10"
                 :step="1"
                 style="width: 100%"
               />
               <span class="form-tip">达到限制次数后，账户将被临时锁定</span>
             </el-form-item>
             <el-form-item label="会话超时时间(分钟)" prop="sessionTimeout">
-              <el-input-number 
-                v-model="securityConfig.sessionTimeout" 
-                :min="5" 
-                :max="1440" 
+              <el-input-number
+                v-model="securityConfig.sessionTimeout"
+                :min="5"
+                :max="1440"
                 :step="5"
                 style="width: 100%"
               />
@@ -85,10 +105,10 @@
               <span class="form-tip">启用后，用户登录需要额外的身份验证</span>
             </el-form-item>
             <el-form-item label="密码最小长度" prop="minPasswordLength">
-              <el-input-number 
-                v-model="securityConfig.minPasswordLength" 
-                :min="6" 
-                :max="32" 
+              <el-input-number
+                v-model="securityConfig.minPasswordLength"
+                :min="6"
+                :max="32"
                 :step="1"
                 style="width: 100%"
               />
@@ -104,29 +124,43 @@
               邮件配置
             </span>
           </template>
-          <el-form :model="emailConfig" :rules="emailRules" ref="emailFormRef" label-width="140px" class="config-form">
+          <el-form
+            ref="emailFormRef"
+            :model="emailConfig"
+            :rules="emailRules"
+            label-width="140px"
+            class="config-form"
+          >
             <el-form-item label="SMTP服务器" prop="smtpHost">
-              <el-input v-model="emailConfig.smtpHost" placeholder="例如: smtp.example.com" clearable />
+              <el-input
+                v-model="emailConfig.smtpHost"
+                placeholder="例如: smtp.example.com"
+                clearable
+              />
             </el-form-item>
             <el-form-item label="SMTP端口" prop="smtpPort">
-              <el-input-number 
-                v-model="emailConfig.smtpPort" 
-                :min="1" 
-                :max="65535" 
+              <el-input-number
+                v-model="emailConfig.smtpPort"
+                :min="1"
+                :max="65535"
                 :step="1"
                 style="width: 100%"
               />
               <span class="form-tip">常用端口: 25(非加密), 587(TLS), 465(SSL)</span>
             </el-form-item>
             <el-form-item label="发件人邮箱" prop="fromEmail">
-              <el-input v-model="emailConfig.fromEmail" placeholder="例如: noreply@example.com" clearable />
+              <el-input
+                v-model="emailConfig.fromEmail"
+                placeholder="例如: noreply@example.com"
+                clearable
+              />
             </el-form-item>
             <el-form-item label="邮箱密码" prop="emailPassword">
-              <el-input 
-                type="password" 
-                v-model="emailConfig.emailPassword" 
+              <el-input
+                v-model="emailConfig.emailPassword"
+                type="password"
                 placeholder="请输入邮箱密码或授权码"
-                show-password 
+                show-password
                 clearable
               />
             </el-form-item>
@@ -144,27 +178,37 @@
               存储配置
             </span>
           </template>
-          <el-form :model="storageConfig" :rules="storageRules" ref="storageFormRef" label-width="140px" class="config-form">
+          <el-form
+            ref="storageFormRef"
+            :model="storageConfig"
+            :rules="storageRules"
+            label-width="140px"
+            class="config-form"
+          >
             <el-form-item label="文件上传大小限制(MB)" prop="maxFileSize">
-              <el-input-number 
-                v-model="storageConfig.maxFileSize" 
-                :min="1" 
-                :max="1024" 
+              <el-input-number
+                v-model="storageConfig.maxFileSize"
+                :min="1"
+                :max="1024"
                 :step="10"
                 style="width: 100%"
               />
               <span class="form-tip">单个文件的最大上传大小</span>
             </el-form-item>
             <el-form-item label="允许上传的文件类型" prop="allowedFileTypes">
-              <el-input 
-                v-model="storageConfig.allowedFileTypes" 
+              <el-input
+                v-model="storageConfig.allowedFileTypes"
                 placeholder="例如: jpg,png,pdf,doc,docx"
                 clearable
               />
               <span class="form-tip">多个类型用逗号分隔</span>
             </el-form-item>
             <el-form-item label="存储路径" prop="storagePath">
-              <el-input v-model="storageConfig.storagePath" placeholder="例如: /uploads" clearable />
+              <el-input
+                v-model="storageConfig.storagePath"
+                placeholder="例如: /uploads"
+                clearable
+              />
               <span class="form-tip">文件存储的服务器路径</span>
             </el-form-item>
             <el-form-item label="启用云存储" prop="enableCloudStorage">
@@ -176,7 +220,7 @@
       </el-tabs>
 
       <div class="config-actions">
-        <el-button type="primary" :icon="Check" @click="saveConfig" :loading="saving">
+        <el-button type="primary" :icon="Check" :loading="saving" @click="saveConfig">
           保存配置
         </el-button>
         <el-button :icon="RefreshLeft" @click="resetConfig">重置</el-button>
@@ -190,9 +234,17 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
-import { 
-  Setting, Refresh, Check, RefreshLeft, Download, Upload, 
-  Document, Lock, Message, FolderOpened
+import {
+  Setting,
+  Refresh,
+  Check,
+  RefreshLeft,
+  Download,
+  Upload,
+  Document,
+  Lock,
+  Message,
+  FolderOpened,
 } from '@element-plus/icons-vue';
 import { useSuperAdminAccess } from '@/composables';
 
@@ -244,7 +296,7 @@ const defaultBasicConfig: BasicConfig = {
   systemName: '管理系统',
   systemVersion: '1.0.0',
   systemDescription: '企业级管理系统',
-  maintenanceMode: false
+  maintenanceMode: false,
 };
 
 const defaultSecurityConfig: SecurityConfig = {
@@ -252,7 +304,7 @@ const defaultSecurityConfig: SecurityConfig = {
   sessionTimeout: 30,
   forceHttps: true,
   twoFactorAuth: false,
-  minPasswordLength: 8
+  minPasswordLength: 8,
 };
 
 const defaultEmailConfig: EmailConfig = {
@@ -260,14 +312,14 @@ const defaultEmailConfig: EmailConfig = {
   smtpPort: 587,
   fromEmail: 'noreply@example.com',
   emailPassword: '',
-  enableSsl: true
+  enableSsl: true,
 };
 
 const defaultStorageConfig: StorageConfig = {
   maxFileSize: 10,
   allowedFileTypes: 'jpg,png,gif,pdf,doc,docx,xls,xlsx',
   storagePath: '/uploads',
-  enableCloudStorage: false
+  enableCloudStorage: false,
 };
 
 const basicConfig = ref<BasicConfig>({ ...defaultBasicConfig });
@@ -279,54 +331,48 @@ const storageConfig = ref<StorageConfig>({ ...defaultStorageConfig });
 const basicRules: FormRules = {
   systemName: [
     { required: true, message: '请输入系统名称', trigger: 'blur' },
-    { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
+    { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' },
   ],
   systemVersion: [
     { required: true, message: '请输入系统版本', trigger: 'blur' },
-    { pattern: /^\d+\.\d+\.\d+$/, message: '版本格式不正确，例如: 1.0.0', trigger: 'blur' }
-  ]
+    { pattern: /^\d+\.\d+\.\d+$/, message: '版本格式不正确，例如: 1.0.0', trigger: 'blur' },
+  ],
 };
 
 const securityRules: FormRules = {
   maxLoginAttempts: [
     { required: true, message: '请输入登录失败次数限制', trigger: 'blur' },
-    { type: 'number', min: 1, max: 10, message: '范围在 1 到 10 之间', trigger: 'blur' }
+    { type: 'number', min: 1, max: 10, message: '范围在 1 到 10 之间', trigger: 'blur' },
   ],
   sessionTimeout: [
     { required: true, message: '请输入会话超时时间', trigger: 'blur' },
-    { type: 'number', min: 5, max: 1440, message: '范围在 5 到 1440 分钟之间', trigger: 'blur' }
+    { type: 'number', min: 5, max: 1440, message: '范围在 5 到 1440 分钟之间', trigger: 'blur' },
   ],
   minPasswordLength: [
     { required: true, message: '请输入密码最小长度', trigger: 'blur' },
-    { type: 'number', min: 6, max: 32, message: '范围在 6 到 32 之间', trigger: 'blur' }
-  ]
+    { type: 'number', min: 6, max: 32, message: '范围在 6 到 32 之间', trigger: 'blur' },
+  ],
 };
 
 const emailRules: FormRules = {
-  smtpHost: [
-    { required: true, message: '请输入SMTP服务器地址', trigger: 'blur' }
-  ],
+  smtpHost: [{ required: true, message: '请输入SMTP服务器地址', trigger: 'blur' }],
   smtpPort: [
     { required: true, message: '请输入SMTP端口', trigger: 'blur' },
-    { type: 'number', min: 1, max: 65535, message: '端口范围在 1 到 65535 之间', trigger: 'blur' }
+    { type: 'number', min: 1, max: 65535, message: '端口范围在 1 到 65535 之间', trigger: 'blur' },
   ],
   fromEmail: [
     { required: true, message: '请输入发件人邮箱', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
-  ]
+    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' },
+  ],
 };
 
 const storageRules: FormRules = {
   maxFileSize: [
     { required: true, message: '请输入文件上传大小限制', trigger: 'blur' },
-    { type: 'number', min: 1, max: 1024, message: '范围在 1 到 1024 MB 之间', trigger: 'blur' }
+    { type: 'number', min: 1, max: 1024, message: '范围在 1 到 1024 MB 之间', trigger: 'blur' },
   ],
-  allowedFileTypes: [
-    { required: true, message: '请输入允许上传的文件类型', trigger: 'blur' }
-  ],
-  storagePath: [
-    { required: true, message: '请输入存储路径', trigger: 'blur' }
-  ]
+  allowedFileTypes: [{ required: true, message: '请输入允许上传的文件类型', trigger: 'blur' }],
+  storagePath: [{ required: true, message: '请输入存储路径', trigger: 'blur' }],
 };
 
 // 获取当前表单引用
@@ -356,7 +402,7 @@ const loadConfig = async () => {
       // securityConfig.value = response.securityConfig;
       // emailConfig.value = response.emailConfig;
       // storageConfig.value = response.storageConfig;
-      
+
       // 模拟API调用
       await new Promise(resolve => setTimeout(resolve, 500));
       ElMessage.success('配置加载成功');
@@ -370,7 +416,7 @@ const loadConfig = async () => {
 const saveConfig = async () => {
   const formRef = getCurrentFormRef();
   if (formRef) {
-    await formRef.validate(async (valid) => {
+    await formRef.validate(async valid => {
       if (valid) {
         await executeWithPermission(async () => {
           saving.value = true;
@@ -382,7 +428,7 @@ const saveConfig = async () => {
             //   email: emailConfig.value,
             //   storage: storageConfig.value
             // });
-            
+
             // 模拟保存过程
             await new Promise(resolve => setTimeout(resolve, 1000));
             ElMessage.success('配置保存成功');
@@ -411,15 +457,11 @@ const saveConfig = async () => {
 // 重置配置
 const resetConfig = async () => {
   try {
-    await ElMessageBox.confirm(
-      '确定要重置当前标签页的配置吗？此操作将恢复为默认值。',
-      '确认重置',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    );
+    await ElMessageBox.confirm('确定要重置当前标签页的配置吗？此操作将恢复为默认值。', '确认重置', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    });
 
     switch (activeTab.value) {
       case 'basic':
@@ -452,9 +494,9 @@ const exportConfig = async () => {
       basic: basicConfig.value,
       security: securityConfig.value,
       email: emailConfig.value,
-      storage: storageConfig.value
+      storage: storageConfig.value,
     };
-    
+
     // 创建下载链接
     const dataStr = JSON.stringify(allConfig, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
@@ -466,7 +508,7 @@ const exportConfig = async () => {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    
+
     ElMessage.success('配置导出成功');
   }, '导出配置失败');
 };
@@ -485,12 +527,12 @@ const importConfig = async () => {
       try {
         const text = await file.text();
         const config = JSON.parse(text);
-        
+
         if (config.basic) basicConfig.value = config.basic;
         if (config.security) securityConfig.value = config.security;
         if (config.email) emailConfig.value = config.email;
         if (config.storage) storageConfig.value = config.storage;
-        
+
         ElMessage.success('配置导入成功');
       } catch (error: unknown) {
         ElMessage.error((error as { message?: string })?.message || '配置文件格式错误');
@@ -505,7 +547,7 @@ onMounted(() => {
   if (!checkAccess()) {
     return;
   }
-  
+
   // 加载初始配置
   loadConfig();
 });
@@ -665,4 +707,4 @@ onMounted(() => {
     }
   }
 }
-</style> 
+</style>

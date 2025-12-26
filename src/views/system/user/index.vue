@@ -9,6 +9,7 @@
             :fetch-suggestions="queryUsernameSuggestions"
             placeholder="请输入用户名"
             clearable
+            trigger-on-focus
             popper-class="autocomplete-username-popper"
             @input="handleFieldSearch"
             @clear="handleFieldSearch"
@@ -22,6 +23,7 @@
             :fetch-suggestions="queryRealNameSuggestions"
             placeholder="请输入姓名"
             clearable
+            trigger-on-focus
             popper-class="autocomplete-name-popper"
             @input="handleFieldSearch"
             @clear="handleFieldSearch"
@@ -35,6 +37,7 @@
             :fetch-suggestions="queryPhoneSuggestions"
             placeholder="请输入手机号"
             clearable
+            trigger-on-focus
             popper-class="autocomplete-phone-popper"
             @input="handleFieldSearch"
             @clear="handleFieldSearch"
@@ -48,6 +51,7 @@
             :fetch-suggestions="queryEmailSuggestions"
             placeholder="请输入邮箱"
             clearable
+            trigger-on-focus
             popper-class="autocomplete-email-popper"
             @input="handleFieldSearch"
             @clear="handleFieldSearch"
@@ -184,7 +188,7 @@
         <div class="pagination-left">
           <div class="search-stats" v-if="hasSearchCriteria">
             <el-tag type="info" size="small">
-              搜索找到 {{ filteredUserList.length }} 条结果
+              搜索找到 {{ total }} 条结果
             </el-tag>
           </div>
         </div>
@@ -192,11 +196,12 @@
           <el-pagination
             v-model:current-page="page"
             v-model:page-size="pageSize"
-            :total="filteredUserList.length"
+            :total="total"
             :page-sizes="[10, 20, 50, 100]"
             size="small"
             background
             layout="total, sizes, prev, pager, next, jumper"
+            popper-class="pagination-sizes-popper"
             @size-change="handleSizeChange"
             @current-change="handleCurrentChange"
           />
@@ -205,21 +210,28 @@
     </el-card>
 
     <!-- 用户表单对话框 -->
-    <FormDialog
+    <el-dialog
       v-model="dialogVisible"
-      :dialog-type="dialogType"
       :title="dialogType === 'add' ? '新增用户' : '编辑用户'"
       width="600px"
-      :loading="submitting"
-      @confirm="handleSubmit"
-      @cancel="close"
+      :close-on-click-modal="false"
+      append-to-body
+      destroy-on-close
     >
       <UserForm 
         ref="userFormRef"
         :model-value="form"
         :is-edit="dialogType === 'edit'"
       />
-    </FormDialog>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="close">取消</el-button>
+          <el-button type="primary" @click="handleSubmit" :loading="submitting">
+            确定
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -236,7 +248,6 @@ import { useMenuStore } from '@/stores/menu';
 import { formatDateTime, emitter } from '@/utils';
 import { debounce } from 'lodash-es';
 import UserForm from './components/UserForm.vue';
-import FormDialog from '@/components/common/FormDialog.vue';
 import { 
   getUserList, 
   createUser, 
@@ -245,12 +256,7 @@ import {
   deleteUser,
   patchUserStatus
 } from './services/user-service';
-import { useTablePersist, useSearchHistory, useDialog } from '@/composables'
-
-// 自动完成建议项类型
-interface AutocompleteSuggestion {
-  value: string;
-}
+import { useTablePersist, useTableSearch, useSearchHistory, useDialog, useErrorHandler, useAutocomplete } from '@/composables'
 
 // 搜索表单
 const searchForm = reactive({
@@ -280,6 +286,7 @@ const defaultTableOptions = {
   ]
 }
 const tableOptions = useTablePersist('system-user', defaultTableOptions)
+const { handleApiError, handleSilentError } = useErrorHandler()
 
 // 只保留一份分页和列声明
 const page = ref(tableOptions.value.page)
@@ -288,6 +295,8 @@ const allColumns = ref(tableOptions.value.allColumns)
 const total = ref(0)
 const loading = ref(false)
 const userList = ref<User[]>([])
+// 完整的用户列表（用于 autocomplete 建议，不受搜索条件影响）
+const allUsersForSuggestions = ref<User[]>([])
 const userFormRef = ref()
 const form = reactive({
   id: '',
@@ -302,36 +311,102 @@ const form = reactive({
 const roleStore = useRoleStore()
 const menuStore = useMenuStore()
 
-// 使用 useDialog 管理弹窗状态
-const resetForm = () => {
-  form.id = '';
-  form.username = '';
-  form.realName = '';
-  form.phone = '';
-  form.email = '';
-  form.password = '';
-  form.roleIds = [];
-  form.status = 0;
-};
+  // 使用 useDialog 管理弹窗状态
+  const resetForm = () => {
+    form.id = '';
+    form.username = '';
+    form.realName = '';
+    form.phone = '';
+    form.email = '';
+    form.password = '';
+    form.roleIds = [];
+    form.status = 0;
+  };
 
-const {
-  dialogVisible,
-  dialogType,
-  submitting,
-  openAdd,
-  openEdit,
-  close,
-  setSubmitting
-} = useDialog({
-  resetForm,
-  onBeforeOpen: async (type) => {
-    // 打开弹窗前强制刷新角色数据
-    await roleStore.fetchRoles(true);
-  }
-});
+  const {
+    dialogVisible,
+    dialogType,
+    submitting,
+    openAdd,
+    openEdit,
+    close,
+    setSubmitting
+  } = useDialog({
+    resetForm,
+    onBeforeOpen: async (type) => {
+      // 打开弹窗前强制刷新角色数据
+      await roleStore.fetchRoles(true);
+    }
+  });
 
-// 搜索历史管理
-const { addSearchRecord } = useSearchHistory('user-search-history', 10)
+  // 搜索历史管理（用于记录搜索历史）
+  const { addSearchRecord } = useSearchHistory('user-search-history', 10);
+
+  // 使用统一的搜索过滤 composable
+  const { handleFieldSearch, resetSearch, handleStatusChange, handleShowDeletedChange, fetchList } = useTableSearch({
+    searchForm,
+    page,
+    pageSize,
+    searchFields: {
+      username: 'username',
+      realName: 'name', // 后端可能使用 name 字段（根据 user-service.ts 的类型定义）
+      phone: 'phone',
+      email: 'email'
+    },
+    handleError: (error, message) => handleApiError(error, message, 'UserManagement'),
+    searchHistoryKey: 'user-search-history',
+    extractSearchKeywords: (form) => [
+      form.username,
+      form.realName,
+      form.phone,
+      form.email
+    ].filter(Boolean) as string[],
+    debounceTime: 200,
+    showDeleted: computed(() => searchForm.showDeleted),
+    onFetch: async (params) => {
+      loading.value = true;
+      try {
+        const { users, total: totalCount } = await getUserList(params);
+        userList.value = users.map((item: unknown) => {
+          const itemObj = item as Record<string, unknown>;
+          // 空值保护，所有字段都转为字符串
+          const safeItem: User = {
+            id: '',
+            username: '',
+            realName: '',
+            avatar: '',
+            email: '',
+            phone: '',
+            roles: [],
+            permissions: [],
+            status: 0,
+            createTime: '',
+            updateTime: ''
+          };
+          Object.keys(safeItem).forEach(key => {
+            // roles字段兜底为数组
+            if (key === 'roles') {
+              safeItem.roles = Array.isArray(itemObj.roles) ? itemObj.roles : [];
+            } else if (key === 'status') {
+              safeItem.status = Number(itemObj.status ?? 0);
+            } else if (key === 'createTime') {
+              safeItem.createTime = (itemObj.createTime || itemObj.created_at || itemObj.createdAt || itemObj.create_time || '') as string;
+            } else if (key === 'updateTime') {
+              safeItem.updateTime = (itemObj.updateTime || itemObj.updated_at || itemObj.updatedAt || itemObj.update_time || '') as string;
+            } else {
+              // 动态设置其他字段，使用类型断言确保类型安全
+              const safeItemAny = safeItem as unknown as Record<string, unknown>;
+              safeItemAny[key] = itemObj[key] == null ? '' : itemObj[key];
+            }
+          });
+          return safeItem;
+        }) as User[];
+        total.value = totalCount;
+      } finally {
+        loading.value = false;
+      }
+    }
+  })
 
 watch([page, pageSize, allColumns], () => {
   tableOptions.value.page = page.value
@@ -346,181 +421,54 @@ const hasSearchCriteria = computed(() => {
   return searchForm.username || searchForm.realName || searchForm.phone || searchForm.email || (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined)
 })
 
-// 实时过滤用户列表
-const filteredUserList = computed(() => {
-  let filtered = userList.value;
-  
-  // 用户名过滤
-  if (searchForm.username) {
-    filtered = filtered.filter(user => 
-      user.username.toLowerCase().includes(searchForm.username.toLowerCase())
-    );
-  }
-  
-  // 姓名过滤
-  if (searchForm.realName) {
-    filtered = filtered.filter(user => 
-      user.realName.toLowerCase().includes(searchForm.realName.toLowerCase())
-    );
-  }
-  
-  // 手机号过滤
-  if (searchForm.phone) {
-    filtered = filtered.filter(user => 
-      user.phone.includes(searchForm.phone)
-    );
-  }
-  
-  // 邮箱过滤
-  if (searchForm.email) {
-    filtered = filtered.filter(user => 
-      user.email.toLowerCase().includes(searchForm.email.toLowerCase())
-    );
-  }
-  
-  // 状态过滤 - 由于状态过滤已经在后端处理，这里不需要再过滤
-  // 但为了保持一致性，仍然保留前端的过滤逻辑作为兜底
-  if (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined) {
-    const statusNum = typeof searchForm.status === 'string' ? parseInt(searchForm.status) : searchForm.status;
-    filtered = filtered.filter(user => user.status === statusNum);
-  }
-  
-  return filtered;
+// 使用服务端分页和搜索，不再需要本地过滤
+// 直接使用 userList，因为搜索和过滤已经在服务端完成
+const filteredUserList = computed(() => userList.value);
+
+// 使用统一的 autocomplete composable
+const { createSuggestionQuery, fetchAllForSuggestions } = useAutocomplete<User>({
+  allItemsForSuggestions: allUsersForSuggestions,
+  currentList: userList,
+  fetchAllItems: async () => {
+    const params: Record<string, unknown> = {
+      page: 1,
+      pageSize: 500,
+      showDeleted: false
+    };
+    const result = await getUserList(params);
+    const users = result?.users || [];
+    return users.map((item: unknown) => {
+      const itemObj = item as Record<string, unknown>;
+      return {
+        id: String(itemObj.id || ''),
+        username: String(itemObj.username || ''),
+        realName: String(itemObj.realName || itemObj.real_name || itemObj.name || ''),
+        email: String(itemObj.email || ''),
+        phone: String(itemObj.phone || ''),
+      } as User;
+    });
+  },
+  maxSuggestions: 10
 });
 
-// 联想建议函数
-const queryUsernameSuggestions = (queryString: string, cb: (suggestions: AutocompleteSuggestion[]) => void) => {
-  const suggestions = userList.value
-    .filter(user => user.username.toLowerCase().includes(queryString.toLowerCase()))
-    .map(user => ({ value: user.username }))
-    .slice(0, 10); // 限制建议数量
-  cb(suggestions);
+// 创建各个字段的建议查询函数
+const queryUsernameSuggestions = createSuggestionQuery('username');
+const queryRealNameSuggestions = createSuggestionQuery('realName');
+const queryPhoneSuggestions = createSuggestionQuery('phone', { useContains: true }); // 手机号使用包含匹配
+const queryEmailSuggestions = createSuggestionQuery('email');
+
+// 获取用户列表（使用服务端分页和搜索）
+// 注意：数据获取逻辑已移至 useTableSearch 的 onFetch 回调中
+const fetchUserList = () => {
+  // 使用 useTableSearch 提供的 fetchList
+  fetchList();
 };
 
-const queryRealNameSuggestions = (queryString: string, cb: (suggestions: AutocompleteSuggestion[]) => void) => {
-  const suggestions = userList.value
-    .filter(user => user.realName.toLowerCase().includes(queryString.toLowerCase()))
-    .map(user => ({ value: user.realName }))
-    .slice(0, 10);
-  cb(suggestions);
-};
+// 获取完整用户列表用于 autocomplete 建议（使用 composable 提供的方法）
+const fetchAllUsersForSuggestions = () => fetchAllForSuggestions();
 
-const queryPhoneSuggestions = (queryString: string, cb: (suggestions: AutocompleteSuggestion[]) => void) => {
-  const suggestions = userList.value
-    .filter(user => user.phone.includes(queryString))
-    .map(user => ({ value: user.phone }))
-    .slice(0, 10);
-  cb(suggestions);
-};
-
-const queryEmailSuggestions = (queryString: string, cb: (suggestions: AutocompleteSuggestion[]) => void) => {
-  const suggestions = userList.value
-    .filter(user => user.email.toLowerCase().includes(queryString.toLowerCase()))
-    .map(user => ({ value: user.email }))
-    .slice(0, 10);
-  cb(suggestions);
-};
-
-// 获取用户列表
-const fetchUserList = debounce(async () => {
-  try {
-    loading.value = true;
-    const params: any = {
-      page: 1, // 获取所有数据用于本地过滤
-      pageSize: 1000, // 获取大量数据
-      showDeleted: !!searchForm.showDeleted
-    };
-    
-    // 只有当状态有有效值时才传递状态参数
-    if (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined) {
-      params.status = searchForm.status;
-    }
-    
-
-    
-    const { users, total: totalCount } = await getUserList(params);
-    userList.value = users.map(item => {
-      // 空值保护，所有字段都转为字符串
-      const safeItem: User = {
-        id: '',
-        username: '',
-        realName: '',
-        avatar: '',
-        email: '',
-        phone: '',
-        roles: [],
-        permissions: [],
-        status: 0,
-        createTime: '',
-        updateTime: ''
-      };
-      Object.keys(safeItem).forEach(key => {
-        // roles字段兜底为数组
-        if (key === 'roles') {
-          safeItem.roles = Array.isArray(item.roles) ? item.roles : [];
-        } else if (key === 'status') {
-          safeItem.status = Number(item.status ?? 0);
-        } else if (key === 'createTime') {
-          safeItem.createTime = item.createTime || item.created_at || item.createdAt || item.create_time || '';
-        } else if (key === 'updateTime') {
-          safeItem.updateTime = item.updateTime || item.updated_at || item.updatedAt || item.update_time || '';
-        } else {
-          // @ts-ignore
-          safeItem[key] = item[key] == null ? '' : item[key];
-        }
-      });
-      return safeItem;
-    });
-    total.value = totalCount;
-    
-    // 记录搜索历史（使用当前搜索的字段作为关键词）
-    const searchKeywords = [
-      searchForm.username,
-      searchForm.realName,
-      searchForm.phone,
-      searchForm.email
-    ].filter(Boolean)
-    
-    if (searchKeywords.length > 0) {
-      const keyword = searchKeywords.join(' ')
-      addSearchRecord(keyword, filteredUserList.value.length)
-    }
-  } catch (error: any) {
-    ElMessage.error(error?.message || '获取用户列表失败，请稍后重试');
-    console.error('获取用户列表失败:', error);
-  } finally {
-    loading.value = false;
-  }
-}, 300);
-
-// 字段搜索（带防抖）
-const handleFieldSearch = debounce(() => {
-  // 状态变化时需要重新请求数据，其他字段变化时只需要前端过滤
-  // 这里暂时不重新请求，让用户手动刷新或通过其他方式触发
-}, 300);
-
-// 状态变化处理
-const handleStatusChange = () => {
-  // 状态变化时立即重新获取数据
-  fetchUserList();
-};
-
-// 显示已删除用户开关变化处理
-const handleShowDeletedChange = () => {
-  // 显示已删除用户开关变化时立即重新获取数据
-  fetchUserList();
-};
-
-
-
-// 重置搜索
-const resetSearch = () => {
-  Object.keys(searchForm).forEach(key => {
-    if (key === 'showDeleted') return; // 不重置显示已删除用户开关
-    searchForm[key] = '';
-  });
-  fetchUserList();
-};
+// 注意：handleFieldSearch、resetSearch、handleStatusChange、handleShowDeletedChange
+// 已由 useTableSearch composable 提供，无需重复定义
 
 
 
@@ -545,6 +493,20 @@ const handleEdit = (row: User) => {
   openEdit(row);
 };
 
+// 构建用户提交数据
+const buildUserData = (userForm: typeof form) => {
+  return {
+    id: userForm.id || '',
+    username: (userForm.username || '').trim(),
+    realName: (userForm.realName || '').trim(),
+    phone: (userForm.phone || '').trim(),
+    email: (userForm.email || '').trim(),
+    password: userForm.password || undefined, // 编辑时可能为空
+    roleIds: (userForm.roleIds || []).filter(id => id != null && id !== ''),
+    status: Number(userForm.status) || 0
+  };
+};
+
 // 提交表单
 const handleSubmit = async () => {
   if (!userFormRef.value) return;
@@ -553,40 +515,50 @@ const handleSubmit = async () => {
 
   setSubmitting(true);
   try {
-    const userData = userFormRef.value.form;
-    // 只提交可编辑字段
-    const submitData = {
-      id: userData.id,
-      username: userData.username,
-      realName: userData.realName,
-      phone: userData.phone,
-      email: userData.email,
-      password: userData.password,
-      roleIds: userData.roleIds,
-      status: userData.status
-    };
+    const userForm = userFormRef.value.form;
+    const submitData = buildUserData(userForm);
     
     if (dialogType.value === 'add') {
+      // 新增时必须有密码
+      if (!submitData.password) {
+        ElMessage.error('请输入密码');
+        setSubmitting(false);
+        return;
+      }
       await createUser(submitData);
       ElMessage.success('添加成功');
     } else {
-      await updateUserInfo(submitData.id, submitData);
+      // 编辑时校验ID
+      if (!submitData.id || submitData.id.trim() === '') {
+        ElMessage.error('用户ID无效，无法编辑');
+        setSubmitting(false);
+        return;
+      }
+      // 编辑时不提交密码（如果为空）
+      const updateData = { ...submitData };
+      if (!updateData.password) {
+        delete updateData.password;
+      }
+      await updateUserInfo(submitData.id, updateData);
       ElMessage.success('更新成功');
     }
     
     close();
     fetchUserList();
+    // 用户创建或更新后，延迟更新建议列表（不阻塞主流程）
+    setTimeout(() => {
+      fetchAllUsersForSuggestions();
+    }, 100);
     
     // 用户信息变更后刷新菜单栏
     try {
       await menuStore.getUserMenus();
     } catch (error) {
       // 菜单刷新失败不影响主流程，静默处理
-      console.error('用户信息变更后菜单刷新失败:', error);
+      handleSilentError(error, 'UserManagement');
     }
-  } catch (error: any) {
-    ElMessage.error(error?.message || '操作失败，请稍后重试');
-    console.error('提交表单失败:', error);
+  } catch (error: unknown) {
+    handleApiError(error, '操作失败，请稍后重试', 'UserManagement');
   } finally {
     setSubmitting(false);
   }
@@ -600,10 +572,9 @@ const handleReset = async (row: User) => {
     });
     await resetUserPassword(String(row.id));
     ElMessage.success('密码重置成功');
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error !== 'cancel') {
-      ElMessage.error(error?.message || '重置密码失败，请稍后重试');
-      console.error('重置密码失败:', error);
+      handleApiError(error, '重置密码失败，请稍后重试', 'UserManagement');
     }
   }
 };
@@ -621,10 +592,9 @@ const handleToggleStatus = async (row: User) => {
     await patchUserStatus(row.id, row.status === 0 ? 1 : 0);
     ElMessage.success((row.status === 0 ? '禁用' : '启用') + '成功');
     fetchUserList();
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error !== 'cancel') {
-      ElMessage.error(error?.message || '操作失败，请稍后重试');
-      console.error('更新用户状态失败:', error);
+      handleApiError(error, '操作失败，请稍后重试', 'UserManagement');
     }
   }
 };
@@ -641,10 +611,9 @@ const handleDelete = async (row: User) => {
     await deleteUser(row.id);
     ElMessage.success('删除成功');
     fetchUserList();
-  } catch (error) {
+  } catch (error: unknown) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败');
-      console.error('删除用户失败:', error);
+      handleApiError(error, '删除失败', 'UserManagement');
     }
   }
 };
@@ -693,22 +662,44 @@ const handlePhysicalDelete = (row: User) => {
 
 // 分页相关方法
 const handleSizeChange = (newSize: number) => {
-  page.value = 1;
+  pageSize.value = newSize;
+  page.value = 1; // 改变每页数量时重置到第一页
   fetchUserList();
 };
 
 const handleCurrentChange = (newPage: number) => {
+  page.value = newPage;
   fetchUserList();
 };
 
 onMounted(async () => {
-  // 并行加载用户列表和角色数据
+  // 并行加载用户列表和角色数据（不阻塞页面加载）
   await Promise.all([
     fetchUserList(),
     roleStore.fetchRoles() // 预加载角色数据，提升用户体验
   ]);
+  
+  // 延迟加载建议列表，使用 requestIdleCallback 在空闲时加载，不阻塞主流程
+  // 优化：减少 timeout，让建议列表更快可用
+  if ('requestIdleCallback' in window) {
+    (window as unknown as { requestIdleCallback: (callback: IdleRequestCallback, options?: { timeout?: number }) => number }).requestIdleCallback(() => {
+      fetchAllUsersForSuggestions();
+    }, { timeout: 500 }); // 从 2000ms 减少到 500ms，让建议列表更快可用
+  } else {
+    // 降级方案：延迟300ms加载
+    setTimeout(() => {
+      fetchAllUsersForSuggestions();
+    }, 300); // 从 500ms 减少到 300ms
+  }
+  
   // 监听用户资料更新事件，自动刷新用户列表
-  emitter.on('user-profile-updated', fetchUserList);
+  emitter.on('user-profile-updated', () => {
+    fetchUserList();
+    // 延迟更新建议列表，不阻塞主流程
+    setTimeout(() => {
+      fetchAllUsersForSuggestions();
+    }, 100);
+  });
 });
 
 onUnmounted(() => {
@@ -890,5 +881,23 @@ onUnmounted(() => {
   min-width: 120px !important;
   width: 120px !important;
   max-width: 120px !important;
+}
+
+// ==================== 分页组件样式穿透 ====================
+// 分页下拉框（参考状态选择器的样式设置方式）
+:deep(.pagination-sizes-popper.el-popper.is-light) {
+  min-width: 110px !important;
+  width: 110px !important;
+  max-width: 110px !important;
+  text-align: center;
+}
+
+:deep(.pagination-sizes-popper .el-select-dropdown__item) {
+  min-width: 110px !important;
+  width: 110px !important;
+  max-width: 110px !important;
+  text-align: center !important;
+  padding: 0 20px !important;
+  justify-content: center !important;
 }
 </style> 

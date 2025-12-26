@@ -5,47 +5,47 @@
     @click="$emit('click', notification)"
   >
     <div class="notification-icon">
-      <el-icon 
+      <el-icon
         :class="`icon-${notification.type}`"
         :color="getNotificationColor(notification.type)"
       >
         <component :is="getNotificationIcon(notification.type)" />
       </el-icon>
     </div>
-    
+
     <div class="notification-body">
       <div class="notification-title">{{ notification.title }}</div>
       <div class="notification-desc">{{ notification.content }}</div>
       <div class="notification-time">{{ notification.time }}</div>
     </div>
-    
+
     <div v-if="!notification.read" class="unread-dot"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Bell, Warning, User, SuccessFilled } from '@element-plus/icons-vue'
-import { useNotifications, type Notification } from '@/composables'
+import { Bell, Warning, User, SuccessFilled } from '@element-plus/icons-vue';
+import { useNotifications, type Notification } from '@/composables';
 
 defineProps<{
-  notification: Notification
-}>()
+  notification: Notification;
+}>();
 
 defineEmits<{
-  click: [notification: Notification]
-}>()
+  click: [notification: Notification];
+}>();
 
-const { getNotificationColor } = useNotifications()
+const { getNotificationColor } = useNotifications();
 
 const getNotificationIcon = (type: Notification['type']) => {
   const iconMap = {
-    'info': Bell,
-    'warning': Warning,
-    'success': SuccessFilled,
-    'error': Warning
-  }
-  return iconMap[type] || User
-}
+    info: Bell,
+    warning: Warning,
+    success: SuccessFilled,
+    error: Warning,
+  };
+  return iconMap[type] || User;
+};
 </script>
 
 <style scoped lang="scss">
@@ -116,4 +116,3 @@ const getNotificationIcon = (type: Notification['type']) => {
   right: $spacing-xl;
 }
 </style>
-

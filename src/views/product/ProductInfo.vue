@@ -9,8 +9,8 @@
               v-model="selectedFactory"
               placeholder="选择工厂"
               clearable
+              style="width: 200px; margin-right: 16px"
               @change="handleFactoryChange"
-              style="width: 200px; margin-right: 16px;"
             >
               <el-option
                 v-for="item in factoryOptions"
@@ -24,7 +24,7 @@
         </div>
       </template>
 
-      <el-table :data="productList" style="width: 100%" v-loading="loading">
+      <el-table v-loading="loading" :data="productList" style="width: 100%">
         <el-table-column type="expand">
           <template #default="props">
             <el-form label-position="left" inline class="product-detail">
@@ -55,9 +55,7 @@
         <el-table-column prop="category" label="产品类别" />
         <el-table-column prop="moq" label="最小订量" width="100" />
         <el-table-column prop="price" label="参考价格" width="120">
-          <template #default="{ row }">
-            {{ row.currency }} {{ row.price }}
-          </template>
+          <template #default="{ row }"> {{ row.currency }} {{ row.price }} </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
@@ -200,11 +198,7 @@
         </el-form-item>
 
         <el-form-item label="产品图片">
-          <el-upload
-            action="#"
-            list-type="picture-card"
-            :auto-upload="false"
-          >
+          <el-upload action="#" list-type="picture-card" :auto-upload="false">
             <el-icon><Plus /></el-icon>
           </el-upload>
         </el-form-item>
@@ -220,27 +214,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { useRoute, useRouter } from 'vue-router'
-import { Plus } from '@element-plus/icons-vue'
+import { ref, reactive, onMounted } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { useRoute, useRouter } from 'vue-router';
+import { Plus } from '@element-plus/icons-vue';
 
-const route = useRoute()
-const router = useRouter()
-const loading = ref(false)
-const currentPage = ref(1)
-const pageSize = ref(10)
-const total = ref(0)
-const dialogVisible = ref(false)
-const dialogType = ref('add')
-const selectedFactory = ref('')
+const route = useRoute();
+const router = useRouter();
+const loading = ref(false);
+const currentPage = ref(1);
+const pageSize = ref(10);
+const total = ref(0);
+const dialogVisible = ref(false);
+const dialogType = ref('add');
+const selectedFactory = ref('');
 
 // 模拟工厂选项数据
 const factoryOptions = [
   { value: '1', label: '工厂A' },
   { value: '2', label: '工厂B' },
-  { value: '3', label: '工厂C' }
-]
+  { value: '3', label: '工厂C' },
+];
 
 // 模拟产品类别数据
 const categoryOptions = [
@@ -250,8 +244,8 @@ const categoryOptions = [
     children: [
       { value: 'computer', label: '计算机' },
       { value: 'mobile', label: '手机' },
-      { value: 'accessories', label: '配件' }
-    ]
+      { value: 'accessories', label: '配件' },
+    ],
   },
   {
     value: 'clothing',
@@ -259,10 +253,10 @@ const categoryOptions = [
     children: [
       { value: 'men', label: '男装' },
       { value: 'women', label: '女装' },
-      { value: 'children', label: '童装' }
-    ]
-  }
-]
+      { value: 'children', label: '童装' },
+    ],
+  },
+];
 
 // 模拟产品列表数据
 const productList = ref([
@@ -278,9 +272,9 @@ const productList = ref([
     description: '这是一个示例产品的详细描述...',
     specifications: '材料：塑料，尺寸：10x5x2cm',
     packaging: '独立包装，100个/箱',
-    certifications: ['CE', 'RoHS']
-  }
-])
+    certifications: ['CE', 'RoHS'],
+  },
+]);
 
 const form = reactive({
   id: '',
@@ -294,92 +288,88 @@ const form = reactive({
   description: '',
   specifications: '',
   packaging: '',
-  certifications: []
-})
+  certifications: [],
+});
 
 onMounted(() => {
-  const factoryId = route.query.factoryId
+  const factoryId = route.query.factoryId;
   if (factoryId) {
-    selectedFactory.value = factoryId as string
-    handleFactoryChange(factoryId as string)
+    selectedFactory.value = factoryId as string;
+    handleFactoryChange(factoryId as string);
   }
-})
+});
 
 const handleFactoryChange = (factoryId: string) => {
   if (factoryId) {
-    loading.value = true
+    loading.value = true;
     // 模拟加载数据
     setTimeout(() => {
-      loading.value = false
-    }, 1000)
+      loading.value = false;
+    }, 1000);
   }
-}
+};
 
 const resetForm = () => {
-  form.id = ''
-  form.name = ''
-  form.factoryId = selectedFactory.value
-  form.category = []
-  form.moq = 1000
-  form.price = ''
-  form.currency = 'USD'
-  form.status = 'active'
-  form.description = ''
-  form.specifications = ''
-  form.packaging = ''
-  form.certifications = []
-}
+  form.id = '';
+  form.name = '';
+  form.factoryId = selectedFactory.value;
+  form.category = [];
+  form.moq = 1000;
+  form.price = '';
+  form.currency = 'USD';
+  form.status = 'active';
+  form.description = '';
+  form.specifications = '';
+  form.packaging = '';
+  form.certifications = [];
+};
 
 const handleAdd = () => {
-  dialogType.value = 'add'
-  resetForm()
-  dialogVisible.value = true
-}
+  dialogType.value = 'add';
+  resetForm();
+  dialogVisible.value = true;
+};
 
 const handleEdit = (row: any) => {
-  dialogType.value = 'edit'
-  Object.assign(form, row)
-  dialogVisible.value = true
-}
+  dialogType.value = 'edit';
+  Object.assign(form, row);
+  dialogVisible.value = true;
+};
 
 const handleDelete = (row: any) => {
-  ElMessageBox.confirm(
-    `确认删除产品 ${row.name} 吗？`,
-    '警告',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    }
-  ).then(() => {
+  ElMessageBox.confirm(`确认删除产品 ${row.name} 吗？`, '警告', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(() => {
     ElMessage({
       type: 'success',
       message: '删除成功',
-    })
-  })
-}
+    });
+  });
+};
 
 const handleQuote = (row: any) => {
-  router.push(`/quotation/create?productId=${row.id}`)
-}
+  router.push(`/quotation/create?productId=${row.id}`);
+};
 
 const handleSubmit = () => {
   ElMessage({
     type: 'success',
     message: dialogType.value === 'add' ? '添加成功' : '更新成功',
-  })
-  dialogVisible.value = false
-}
+  });
+  dialogVisible.value = false;
+};
 
 const handleSizeChange = (val: number) => {
-  pageSize.value = val
+  pageSize.value = val;
   // 重新加载数据
-}
+};
 
 const handleCurrentChange = (val: number) => {
-  currentPage.value = val
+  currentPage.value = val;
   // 重新加载数据
-}
+};
 </script>
 
 <style scoped>
@@ -431,4 +421,4 @@ const handleCurrentChange = (val: number) => {
 :deep(.el-input-number) {
   width: 100%;
 }
-</style> 
+</style>

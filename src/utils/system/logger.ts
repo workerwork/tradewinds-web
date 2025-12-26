@@ -2,7 +2,7 @@ interface LogData {
     level: 'info' | 'warn' | 'error';
     message: string;
     timestamp: number;
-    data?: any;
+    data?: unknown;
     category?: string;
 }
 
@@ -19,10 +19,13 @@ class Logger {
     /**
      * 检查是否为 WebSocket 连接错误（Vite 开发服务器相关，可忽略）
      */
-    private isWebSocketError(error: any): boolean {
-        const errorMessage = error?.message?.toLowerCase() || ''
-        const errorStack = error?.stack?.toLowerCase() || ''
-        const reasonMessage = error?.reason?.message?.toLowerCase() || ''
+    private isWebSocketError(error: unknown): boolean {
+        if (!error || typeof error !== 'object') return false;
+
+        const err = error as { message?: string; stack?: string; reason?: { message?: string } };
+        const errorMessage = err?.message?.toLowerCase() || '';
+        const errorStack = err?.stack?.toLowerCase() || '';
+        const reasonMessage = err?.reason?.message?.toLowerCase() || '';
 
         return errorMessage.includes('websocket') ||
             errorMessage.includes('ws://') ||
@@ -31,7 +34,7 @@ class Logger {
             errorStack.includes('websocket') ||
             errorStack.includes('client:454') ||
             errorStack.includes('client:802') ||
-            reasonMessage.includes('websocket')
+            reasonMessage.includes('websocket');
     }
 
     /**
@@ -74,7 +77,7 @@ class Logger {
     /**
      * 记录信息日志
      */
-    info(message: string, data?: any, category?: string) {
+    info(message: string, data?: unknown, category?: string) {
         this.addLog({
             level: 'info',
             message,
@@ -87,7 +90,7 @@ class Logger {
     /**
      * 记录警告日志
      */
-    warn(message: string, data?: any, category?: string) {
+    warn(message: string, data?: unknown, category?: string) {
         this.addLog({
             level: 'warn',
             message,
@@ -100,7 +103,7 @@ class Logger {
     /**
      * 记录错误日志
      */
-    error(message: string, data?: any, category?: string) {
+    error(message: string, data?: unknown, category?: string) {
         const logData: LogData = {
             level: 'error',
             message,
@@ -122,11 +125,12 @@ class Logger {
             this.logs.shift();
         }
 
-        // 在开发环境下打印日志
+        // 在开发环境下打印日志（生产环境不打印，减少性能开销）
         if (import.meta.env.DEV) {
             const logMethod = log.level === 'error' ? console.error :
                 log.level === 'warn' ? console.warn :
                     console.log;
+            // 只在开发环境打印，避免生产环境的性能开销
             logMethod(`[${log.category || 'General'}] ${log.message}`, log.data);
         }
     }
@@ -146,7 +150,10 @@ class Logger {
                 body: JSON.stringify(log)
             });
         } catch (error) {
-            console.error('Error reporting failed:', error);
+            // 只在开发环境打印错误，生产环境静默处理
+            if (import.meta.env.DEV) {
+                console.error('Error reporting failed:', error);
+            }
         }
     }
 

@@ -24,6 +24,7 @@
 import { ref, defineProps, defineEmits, watch, onMounted } from 'vue';
 import { ElTree } from 'element-plus';
 import { getPermissionTree } from '../services/permission-service';
+import { logger } from '@/utils';
 
 const props = defineProps({
   checkedKeys: {
@@ -56,8 +57,8 @@ const fetchPermissionTree = async () => {
       // 默认展开第一级
       expandedKeys.value = treeData.value.map(item => item.id);
     }
-  } catch (error) {
-    console.error('获取权限树失败:', error);
+  } catch (error: unknown) {
+    logger.error('获取权限树失败', error, 'PermissionTree');
   }
 };
 

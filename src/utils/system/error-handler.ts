@@ -2,12 +2,13 @@ import { App } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Router } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { logger } from './logger'
 
 interface ErrorWithCode extends Error {
     code?: string | number
-    config?: any
-    request?: any
-    response?: any
+    config?: unknown
+    request?: unknown
+    response?: unknown
 }
 
 class ErrorHandler {
@@ -30,8 +31,9 @@ class ErrorHandler {
 
     // 检查是否为组件卸载相关错误
     private isComponentUnmountError(err: Error, info: string): boolean {
-        const errorMessage = err.message.toLowerCase()
+        const errorMessage = err.message?.toLowerCase() || ''
         const errorStack = err.stack?.toLowerCase() || ''
+        const infoStr = info?.toLowerCase() || ''
 
         // 检查常见的组件卸载错误
         const unmountErrorPatterns = [
@@ -46,28 +48,28 @@ class ErrorHandler {
         return unmountErrorPatterns.some(pattern =>
             errorMessage.includes(pattern) ||
             errorStack.includes(pattern) ||
-            info.toLowerCase().includes(pattern)
+            infoStr.includes(pattern)
         )
     }
 
     // 处理 Vue 组件错误
-    public handleComponentError(err: Error, instance: any, info: string) {
+    public handleComponentError(err: Error, instance: unknown, info: string) {
         // 检查是否为组件卸载相关错误
         if (this.isComponentUnmountError(err, info)) {
             // 静默处理组件卸载错误，不显示给用户
-            console.warn('组件卸载相关错误（已静默处理）:', {
+            logger.warn('组件卸载相关错误（已静默处理）', {
                 error: err.message,
                 info,
-                componentName: instance?.$options?.name
-            })
+                componentName: (instance as { $options?: { name?: string } })?.$options?.name
+            }, 'ErrorHandler')
             return
         }
 
-        console.error('Component Error:', {
+        logger.error('Component Error', {
             error: err,
             instance,
             info
-        })
+        }, 'ErrorHandler')
 
         // 在开发环境显示详细错误
         if (import.meta.env.DEV) {
@@ -78,7 +80,7 @@ class ErrorHandler {
 
         // 记录错误日志
         this.logError('component', err, {
-            componentName: instance?.$options?.name,
+            componentName: (instance as { $options?: { name?: string } })?.$options?.name,
             info
         })
     }
@@ -107,12 +109,12 @@ class ErrorHandler {
             }
         }
 
-        console.error('Unhandled Promise Rejection:', err)
+        logger.error('Unhandled Promise Rejection', err, 'ErrorHandler')
 
         // 处理特定类型的错误
         if (err.code === 'ECONNABORTED') {
             ElMessage.error('请求超时，请检查网络连接')
-        } else if (err.response?.status === 401) {
+        } else if ((err.response as { status?: number })?.status === 401) {
             this.handleAuthError()
         } else {
             ElMessage.error(err.message || '操作失败')
@@ -125,7 +127,7 @@ class ErrorHandler {
     // 处理认证错误
     private handleAuthError() {
         if (!this.router) {
-            console.error('Router not initialized')
+            logger.error('Router not initialized', undefined, 'ErrorHandler')
             return
         }
 
@@ -136,7 +138,7 @@ class ErrorHandler {
     }
 
     // 记录错误日志
-    private logError(type: string, error: Error, context?: any) {
+    private logError(type: string, error: Error, context?: unknown) {
         const errorLog = {
             type,
             timestamp: new Date().toISOString(),
@@ -150,7 +152,7 @@ class ErrorHandler {
         // 在这里可以将错误日志发送到服务器
         if (import.meta.env.PROD) {
             // TODO: 实现错误日志上报
-            console.log('Error log:', errorLog)
+            logger.info('Error log', errorLog, 'ErrorHandler')
         }
     }
 
@@ -185,13 +187,13 @@ class ErrorHandler {
                 }
             }
 
-            console.error('Global Error:', {
+            logger.error('Global Error', {
                 message,
                 source,
                 lineno,
                 colno,
                 error
-            })
+            }, 'ErrorHandler')
 
             this.logError('global', errorObj, {
                 source,

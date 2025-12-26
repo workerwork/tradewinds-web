@@ -6,34 +6,40 @@
         <el-form-item :label="t('permission.name')">
           <el-autocomplete
             v-model="searchForm.name"
+            :fetch-suggestions="queryNameSuggestions"
             :placeholder="t('permission.name')"
             clearable
+            trigger-on-focus
             popper-class="autocomplete-permission-name-popper"
-            :fetch-suggestions="queryNameSuggestions"
+            @input="handleFieldSearch"
+            @clear="handleFieldSearch"
             @select="handleFieldSearch"
-            style="width: 200px;"
+            style="width: 140px;"
           />
         </el-form-item>
         <el-form-item :label="t('permission.code')">
           <el-autocomplete
             v-model="searchForm.code"
+            :fetch-suggestions="queryCodeSuggestions"
             :placeholder="t('permission.code')"
             clearable
+            trigger-on-focus
             popper-class="autocomplete-permission-code-popper"
-            :fetch-suggestions="queryCodeSuggestions"
+            @input="handleFieldSearch"
+            @clear="handleFieldSearch"
             @select="handleFieldSearch"
-            style="width: 250px;"
+            style="width: 140px;"
           />
         </el-form-item>
         <el-form-item :label="t('permission.type')">
-          <el-select v-model="searchForm.type" :placeholder="t('permission.type')" clearable style="width: 120px;" popper-class="custom-select-popper" @change="handleFieldSearch">
+          <el-select v-model="searchForm.type" :placeholder="t('permission.type')" clearable style="width: 120px;" popper-class="custom-select-popper">
             <el-option label="菜单" value="menu" />
             <el-option label="按钮" value="button" />
             <el-option label="API" value="api" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 120px;" popper-class="custom-select-popper" @change="handleStatusChange">
+          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 120px;" popper-class="custom-select-popper">
             <el-option label="启用" :value="0" />
             <el-option label="禁用" :value="1" />
           </el-select>
@@ -42,10 +48,13 @@
           <span style="margin-right: 8px;">显示已删除权限</span>
           <el-switch
             v-model="searchForm.showDeleted"
-            @change="handleShowDeletedChange"
+            @change="handleSearch"
           />
         </el-form-item>
         <el-form-item>
+          <el-button type="primary" @click="handleSearch">
+            <el-icon><Search /></el-icon>搜索
+          </el-button>
           <el-button @click="resetSearch">
             <el-icon><Refresh /></el-icon>重置
           </el-button>
@@ -59,13 +68,13 @@
           <span>{{ t('menu.user.permissions') }}</span>
           <div>
             <el-dropdown trigger="click" popper-class="column-setting-popper">
-              <el-button type="primary" plain size="small" class="column-setting-btn">
-                <el-icon><Setting /></el-icon>列设置
+              <el-button type="primary" plain size="small" class="column-setting-btn" style="margin-right: 10px;">
+                <el-icon style="margin-right: 4px;"><Setting /></el-icon>列设置
               </el-button>
               <template #dropdown>
-                <el-dropdown-menu class="column-setting-menu">
-                  <el-dropdown-item v-for="col in allColumns" :key="col.prop">
-                    <el-checkbox v-model="col.visible">{{ col.label }}</el-checkbox>
+                <el-dropdown-menu>
+                  <el-dropdown-item v-for="col in allColumns" :key="col.prop" style="min-width: 160px;">
+                    <el-checkbox v-model="col.visible" style="margin-right: 8px; vertical-align: middle;">{{ col.label }}</el-checkbox>
                   </el-dropdown-item>
                 </el-dropdown-menu>
               </template>
@@ -77,7 +86,7 @@
           </div>
         </div>
       </template>
-      <el-table :data="paginatedPermissionList" style="width: 100%" v-loading="loading" border stripe :resizable="true">
+      <el-table :data="permissionList || []" style="width: 100%" v-loading="loading" border stripe :resizable="true">
         <el-table-column v-if="getColVisible('selection')" type="selection" width="55" align="center" />
         <el-table-column v-if="getColVisible('name')" prop="name" :label="t('permission.name')" min-width="120" show-overflow-tooltip :formatter="emptyFormatter" />
         <el-table-column v-if="getColVisible('code')" prop="code" :label="t('permission.code')" min-width="120" show-overflow-tooltip :formatter="emptyFormatter" />
@@ -153,41 +162,29 @@
           </template>
         </el-table-column>
       </el-table>
-      <!-- 分页和搜索统计 -->
+      <!-- 分页组件 -->
       <div class="pagination-container">
-        <div class="pagination-left">
-          <div class="search-stats" v-if="hasSearchCriteria">
-            <el-tag type="info" size="small">
-              搜索找到 {{ filteredPermissionList.length }} 条结果
-            </el-tag>
-          </div>
-        </div>
-        <div class="pagination-right">
-          <el-pagination
-            v-model:current-page="page"
-            v-model:page-size="pageSize"
-            :total="filteredPermissionList.length"
-            :page-sizes="[10, 20, 50, 100]"
-            size="small"
-            background
-            layout="total, sizes, prev, pager, next, jumper"
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
-          />
-        </div>
+        <el-pagination
+          v-model:current-page="page"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50, 100]"
+          size="small"
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
       </div>
     </el-card>
     <!-- 添加/编辑权限对话框 -->
-    <FormDialog
-      v-model="dialogVisible"
-      :dialog-type="dialogType"
+    <el-dialog
       :title="dialogType === 'add' ? '新增权限' : '编辑权限'"
+      v-model="dialogVisible"
       width="500px"
-      :loading="submitting"
-      :cancel-text="t('common.cancel')"
-      :confirm-text="t('common.confirm')"
-      @confirm="handleSubmit"
-      @cancel="close"
+      :close-on-click-modal="false"
+      append-to-body
+      destroy-on-close
     >
       <PermissionForm
         ref="permissionFormRef"
@@ -195,17 +192,24 @@
         :is-edit="dialogType === 'edit'"
         :parent-options="allPermissionsTree"
       />
-    </FormDialog>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
+          <el-button type="primary" @click="handleSubmit" :loading="submitting">
+            {{ t('common.confirm') }}
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, reactive } from 'vue';
+import { ref, onMounted, computed, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Plus, Refresh, Setting, User, Menu, HomeFilled, Lock, Bell, Folder, Document, Edit, Delete, Star, Warning, InfoFilled, Tools, DataAnalysis, Monitor, PieChart, Tickets, Message, ChatLineRound, Calendar, Collection, Connection, Upload, Download, Link, Compass, Flag, Key, List, Location, Notification, OfficeBuilding, Postcard, Promotion, QuestionFilled, Reading, RefreshRight, School, Service, Shop, ShoppingCart, Stopwatch, Suitcase, SwitchButton, Timer, TrendCharts, Trophy, UploadFilled, UserFilled, Van, VideoCamera, Wallet, ZoomIn, ZoomOut } from '@element-plus/icons-vue';
+import { Plus, Search, Refresh, Setting, User, Menu, HomeFilled, Lock, Bell, Folder, Document, Edit, Delete, Star, Warning, InfoFilled, Tools, DataAnalysis, Monitor, PieChart, Tickets, Message, ChatLineRound, Calendar, Collection, Connection, Upload, Download, Link, Compass, Flag, Key, List, Location, Notification, OfficeBuilding, Postcard, Promotion, QuestionFilled, Reading, RefreshRight, School, Service, Shop, ShoppingCart, Stopwatch, Suitcase, SwitchButton, Timer, TrendCharts, Trophy, UploadFilled, UserFilled, Van, VideoCamera, Wallet, ZoomIn, ZoomOut } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import PermissionForm from './components/PermissionForm.vue';
-import FormDialog from '@/components/common/FormDialog.vue';
 import { 
   getPermissionList, 
   createPermission, 
@@ -214,16 +218,11 @@ import {
   getPermissionTree
 } from './services/permission-service';
 import { request, formatDateTime } from '@/utils';
-import { debounce } from 'lodash-es';
 // 只在顶部导入一次 Permission 类型
 import type { Permission } from '@/types';
 import { useMenuStore } from '@/stores/menu';
-import { useTablePersist, useSearchHistory, useDialog } from '@/composables'
-
-// 自动完成建议项类型
-interface AutocompleteSuggestion {
-  value: string;
-}
+import { useAutocomplete } from '@/composables';
+// 分页和列显示持久化功能已移除，直接使用 ref
 
 const { t } = useI18n();
 // 分页和列显示持久化
@@ -247,10 +246,7 @@ const defaultTableOptions = {
     { prop: 'operations', label: t('common.operations'), visible: true }
   ]
 }
-const tableOptions = useTablePersist('system-permission', defaultTableOptions)
-
-// 搜索历史管理
-const { addSearchRecord } = useSearchHistory('permission-search-history', 10)
+const tableOptions = ref(defaultTableOptions)
 
 // 只保留一份分页和列声明
 const page = ref(tableOptions.value.page)
@@ -259,8 +255,11 @@ const allColumns = ref(tableOptions.value.allColumns)
 const total = ref(0)
 const loading = ref(false)
 const permissionList = ref<Permission[]>([])
+const dialogVisible = ref(false)
+const dialogType = ref<'add' | 'edit'>('add')
 const currentId = ref<string>('')
 const permissionFormRef = ref()
+const submitting = ref(false)
 const allPermissionsTree = ref<Permission[]>([])
 const allPermissionsFlat = ref<Permission[]>([])
 const form = ref<Permission>({
@@ -280,44 +279,6 @@ const form = ref<Permission>({
   updateTime: ''
 })
 const menuStore = useMenuStore()
-
-// safeItem 定义（用于表单重置）
-const safeItem: Permission = {
-  id: '',
-  name: '',
-  code: '',
-  type: 'menu',
-  parentId: '',
-  path: '',
-  component: '',
-  icon: '',
-  sort: 0,
-  status: 0,
-  description: '',
-  children: [],
-  createTime: '',
-  updateTime: ''
-};
-
-// 使用 useDialog 管理弹窗状态
-const resetForm = () => {
-  form.value = { ...safeItem };
-  form.value.parentId = String(form.value.parentId ?? '');
-  permissionFormRef.value?.resetForm();
-  form.value.type = 'menu'; // 确保type为menu
-};
-
-const {
-  dialogVisible,
-  dialogType,
-  submitting,
-  openAdd,
-  openEdit,
-  close,
-  setSubmitting
-} = useDialog({
-  resetForm
-});
 
 watch([page, pageSize, allColumns], () => {
   tableOptions.value.page = page.value
@@ -398,7 +359,23 @@ const getParentName = (parentId: string) => {
   return parent ? parent.name : '—';
 };
 
-// safeItem 已在上面定义，这里不再重复定义
+// safeItem 定义
+const safeItem: Permission = {
+  id: '',
+  name: '',
+  code: '',
+  type: 'menu',
+  parentId: '',
+  path: '',
+  component: '',
+  icon: '',
+  sort: 0,
+  status: 0,
+  description: '',
+  children: [],
+  createTime: '',
+  updateTime: ''
+};
 
 const dialogTitle = computed(() => {
   return dialogType.value === 'add' ? t('common.add') : t('common.edit');
@@ -413,71 +390,56 @@ const searchForm = reactive({
   showDeleted: false
 });
 
+// 用于 autocomplete 的所有权限数据
+const allPermissionsForSuggestions = ref<Permission[]>([]);
+
+// 使用统一的 autocomplete composable
+const { createSuggestionQuery, fetchAllForSuggestions } = useAutocomplete<Permission>({
+  allItemsForSuggestions: allPermissionsForSuggestions,
+  currentList: permissionList,
+  fetchAllItems: async () => {
+    const params: Record<string, unknown> = {
+      page: 1,
+      pageSize: 500,
+      showDeleted: false
+    };
+    const result = await getPermissionList(params);
+    let list: Permission[] = [];
+    if (Array.isArray(result)) {
+      list = result;
+    } else if (result && typeof result === 'object') {
+      if ('permissions' in (result as any)) {
+        list = (result as any).permissions || [];
+      } else if ('items' in (result as any) || 'list' in (result as any)) {
+        list = (result as any).items || (result as any).list || [];
+      } else if ('data' in (result as any) && typeof (result as any).data === 'object') {
+        list = (result as any).data.items || (result as any).data.list || [];
+      }
+    }
+    return list.map((item: any) => {
+      return {
+        id: String(item.id || ''),
+        name: String(item.name || ''),
+        code: String(item.code || ''),
+      } as Permission;
+    });
+  },
+  maxSuggestions: 10
+});
+
+// 创建各个字段的建议查询函数
+const queryNameSuggestions = createSuggestionQuery('name');
+const queryCodeSuggestions = createSuggestionQuery('code');
+
+// 获取完整权限列表用于 autocomplete 建议
+const fetchAllPermissionsForSuggestions = () => fetchAllForSuggestions();
+
+// 字段搜索处理（输入时触发搜索）
+const handleFieldSearch = () => {
+  handleSearch();
+};
+
 const getColVisible = (prop: string) => allColumns.value.find(col => col.prop === prop)?.visible;
-
-// 判断是否有搜索条件
-const hasSearchCriteria = computed(() => {
-  return searchForm.name || searchForm.code || searchForm.type || (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined)
-})
-
-// 实时过滤权限列表
-const filteredPermissionList = computed(() => {
-  let filtered = permissionList.value;
-  
-  // 权限名称过滤
-  if (searchForm.name) {
-    filtered = filtered.filter(permission => 
-      permission.name.toLowerCase().includes(searchForm.name.toLowerCase())
-    );
-  }
-  
-  // 权限编码过滤
-  if (searchForm.code) {
-    filtered = filtered.filter(permission => 
-      permission.code.toLowerCase().includes(searchForm.code.toLowerCase())
-    );
-  }
-  
-  // 权限类型过滤
-  if (searchForm.type) {
-    filtered = filtered.filter(permission => 
-      permission.type === searchForm.type
-    );
-  }
-  
-  // 状态过滤 - 由于状态过滤已经在后端处理，这里不需要再过滤
-  // 但为了保持一致性，仍然保留前端的过滤逻辑作为兜底
-  if (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined) {
-    const statusNum = typeof searchForm.status === 'string' ? parseInt(searchForm.status) : searchForm.status;
-    filtered = filtered.filter(permission => permission.status === statusNum);
-  }
-  
-  return filtered;
-});
-
-// 分页后的权限列表
-const paginatedPermissionList = computed(() => {
-  const start = (page.value - 1) * pageSize.value;
-  const end = start + pageSize.value;
-  return filteredPermissionList.value.slice(start, end);
-});
-
-// 联想建议函数
-const queryNameSuggestions = (queryString: string, cb: (suggestions: AutocompleteSuggestion[]) => void) => {
-  const suggestions = permissionList.value
-    .filter(permission => permission.name.toLowerCase().includes(queryString.toLowerCase()))
-    .map(permission => ({ value: permission.name }))
-    .slice(0, 10); // 限制建议数量
-  cb(suggestions);
-};
-
-const queryCodeSuggestions = (queryString: string, cb: (suggestions: AutocompleteSuggestion[]) => void) => {
-  const suggestions = permissionList.value
-    .filter(permission => permission.code.toLowerCase().includes(queryString.toLowerCase()))
-    .map(permission => ({ value: permission.code }))
-    .slice(0, 10);
-  cb(suggestions);
-};
 
 // 空值formatter，防止tooltipFormatter报错
 const emptyFormatter = (row, column, cellValue) => cellValue == null ? '' : cellValue;
@@ -485,6 +447,14 @@ const emptyFormatter = (row, column, cellValue) => cellValue == null ? '' : cell
 onMounted(() => {
   fetchPermissionList();
   fetchAllPermissions();
+  // 初始化时加载所有权限用于 autocomplete 建议
+  fetchAllPermissionsForSuggestions();
+  watch(allPermissionsTree, (val) => {
+  }, { immediate: true });
+  watch(allPermissionsFlat, (val) => {
+  }, { immediate: true });
+  watch(permissionList, (val) => {
+  }, { immediate: true });
 });
 
 // 获取权限列表
@@ -492,47 +462,42 @@ const fetchPermissionList = async () => {
   try {
     loading.value = true;
     const params: any = {
-      page: 1, // 获取所有数据用于本地过滤
-      pageSize: 1000, // 获取大量数据
+      page: page.value,
+      pageSize: pageSize.value,
+      ...(searchForm.name && { name: searchForm.name }),
+      ...(searchForm.code && { code: searchForm.code }),
+      ...(searchForm.type && { type: searchForm.type }),
       showDeleted: !!searchForm.showDeleted
     };
-    
-    // 只有当状态有有效值时才传递状态参数
-    if (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined) {
+    if (typeof searchForm.status === 'number' && !isNaN(searchForm.status)) {
       params.status = searchForm.status;
     }
-    
-    // 只有当权限类型有有效值时才传递类型参数
-    if (searchForm.type) {
-      params.type = searchForm.type;
-    }
-    const res = await getPermissionList(params);
+    const res: any = await getPermissionList(params);
     // 兼容返回结构
-    let list: Permission[] = [];
+    let list: any[] = [];
     let totalCount = 0;
     if (Array.isArray(res)) {
       list = res;
       totalCount = res.length;
     } else if (res && typeof res === 'object') {
-      const resObj = res as Record<string, any>;
-      if ('permissions' in resObj) {
-        list = (resObj.permissions || []) as Permission[];
-        totalCount = resObj.total ?? list.length ?? 0;
-      } else if ('items' in resObj || 'list' in resObj) {
-        list = ((resObj.items || resObj.list) || []) as Permission[];
-        totalCount = resObj.total || list.length || 0;
-      } else if ('data' in resObj && typeof resObj.data === 'object' && (('items' in resObj.data) || ('list' in resObj.data))) {
-        list = ((resObj.data.items || resObj.data.list) || []) as Permission[];
-        totalCount = resObj.data.total || list.length || 0;
+      if ('permissions' in (res as any)) {
+        list = (res as any).permissions || [];
+        totalCount = (res as any).total ?? list.length ?? 0;
+      } else if ('items' in (res as any) || 'list' in (res as any)) {
+        list = (res as any).items || (res as any).list || [];
+        totalCount = (res as any).total || list.length || 0;
+      } else if ('data' in (res as any) && typeof (res as any).data === 'object' && (('items' in (res as any).data) || ('list' in (res as any).data))) {
+        list = (res as any).data.items || (res as any).data.list || [];
+        totalCount = (res as any).data.total || list.length || 0;
       } else {
-        list = (Array.isArray(res) ? res : []) as Permission[];
+        list = res as any[] || [];
         totalCount = list.length || 0;
       }
     } else {
       list = [];
       totalCount = 0;
     }
-    permissionList.value = list.map((item: any) => {
+    permissionList.value = list.map(item => {
       const result: Permission = { ...safeItem, ...item };
       result.id = String(item.id ?? '');
       result.parentId = String(item.parentId ?? '');
@@ -548,79 +513,74 @@ const fetchPermissionList = async () => {
       return result;
     });
     total.value = totalCount;
-    
-    // 记录搜索历史（使用当前搜索的字段作为关键词）
-    const searchKeywords = [
-      searchForm.name,
-      searchForm.code,
-      searchForm.type,
-      searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined ? `状态:${(typeof searchForm.status === 'string' ? parseInt(searchForm.status) : searchForm.status) === 0 ? '启用' : '禁用'}` : null
-    ].filter(Boolean)
-    
-    if (searchKeywords.length > 0) {
-      const keyword = searchKeywords.join(' ')
-      addSearchRecord(keyword, filteredPermissionList.value.length)
-    }
-  } catch (error: any) {
-    ElMessage.error(error?.message || '获取权限列表失败，请稍后重试');
+  } catch (error) {
     console.error('获取权限列表失败:', error);
   } finally {
     loading.value = false;
   }
 };
 
-// 字段搜索（带防抖）
-const handleFieldSearch = debounce(() => {
-  // 字段变化时重新获取数据以确保数据完整性
-  fetchPermissionList();
-}, 300);
-
-// 状态变化处理
-const handleStatusChange = () => {
-  // 状态变化时立即重新获取数据
+// 搜索
+const handleSearch = () => {
+  page.value = 1;
   fetchPermissionList();
 };
-
-// 显示已删除权限开关变化处理
-const handleShowDeletedChange = () => {
-  // 显示已删除权限开关变化时立即重新获取数据
-  fetchPermissionList();
-};
-// 重置搜索
+// 重置
 const resetSearch = () => {
   searchForm.name = '';
   searchForm.code = '';
   searchForm.type = '';
   searchForm.status = '';
   searchForm.showDeleted = false; // 重置显示已删除权限开关
+  page.value = 1;
+  pageSize.value = 10;
   fetchPermissionList();
 };
-// 分页相关方法
+// 分页事件
 const handleSizeChange = (newSize: number) => {
   pageSize.value = newSize;
   page.value = 1;
-  // 本地分页，不需要重新请求数据
+  fetchPermissionList();
 };
-
 const handleCurrentChange = (newPage: number) => {
   page.value = newPage;
-  // 本地分页，不需要重新请求数据
+  fetchPermissionList();
+};
+
+// 重置表单
+const resetForm = () => {
+  form.value = { ...safeItem };
+  form.value.parentId = String(form.value.parentId ?? '');
+  permissionFormRef.value?.resetForm();
 };
 
 // 添加权限
 const handleAdd = () => {
-  openAdd();
+  dialogType.value = 'add';
+  // 先重置表单和清除验证状态
+  resetForm();
+  // 设置默认值（在对话框打开后，避免触发验证）
+  form.value.type = 'menu';
+  form.value.status = 0;
+  form.value.sort = 0;
+  // 延迟打开对话框，确保表单已重置
+  dialogVisible.value = true;
 };
 
 // 编辑权限
 const handleEdit = (row: Permission) => {
+  dialogType.value = 'edit';
   currentId.value = String(row.id);
+  // 先重置表单和清除验证状态
+  resetForm();
+  // 设置表单数据
   form.value = { ...safeItem, ...row };
   form.value.id = String(row.id ?? '');
   form.value.parentId = String(row.parentId ?? '');
   form.value.sort = Number(row.sort ?? 0);
   form.value.status = Number(row.status ?? 0);
-  openEdit(row);
+  // 延迟打开对话框，确保表单已重置
+  dialogVisible.value = true;
 };
 
 // 删除权限
@@ -638,11 +598,9 @@ const handleDelete = (row: Permission) => {
       await deletePermission(String(row.id));
       ElMessage.success(t('common.deleteSuccess'));
       fetchPermissionList();
-    } catch (error: any) {
-      if (error !== 'cancel') {
-        ElMessage.error(error?.message || t('common.deleteFailed') || '删除失败，请稍后重试');
-        console.error('删除失败:', error);
-      }
+    } catch (error) {
+      console.error('删除失败:', error);
+      ElMessage.error(t('common.deleteFailed') || '删除失败');
     }
   });
 };
@@ -651,63 +609,55 @@ const handleDelete = (row: Permission) => {
 const handleSubmit = async () => {
   if (!permissionFormRef.value) return;
   const valid = await permissionFormRef.value.validate();
-  if (!valid) return;
-
-  setSubmitting(true);
-  try {
-    const permissionData = permissionFormRef.value.form;
-    // 兜底处理 parentId，确保为 null
-    let parentId = permissionData.parentId;
-    if (parentId === '' || parentId === undefined || parentId === 0 || parentId === '0') {
-      parentId = null;
-    }
-    // 只提交可编辑字段
-    const submitData = dialogType.value === 'add' ? {
-      name: permissionData.name,
-      code: permissionData.code,
-      type: permissionData.type,
-      parentId: parentId,
-      path: permissionData.path,
-      component: permissionData.component,
-      icon: permissionData.icon,
-      sort: permissionData.sort,
-      status: permissionData.status,
-      description: permissionData.description
-    } : {
-      id: permissionData.id,
-      name: permissionData.name,
-      code: permissionData.code,
-      type: permissionData.type,
-      parentId: parentId,
-      path: permissionData.path,
-      component: permissionData.component,
-      icon: permissionData.icon,
-      sort: permissionData.sort,
-      status: permissionData.status,
-      description: permissionData.description
-    };
-    if (dialogType.value === 'add') {
-      await createPermission(submitData);
-      ElMessage.success(t('common.addSuccess'));
-    } else {
-      await updatePermission(submitData.id, submitData);
-      ElMessage.success(t('common.editSuccess'));
-    }
-    close();
-    fetchPermissionList();
-    
-    // 权限变更后刷新菜单栏
+  if (valid) {
+    submitting.value = true;
     try {
-      await menuStore.getUserMenus();
+      const permissionData = permissionFormRef.value.form;
+      // 兜底处理 parentId，确保为 null
+      let parentId = permissionData.parentId;
+      if (parentId === '' || parentId === undefined || parentId === 0 || parentId === '0') {
+        parentId = null;
+      }
+      // 只提交可编辑字段
+      const submitData = dialogType.value === 'add' ? {
+        name: permissionData.name,
+        code: permissionData.code,
+        type: permissionData.type,
+        parentId: parentId,
+        path: permissionData.path,
+        component: permissionData.component,
+        icon: permissionData.icon,
+        sort: permissionData.sort,
+        status: permissionData.status,
+        description: permissionData.description
+      } : {
+        id: permissionData.id,
+        name: permissionData.name,
+        code: permissionData.code,
+        type: permissionData.type,
+        parentId: parentId,
+        path: permissionData.path,
+        component: permissionData.component,
+        icon: permissionData.icon,
+        sort: permissionData.sort,
+        status: permissionData.status,
+        description: permissionData.description
+      };
+      if (dialogType.value === 'add') {
+        await createPermission(submitData);
+        ElMessage.success(t('common.addSuccess'));
+      } else {
+        await updatePermission(submitData.id, submitData);
+        ElMessage.success(t('common.editSuccess'));
+      }
+      dialogVisible.value = false;
+      fetchPermissionList();
+      await menuStore.getUserMenus(); // 权限变更后刷新菜单栏
     } catch (error) {
-      // 菜单刷新失败不影响主流程，静默处理
-      console.error('权限变更后菜单刷新失败:', error);
+      console.error('提交表单失败:', error);
+    } finally {
+      submitting.value = false;
     }
-  } catch (error: any) {
-    ElMessage.error(error?.message || '操作失败，请稍后重试');
-    console.error('提交表单失败:', error);
-  } finally {
-    setSubmitting(false);
   }
 };
 
@@ -775,8 +725,8 @@ const handlePhysicalDelete = (row: Permission) => {
 const fetchAllPermissions = async () => {
   try {
     const tree = await request.get('/system/permissions/tree');
-    const treeData = Array.isArray(tree) ? tree : (tree.data || []);
-    allPermissionsTree.value = treeData;
+    const treeData = Array.isArray(tree) ? tree : ((tree as { data?: Permission[] }).data || []);
+    allPermissionsTree.value = treeData as Permission[];
     allPermissionsFlat.value = flattenPermissions(treeData);
   } catch (e) {
     allPermissionsTree.value = [];
@@ -798,8 +748,7 @@ const flattenPermissions = (tree: Permission[], parentId: string = '0'): Permiss
 };
 </script>
 
-<style scoped lang="scss">
-@import '@/styles/variables.scss';
+<style scoped>
 .permission-management {
   padding: 20px;
 }
@@ -817,141 +766,122 @@ const flattenPermissions = (tree: Permission[], parentId: string = '0'): Permiss
 .pagination-container {
   margin-top: 20px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: flex-end;
 }
-
-.pagination-left {
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-
-.pagination-right {
-  display: flex;
-  align-items: center;
-}
-
-.search-stats {
-  display: flex;
-  align-items: center;
-}
-// ==================== 表单样式穿透 ====================
 :deep(.el-form--inline .el-form-item) {
   margin-right: 16px;
 }
-
-// ==================== 自定义选择器 Popper ====================
-:deep(.custom-select-popper.el-popper.is-light) {
+.custom-select-popper.el-popper.is-light {
   min-width: 120px !important;
   width: 120px !important;
   max-width: 120px !important;
   text-align: center;
 }
-
-:deep(.el-select .el-input__inner) {
+.el-select .el-input__inner {
   text-align: center;
 }
-
-// ==================== 自动完成下拉菜单 ====================
-// 权限名称输入框下拉菜单（200px）
-:deep(.autocomplete-permission-name-popper.el-popper),
-:deep(.autocomplete-permission-name-popper.el-autocomplete-suggestion) {
-  min-width: 200px !important;
-  width: 200px !important;
-  max-width: 200px !important;
-}
-
-// 权限编码输入框下拉菜单（250px）
-:deep(.autocomplete-permission-code-popper.el-popper),
-:deep(.autocomplete-permission-code-popper.el-autocomplete-suggestion) {
-  min-width: 250px !important;
-  width: 250px !important;
-  max-width: 250px !important;
-}
-
-// ==================== 列设置下拉菜单 ====================
-// Popper 容器样式
-:deep(.column-setting-popper.el-popper) {
+.column-setting-popper.el-popper {
   min-width: 180px !important;
-  width: auto !important;
-  max-width: none !important;
-  padding: 8px 0 !important;
-  border-radius: $border-radius-md !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  width: 180px !important;
+  padding: 8px 0;
 }
-
-// 下拉菜单样式
-:deep(.column-setting-popper .el-dropdown-menu),
-:deep(.column-setting-menu) {
-  padding: 4px 0 !important;
-  border-radius: $border-radius-md !important;
-  min-width: 180px !important;
-  width: auto !important;
+.column-setting-popper .el-dropdown-menu__item {
+  padding: 4px 16px;
+  display: flex;
+  align-items: center;
 }
-
-// 菜单项样式
-:deep(.column-setting-popper .el-dropdown-menu__item),
-:deep(.column-setting-menu .el-dropdown-menu__item) {
-  padding: 8px 16px !important;
-  display: flex !important;
-  align-items: center !important;
-  transition: $transition-fast !important;
-  min-height: 36px !important;
-  
-  &:hover {
-    background: rgba(64, 158, 255, 0.08) !important;
-  }
-  
-  // Checkbox 样式穿透
-  :deep(.el-checkbox) {
-    width: 100% !important;
-    margin: 0 !important;
-    
-    .el-checkbox__label {
-      padding-left: 8px !important;
-      font-size: 14px !important;
-      color: rgba(0, 0, 0, 0.85) !important;
-      transition: $transition-fast !important;
-    }
-    
-    &:hover .el-checkbox__label {
-      color: #409EFF !important;
-    }
-  }
-  
-  :deep(.el-checkbox__input) {
-    .el-checkbox__inner {
-      transition: $transition-fast !important;
-    }
-  }
-}
-
-// ==================== 列设置按钮 ====================
 .column-setting-btn {
-  border-radius: $border-radius-sm !important;
-  font-size: 14px !important;
-  padding: 0 15px !important;
-  height: 32px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  transition: $transition-base !important;
-  margin-right: 10px !important;
-  
-  :deep(.el-icon) {
-    margin-right: 4px !important;
-    transition: $transition-base !important;
-  }
-  
-  &:hover {
-    :deep(.el-icon) {
-      transform: rotate(90deg) !important;
-    }
-  }
+  /* 只保留必要的自定义，主色plain风格 */
+  border-radius: 4px;
+  font-size: 14px;
+  padding: 0 15px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
 }
 :deep(.el-table th) {
   vertical-align: middle !important;
   height: 40px !important;
   font-size: 14px;
+}
+
+/* Autocomplete 下拉菜单样式 */
+:deep(.autocomplete-permission-name-popper.el-popper),
+:deep(.autocomplete-permission-name-popper.el-autocomplete-suggestion) {
+  z-index: 2000 !important;
+  min-width: 140px !important;
+  width: 140px !important;
+  max-width: 140px !important;
+}
+
+:deep(.autocomplete-permission-code-popper.el-popper),
+:deep(.autocomplete-permission-code-popper.el-autocomplete-suggestion) {
+  z-index: 2000 !important;
+  min-width: 140px !important;
+  width: 140px !important;
+  max-width: 140px !important;
+}
+</style>
+
+<style>
+/* ==================== 对话框下拉菜单修复 ==================== */
+/* 确保对话框不会裁剪下拉菜单（tree-select、select 等） */
+.el-dialog__body {
+  overflow: visible !important;
+}
+
+.el-dialog {
+  overflow: visible !important;
+}
+
+/* ==================== 对话框内下拉菜单 z-index ==================== */
+/* el-tree-select 下拉菜单（对话框内） */
+.el-tree-select__popper,
+.el-tree-select__popper.el-popper {
+  z-index: 3000 !important;
+}
+
+/* el-select 下拉菜单（对话框内） */
+.permission-form-select-popper,
+.permission-form-select-popper.el-popper {
+  z-index: 3000 !important;
+}
+
+/* ==================== 搜索区域下拉菜单 z-index ==================== */
+/* 搜索区域的 el-select 下拉菜单 */
+.custom-select-popper,
+.custom-select-popper.el-popper {
+  z-index: 2000 !important;
+}
+
+/* 列设置下拉菜单 */
+.column-setting-popper,
+.column-setting-popper.el-popper {
+  z-index: 2000 !important;
+}
+
+/* ==================== Autocomplete 下拉菜单 ==================== */
+/* 权限名称输入框下拉菜单 - 使用更精确的选择器确保样式生效 */
+.autocomplete-permission-name-popper.el-popper.is-light,
+.autocomplete-permission-name-popper.el-popper,
+.autocomplete-permission-name-popper.el-autocomplete-suggestion,
+.autocomplete-permission-name-popper.el-popper.is-light .el-autocomplete-suggestion__list,
+.autocomplete-permission-name-popper.el-autocomplete-suggestion .el-autocomplete-suggestion__list {
+  z-index: 2000 !important;
+  min-width: 140px !important;
+  width: 140px !important;
+  max-width: 140px !important;
+}
+
+/* 权限编码输入框下拉菜单 - 使用更精确的选择器确保样式生效 */
+.autocomplete-permission-code-popper.el-popper.is-light,
+.autocomplete-permission-code-popper.el-popper,
+.autocomplete-permission-code-popper.el-autocomplete-suggestion,
+.autocomplete-permission-code-popper.el-popper.is-light .el-autocomplete-suggestion__list,
+.autocomplete-permission-code-popper.el-autocomplete-suggestion .el-autocomplete-suggestion__list {
+  z-index: 2000 !important;
+  min-width: 140px !important;
+  width: 140px !important;
+  max-width: 140px !important;
 }
 </style> 

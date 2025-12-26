@@ -1,5 +1,9 @@
 <template>
-  <div class="super-admin-monitor-container" v-loading="loading" element-loading-text="加载监控数据中...">
+  <div
+    v-loading="loading"
+    class="super-admin-monitor-container"
+    element-loading-text="加载监控数据中..."
+  >
     <el-card class="page-header">
       <div class="header-content">
         <div class="header-text">
@@ -10,14 +14,19 @@
           <p class="page-description">实时监控系统性能和运行状态</p>
         </div>
         <div class="header-actions">
-          <el-button :icon="Refresh" circle @click="refreshData" :loading="refreshing" />
-          <el-button :icon="FullScreen" circle @click="toggleAutoRefresh" :type="autoRefresh ? 'primary' : 'default'" />
+          <el-button :icon="Refresh" circle :loading="refreshing" @click="refreshData" />
+          <el-button
+            :icon="FullScreen"
+            circle
+            :type="autoRefresh ? 'primary' : 'default'"
+            @click="toggleAutoRefresh"
+          />
         </div>
       </div>
     </el-card>
 
     <el-row :gutter="20" class="stats-row">
-      <el-col :xs="24" :sm="12" :md="6" v-for="stat in performanceStats" :key="stat.name">
+      <el-col v-for="stat in performanceStats" :key="stat.name" :xs="24" :sm="12" :md="6">
         <el-card class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon" :style="{ background: stat.color }">
@@ -29,8 +38,8 @@
                 <span class="value-number">{{ formatPercentage(stat.value) }}</span>
                 <span class="value-unit">%</span>
               </div>
-              <el-progress 
-                :percentage="stat.value" 
+              <el-progress
+                :percentage="stat.value"
                 :color="getStatusColor(stat.value)"
                 :stroke-width="6"
                 :show-text="false"
@@ -64,9 +73,15 @@
             </el-table-column>
             <el-table-column prop="status" label="状态" width="120" align="center">
               <template #default="scope">
-                <el-tag :type="scope.row.status === '运行中' ? 'success' : 'danger'" effect="dark" class="status-tag">
+                <el-tag
+                  :type="scope.row.status === '运行中' ? 'success' : 'danger'"
+                  effect="dark"
+                  class="status-tag"
+                >
                   <el-icon class="status-icon">
-                    <component :is="scope.row.status === '运行中' ? 'CircleCheck' : 'CircleClose'" />
+                    <component
+                      :is="scope.row.status === '运行中' ? 'CircleCheck' : 'CircleClose'"
+                    />
                   </el-icon>
                   <span class="status-text">{{ scope.row.status }}</span>
                 </el-tag>
@@ -85,18 +100,18 @@
             <el-icon><Document /></el-icon>
             实时日志
           </span>
-          <el-button size="small" @click="clearLogs" :disabled="realtimeLogs.length === 0">
+          <el-button size="small" :disabled="realtimeLogs.length === 0" @click="clearLogs">
             <el-icon><Delete /></el-icon>
             清空日志
           </el-button>
         </div>
       </template>
-      <div class="log-container" ref="logContainerRef">
+      <div ref="logContainerRef" class="log-container">
         <el-empty v-if="realtimeLogs.length === 0" description="暂无日志数据" :image-size="100" />
         <div v-else>
-          <div 
-            v-for="log in realtimeLogs" 
-            :key="log.id" 
+          <div
+            v-for="log in realtimeLogs"
+            :key="log.id"
             class="log-item"
             :class="`log-item-${log.level.toLowerCase()}`"
           >
@@ -120,10 +135,24 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
-import { 
-  Monitor, Refresh, FullScreen, DataAnalysis, Service, Document, Delete, Clock,
-  Cpu, Connection, Folder, CircleCheck, CircleClose,
-  InfoFilled, WarningFilled, CircleCloseFilled, SuccessFilled
+import {
+  Monitor,
+  Refresh,
+  FullScreen,
+  DataAnalysis,
+  Service,
+  Document,
+  Delete,
+  Clock,
+  Cpu,
+  Connection,
+  Folder,
+  CircleCheck,
+  CircleClose,
+  InfoFilled,
+  WarningFilled,
+  CircleCloseFilled,
+  SuccessFilled,
 } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { useSuperAdminAccess } from '@/composables';
@@ -173,43 +202,43 @@ const performanceStats = computed<PerformanceStat[]>(() => [
     label: 'CPU使用率',
     value: cpuUsage.value,
     icon: Cpu,
-    color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+    color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
   },
   {
     name: 'memory',
     label: '内存使用率',
     value: memoryUsage.value,
     icon: Connection,
-    color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+    color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
   },
   {
     name: 'disk',
     label: '磁盘使用率',
     value: diskUsage.value,
     icon: Folder,
-    color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+    color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
   },
   {
     name: 'network',
     label: '网络负载',
     value: networkLoad.value,
     icon: Connection,
-    color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
-  }
+    color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+  },
 ]);
 
 const serviceStatus = ref<ServiceStatus[]>([
   { name: 'Web服务器', status: '运行中', uptime: '15天 3小时', icon: Monitor },
   { name: '数据库', status: '运行中', uptime: '15天 3小时', icon: DataAnalysis },
   { name: '缓存服务', status: '运行中', uptime: '15天 3小时', icon: Service },
-  { name: '消息队列', status: '运行中', uptime: '15天 3小时', icon: Connection }
+  { name: '消息队列', status: '运行中', uptime: '15天 3小时', icon: Connection },
 ]);
 
 const realtimeLogs = ref<RealtimeLog[]>([
   { id: 1, time: '2024-03-20 14:30:25', level: 'INFO', message: '用户登录成功: admin' },
   { id: 2, time: '2024-03-20 14:29:15', level: 'WARN', message: '内存使用率达到60%' },
   { id: 3, time: '2024-03-20 14:28:45', level: 'INFO', message: '系统备份完成' },
-  { id: 4, time: '2024-03-20 14:27:30', level: 'ERROR', message: '连接超时: 192.168.1.100' }
+  { id: 4, time: '2024-03-20 14:27:30', level: 'ERROR', message: '连接超时: 192.168.1.100' },
 ]);
 
 // 格式化百分比，保留两位小数
@@ -245,29 +274,41 @@ const updateMonitorData = () => {
   // 模拟数据更新（实际应该调用API）
   // 生成更精确的随机数，保留两位小数
   const randomChange = (maxChange: number) => (Math.random() - 0.5) * maxChange;
-  cpuUsage.value = Math.max(0, Math.min(100, Number((cpuUsage.value + randomChange(10)).toFixed(2))));
-  memoryUsage.value = Math.max(0, Math.min(100, Number((memoryUsage.value + randomChange(10)).toFixed(2))));
-  diskUsage.value = Math.max(0, Math.min(100, Number((diskUsage.value + randomChange(5)).toFixed(2))));
-  networkLoad.value = Math.max(0, Math.min(100, Number((networkLoad.value + randomChange(15)).toFixed(2))));
+  cpuUsage.value = Math.max(
+    0,
+    Math.min(100, Number((cpuUsage.value + randomChange(10)).toFixed(2)))
+  );
+  memoryUsage.value = Math.max(
+    0,
+    Math.min(100, Number((memoryUsage.value + randomChange(10)).toFixed(2)))
+  );
+  diskUsage.value = Math.max(
+    0,
+    Math.min(100, Number((diskUsage.value + randomChange(5)).toFixed(2)))
+  );
+  networkLoad.value = Math.max(
+    0,
+    Math.min(100, Number((networkLoad.value + randomChange(15)).toFixed(2)))
+  );
 };
 
 // 添加新日志
 const addLog = (level: string, message: string) => {
   const now = new Date();
   const time = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-  
+
   realtimeLogs.value.unshift({
     id: Date.now(),
     time,
     level,
-    message
+    message,
   });
-  
+
   // 限制日志数量
   if (realtimeLogs.value.length > 100) {
     realtimeLogs.value = realtimeLogs.value.slice(0, 100);
   }
-  
+
   // 自动滚动到底部
   nextTick(() => {
     if (logContainerRef.value) {
@@ -289,7 +330,7 @@ const refreshData = async () => {
       //   diskUsage.value = response.systemHealth.disk;
       //   networkLoad.value = response.systemHealth.network;
       // }
-      
+
       // 模拟API调用
       await new Promise(resolve => setTimeout(resolve, 500));
       updateMonitorData();
@@ -324,14 +365,14 @@ const startAutoUpdate = () => {
   if (logInterval) {
     clearInterval(logInterval);
   }
-  
+
   // 每3秒更新一次性能数据
   updateInterval = setInterval(() => {
     if (autoRefresh.value) {
       updateMonitorData();
     }
   }, 3000);
-  
+
   // 每10秒添加一条模拟日志
   logInterval = setInterval(() => {
     if (autoRefresh.value) {
@@ -342,7 +383,7 @@ const startAutoUpdate = () => {
         '数据库连接池正常',
         '缓存命中率: 85%',
         'API响应时间正常',
-        '磁盘空间充足'
+        '磁盘空间充足',
       ];
       const level = levels[Math.floor(Math.random() * levels.length)];
       const message = messages[Math.floor(Math.random() * messages.length)];
@@ -368,13 +409,13 @@ onMounted(() => {
   if (!checkAccess()) {
     return;
   }
-  
+
   // 加载初始数据
   loading.value = true;
   refreshData().finally(() => {
     loading.value = false;
   });
-  
+
   // 启动自动更新
   startAutoUpdate();
 });
@@ -711,4 +752,4 @@ onUnmounted(() => {
     }
   }
 }
-</style> 
+</style>

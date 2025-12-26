@@ -5,54 +5,55 @@
 
 /* 默认滚动条样式（细滚动条） */
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-    background: transparent;
-    border-radius: 3px;
+  background: transparent;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 3px;
-    transition: background 0.3s ease;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+  will-change: background-color;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 /* 兼容 Firefox */
 * {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 }
 
 /* 深色主题滚动条 */
 .dark-theme ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .dark-theme ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .dark-theme * {
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
 /* 移动端隐藏滚动条（保持滚动功能） */
 @media (max-width: 768px) {
-    ::-webkit-scrollbar {
-        width: 0;
-        height: 0;
-        display: none;
-    }
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
 
-    * {
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-    }
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
 }

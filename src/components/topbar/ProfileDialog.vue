@@ -1,15 +1,6 @@
 <template>
-  <el-dialog
-    v-model="dialogVisible"
-    title="个人资料"
-    width="500px"
-  >
-    <el-form
-      ref="profileFormRef"
-      :model="profileForm"
-      :rules="profileRules"
-      label-width="80px"
-    >
+  <el-dialog v-model="dialogVisible" title="个人资料" width="500px">
+    <el-form ref="profileFormRef" :model="profileForm" :rules="profileRules" label-width="80px">
       <div class="avatar-section">
         <el-upload
           class="avatar-uploader"
@@ -51,24 +42,24 @@
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveProfile" :loading="saving">保存</el-button>
+        <el-button type="primary" :loading="saving" @click="saveProfile">保存</el-button>
       </span>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
-import { User } from '@element-plus/icons-vue'
-import { useProfileDialog, useTopbarUser } from '@/composables'
+import { computed, watch } from 'vue';
+import { User } from '@element-plus/icons-vue';
+import { useProfileDialog, useTopbarUser } from '@/composables';
 
 const props = defineProps<{
-  modelValue: boolean
-}>()
+  modelValue: boolean;
+}>();
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
-}>()
+  'update:modelValue': [value: boolean];
+}>();
 
 const {
   saving,
@@ -78,28 +69,31 @@ const {
   beforeAvatarUpload,
   handleAvatarUpload,
   saveProfile: saveProfileInternal,
-  showProfile
-} = useProfileDialog()
+  showProfile,
+} = useProfileDialog();
 
-const { userInfo } = useTopbarUser()
+const { userInfo } = useTopbarUser();
 
 const dialogVisible = computed({
   get: () => props.modelValue,
-  set: (val) => emit('update:modelValue', val)
-})
+  set: val => emit('update:modelValue', val),
+});
 
 // 当对话框打开时，加载用户信息
-watch(() => props.modelValue, (newValue) => {
-  if (newValue) {
-    showProfile()
+watch(
+  () => props.modelValue,
+  newValue => {
+    if (newValue) {
+      showProfile();
+    }
   }
-})
+);
 
 // 包装保存函数，关闭弹窗
 const saveProfile = async () => {
-  await saveProfileInternal()
-  dialogVisible.value = false
-}
+  await saveProfileInternal();
+  dialogVisible.value = false;
+};
 </script>
 
 <style scoped lang="scss">
@@ -159,4 +153,3 @@ const saveProfile = async () => {
   margin-left: $spacing-md;
 }
 </style>
-

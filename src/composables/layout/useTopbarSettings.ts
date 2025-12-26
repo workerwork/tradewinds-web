@@ -2,6 +2,7 @@ import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { ElMessage } from 'element-plus'
+import { logger } from '@/utils'
 
 /**
  * 顶栏设置管理 Composable
@@ -154,8 +155,8 @@ export function useTopbarSettings(props: { isCollapse: boolean }, emit: (e: 'upd
                     // JSON 解析失败，忽略
                 }
             }
-        } catch (error) {
-            console.warn('加载设置失败:', error)
+        } catch (error: unknown) {
+            logger.warn('加载设置失败', error, 'TopbarSettings')
         }
     }
 

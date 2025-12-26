@@ -16,7 +16,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { preloadImage, getImageDominantColor } from '@/utils'
+import { preloadImage, getImageDominantColor, logger } from '@/utils'
 import { Loading } from '@element-plus/icons-vue'
 
 const props = defineProps<{
@@ -47,8 +47,8 @@ onMounted(async () => {
     // 预加载图片并获取主要颜色
     await preloadImage(props.src)
     dominantColor.value = await getImageDominantColor(props.src)
-  } catch (error) {
-    console.error('Failed to process image:', error)
+  } catch (error: unknown) {
+    logger.error('Failed to process image', error, 'OptimizedImage')
   }
 })
 </script>
@@ -65,7 +65,8 @@ onMounted(async () => {
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity 0.3s ease-in-out;
+  transition: opacity 0.2s ease-in-out;
+  will-change: opacity;
 }
 
 .image-loaded {

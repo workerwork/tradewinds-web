@@ -5,15 +5,19 @@ import type { User, PaginationQuery, PaginationResponse } from '@/types';
  * 获取用户列表
  * @param params 查询参数
  */
-export const getUserList = (params?: Partial<PaginationQuery & {
-    username: string;
-    realName: string;
-    phone: string;
-    email: string;
-    status: number;
-    showDeleted: boolean;
-}>) => {
-    return request.get<PaginationResponse<User>>('/system/users', { params });
+export const getUserList = (
+  params?: Partial<
+    PaginationQuery & {
+      username: string;
+      realName: string;
+      phone: string;
+      email: string;
+      status: number;
+      showDeleted: boolean;
+    }
+  >
+) => {
+  return request.get<PaginationResponse<User>>('/system/users', { params });
 };
 
 /**
@@ -21,7 +25,7 @@ export const getUserList = (params?: Partial<PaginationQuery & {
  * @param data 用户数据
  */
 export const addUser = (data: Partial<User>) => {
-    return request.post<void>('/system/users', data);
+  return request.post<void>('/system/users', data);
 };
 
 /**
@@ -30,7 +34,7 @@ export const addUser = (data: Partial<User>) => {
  * @param data 用户数据
  */
 export const updateUser = (id: string, data: Partial<User>) => {
-    return request.put<void>(`/system/users/${id}`, data);
+  return request.put<void>(`/system/users/${id}`, data);
 };
 
 /**
@@ -38,7 +42,7 @@ export const updateUser = (id: string, data: Partial<User>) => {
  * @param id 用户ID
  */
 export const deleteUser = (id: string) => {
-    return request.del<void>(`/system/users/${id}`);
+  return request.del<void>(`/system/users/${id}`);
 };
 
 /**
@@ -46,7 +50,7 @@ export const deleteUser = (id: string) => {
  * @param id 用户ID
  */
 export const getUserDetail = (id: string) => {
-    return request.get<User>(`/system/user/detail/${id}`);
+  return request.get<User>(`/system/user/detail/${id}`);
 };
 
 /**
@@ -54,7 +58,7 @@ export const getUserDetail = (id: string) => {
  * @param id 用户ID
  */
 export const resetUserPassword = (id: string) => {
-    return request.post<void>(`/system/users/${id}/reset-password`);
+  return request.post<void>(`/system/users/${id}/reset-password`);
 };
 
 /**
@@ -63,10 +67,10 @@ export const resetUserPassword = (id: string) => {
  * @param newPassword 新密码
  */
 export const updatePassword = (oldPassword: string, newPassword: string) => {
-    return request.put<void>('/system/users/me/password', {
-        oldPassword,
-        newPassword
-    });
+  return request.put<void>('/system/users/me/password', {
+    oldPassword,
+    newPassword,
+  });
 };
 
 /**
@@ -74,7 +78,7 @@ export const updatePassword = (oldPassword: string, newPassword: string) => {
  * @param data 用户信息
  */
 export const updateProfile = (data: Partial<User>) => {
-    return request.put<void>('/system/users/me', data);
+  return request.put<void>('/system/users/me', data);
 };
 
 /**
@@ -82,8 +86,8 @@ export const updateProfile = (data: Partial<User>) => {
  * @param file 头像文件
  */
 export const uploadAvatar = (file: File) => {
-    const formData = createFormData(file);
-    return request.post<{ url: string }>('/system/users/me/avatar', formData, FILE_UPLOAD_CONFIG);
+  const formData = createFormData(file);
+  return request.post<{ url: string }>('/system/users/me/avatar', formData, FILE_UPLOAD_CONFIG);
 };
 
 /**
@@ -92,5 +96,5 @@ export const uploadAvatar = (file: File) => {
  * @param status 用户状态
  */
 export const patchUserStatus = (id: string, status: number) => {
-    return request.patch<void>(`/system/users/${id}`, { id, status });
-}; 
+  return request.patch<void>(`/system/users/${id}`, { id, status });
+};

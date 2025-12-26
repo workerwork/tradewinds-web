@@ -6,13 +6,17 @@ import type { ExportLogParams } from '../types';
  * 获取日志列表
  * @param params 查询参数
  */
-export const getLogList = (params?: Partial<PaginationQuery & {
-    operator?: string;
-    type?: string;
-    status?: number;
-    dateRange?: [string, string];
-}>) => {
-    return request.get<PaginationResponse<Log>>('/system/log/list', { params });
+export const getLogList = (
+  params?: Partial<
+    PaginationQuery & {
+      operator?: string;
+      type?: string;
+      status?: number;
+      dateRange?: [string, string];
+    }
+  >
+) => {
+  return request.get<PaginationResponse<Log>>('/system/log/list', { params });
 };
 
 /**
@@ -20,7 +24,7 @@ export const getLogList = (params?: Partial<PaginationQuery & {
  * @param id 日志ID
  */
 export const deleteLog = (id: number) => {
-    return request.del<void>(`/system/log/delete/${id}`);
+  return request.del<void>(`/system/log/delete/${id}`);
 };
 
 /**
@@ -28,7 +32,7 @@ export const deleteLog = (id: number) => {
  * @param ids 日志ID列表
  */
 export const batchDeleteLogs = (ids: number[]) => {
-    return request.post<void>('/system/log/batch-delete', { ids });
+  return request.post<void>('/system/log/batch-delete', { ids });
 };
 
 /**
@@ -36,14 +40,14 @@ export const batchDeleteLogs = (ids: number[]) => {
  * @param params 查询参数
  */
 export const exportLogs = (params?: ExportLogParams) => {
-    return request.post('/system/log/export', params, {
-        responseType: 'blob'
-    });
+  return request.post('/system/log/export', params, {
+    responseType: 'blob',
+  });
 };
 
 /**
  * 清空日志
  */
 export const clearLogs = () => {
-    return request.post<void>('/system/log/clear');
-}; 
+  return request.post<void>('/system/log/clear');
+};

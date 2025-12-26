@@ -1,4 +1,5 @@
 import { ref, onUnmounted, getCurrentInstance } from 'vue'
+import { logger } from '@/utils'
 
 /**
  * 安全的组件生命周期管理
@@ -19,22 +20,22 @@ export function useComponentLifecycle() {
     // 安全地执行异步操作
     const safeAsync = async <T>(asyncFn: () => Promise<T>): Promise<T | null> => {
         if (isUnmounted()) {
-            console.warn('组件已卸载，跳过异步操作')
+            logger.warn('组件已卸载，跳过异步操作', undefined, 'ComponentLifecycle')
             return null
         }
 
         try {
             const result = await asyncFn()
             if (isUnmounted()) {
-                console.warn('组件在异步操作完成后已卸载')
+                logger.warn('组件在异步操作完成后已卸载', undefined, 'ComponentLifecycle')
                 return null
             }
             return result
-        } catch (error) {
+        } catch (error: unknown) {
             if (!isUnmounted()) {
                 throw error
             }
-            console.warn('组件在异步操作出错时已卸载')
+            logger.warn('组件在异步操作出错时已卸载', error, 'ComponentLifecycle')
             return null
         }
     }

@@ -84,6 +84,8 @@ import { useRoute } from 'vue-router';
 import type { MenuItem } from '@/types/menu';
 import { useMenuStore } from '@/stores/menu';
 import MenuIcon from './MenuIcon.vue';
+import { logger } from '@/utils';
+import { DEBUG } from '@/config';
 
 interface Props {
   menuList: MenuItem[];
@@ -101,28 +103,30 @@ const { t, te } = useI18n();
 const emit = defineEmits(['showWorkspace']);
 
 // 调试多级菜单
-console.log(`DynamicMenu - Level ${props.level}:`, {
-  当前层级: props.level,
-  菜单数量: props.menuList.length,
-  菜单详情: props.menuList.map(menu => ({
-    id: menu.id,
-    name: menu.name,
-    title: menu.title,
-    path: menu.path,
-    parentId: menu.parentId,
-    有子菜单: !!(menu.children && menu.children.length > 0),
-    子菜单数量: menu.children ? menu.children.length : 0,
-    应用的CSS类: `menu-level-${props.level}`,
-    渲染类型: (menu.children && menu.children.length > 0) ? 'el-sub-menu' : 'el-menu-item',
-    层级逻辑: {
-      level: props.level,
-      是一级菜单: props.level === 0,
-      是二级菜单: props.level === 1,
-      是三级菜单: props.level === 2,
-      使用下拉: (props.level === 0) || (props.level >= 2)
-    }
-  }))
-});
+if (DEBUG) {
+  logger.info(`DynamicMenu - Level ${props.level}`, {
+    当前层级: props.level,
+    菜单数量: props.menuList.length,
+    菜单详情: props.menuList.map(menu => ({
+      id: menu.id,
+      name: menu.name,
+      title: menu.title,
+      path: menu.path,
+      parentId: menu.parentId,
+      有子菜单: !!(menu.children && menu.children.length > 0),
+      子菜单数量: menu.children ? menu.children.length : 0,
+      应用的CSS类: `menu-level-${props.level}`,
+      渲染类型: (menu.children && menu.children.length > 0) ? 'el-sub-menu' : 'el-menu-item',
+      层级逻辑: {
+        level: props.level,
+        是一级菜单: props.level === 0,
+        是二级菜单: props.level === 1,
+        是三级菜单: props.level === 2,
+        使用下拉: (props.level === 0) || (props.level >= 2)
+      }
+    }))
+  }, 'DynamicMenu');
+}
 
 // 获取菜单标题（带fallback）
 const getMenuTitle = (title: string): string => {
@@ -199,7 +203,9 @@ const getMenuPath = (menu: MenuItem): string => {
   if (menu.parentId) {
     // 从全局菜单中找到父菜单来构建完整路径
     const fullPath = buildFullPath(menu);
-    console.log('DynamicMenu - 构建路径:', menu.name, '->', fullPath);
+    if (DEBUG) {
+      logger.info('DynamicMenu - 构建路径', { menuName: menu.name, fullPath }, 'DynamicMenu');
+    }
     return fullPath;
   }
 
@@ -237,11 +243,13 @@ const buildFullPath = (menu: MenuItem): string => {
   // 拼接完整路径
   const fullPath = '/' + pathSegments.join('/');
   
-  console.log('DynamicMenu - 构建多级路径:', {
-    菜单名称: menu.name,
-    路径片段: pathSegments,
-    完整路径: fullPath
-  });
+  if (DEBUG) {
+    logger.info('DynamicMenu - 构建多级路径', {
+      菜单名称: menu.name,
+      路径片段: pathSegments,
+      完整路径: fullPath
+    }, 'DynamicMenu');
+  }
   
   return fullPath;
 };
@@ -525,7 +533,8 @@ const defaultOpeneds = computed(() => {
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
-  transition: all 0.2s ease !important;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease !important;
+  will-change: background-color, color, transform;
 }
 
 :deep(.el-menu--popup .el-menu-item:hover) {

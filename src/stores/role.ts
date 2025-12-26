@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { Role } from '@/types';
-import { request } from '@/utils';
+import { request, logger, extractArrayData } from '@/utils';
+import { DEBUG } from '@/config';
 
 export const useRoleStore = defineStore('role', () => {
     const roles = ref<Role[]>([]);
@@ -20,108 +21,55 @@ export const useRoleStore = defineStore('role', () => {
 
         try {
             loading.value = true;
-            console.log('角色Store - 开始获取角色数据...');
-            console.log('角色Store - 请求URL: /system/roles');
+            if (DEBUG) {
+                logger.info('角色Store - 开始获取角色数据', undefined, 'RoleStore');
+            }
             const response = await request.get('/system/roles');
-            console.log('角色Store - 收到完整响应:', JSON.stringify(response, null, 2));
 
-            // 真实后端响应处理
-            let rawRoles: any[] = [];
-
-            console.log('角色Store - 响应分析:', {
-                响应类型: typeof response,
-                是否为数组: Array.isArray(response),
-                响应键: response && typeof response === 'object' ? Object.keys(response) : [],
-                响应内容: response
-            });
-
-            // 后端不含 code，直接返回数据
-            if (Array.isArray(response)) {
-                // 直接返回角色数组
-                rawRoles = response;
-                console.log('角色Store - 数据格式: 直接数组，长度:', rawRoles.length);
-            } else if (response && typeof response === 'object') {
-                // 检查各种可能的字段名
-                if (response.success && response.data) {
-                    // 格式: {success: true, data: {...}}
-                    if (Array.isArray(response.data)) {
-                        rawRoles = response.data;
-                        console.log('角色Store - 数据格式: success.data数组，长度:', rawRoles.length);
-                    } else if (response.data.roles) {
-                        rawRoles = response.data.roles;
-                        console.log('角色Store - 数据格式: success.data.roles，长度:', rawRoles.length);
-                    } else {
-                        console.log('角色Store - 数据格式: success.data未知，内容:', response.data);
-                        rawRoles = [];
-                    }
-                } else if (response.roles) {
-                    // 格式: {roles: [...]}
-                    rawRoles = response.roles;
-                    console.log('角色Store - 数据格式: 直接roles字段，长度:', rawRoles.length);
-                } else if (response.data) {
-                    // 格式: {data: [...]}
-                    if (Array.isArray(response.data)) {
-                        rawRoles = response.data;
-                        console.log('角色Store - 数据格式: data数组，长度:', rawRoles.length);
-                    } else if (response.data.roles) {
-                        rawRoles = response.data.roles;
-                        console.log('角色Store - 数据格式: data.roles，长度:', rawRoles.length);
-                    } else {
-                        console.log('角色Store - 数据格式: data未知，内容:', response.data);
-                        rawRoles = [];
-                    }
-                } else {
-                    console.log('角色Store - 数据格式: 未知对象，所有键:', Object.keys(response));
-                    rawRoles = [];
-                }
-            } else {
-                console.warn('角色Store - 响应格式不正确:', response);
+            // 使用数据适配工具提取角色数据
+            let rawRoles: unknown[];
+            try {
+                rawRoles = extractArrayData<unknown>(response, {
+                    category: 'RoleStore',
+                    logPrefix: '角色Store - 提取角色数据'
+                });
+            } catch (error) {
+                logger.warn('角色Store - 响应格式不正确', response, 'RoleStore');
                 roles.value = [];
                 return roles.value;
             }
 
-            console.log('角色Store - 解析出的原始角色数据:', rawRoles);
-
             // 数据字段适配和标准化
-            roles.value = rawRoles.map((role: any) => {
-                const adaptedRole = {
-                    id: role.id,
-                    name: role.name,
-                    code: role.code,
-                    description: role.description || '',
+            roles.value = rawRoles.map((role: unknown) => {
+                const roleObj = role as Record<string, unknown>;
+                const adaptedRole: Role = {
+                    id: roleObj.id as string | number,
+                    name: roleObj.name as string,
+                    code: roleObj.code as string,
+                    description: (roleObj.description || '') as string,
                     // 适配不同的时间字段名
-                    createTime: role.createTime || role.created_at || role.createdAt || role.create_time || '',
-                    updateTime: role.updateTime || role.updated_at || role.updatedAt || role.update_time || '',
+                    createTime: (roleObj.createTime || roleObj.created_at || roleObj.createdAt || roleObj.create_time || '') as string,
+                    updateTime: (roleObj.updateTime || roleObj.updated_at || roleObj.updatedAt || roleObj.update_time || '') as string,
                     // 确保权限数据是数组
-                    permissions: Array.isArray(role.permissions) ? role.permissions : [],
+                    permissions: (Array.isArray(roleObj.permissions) ? roleObj.permissions : []) as string[],
                     // 确保状态字段正确处理（数字类型）
-                    status: typeof role.status === 'number' ? role.status : parseInt(role.status) || 0
+                    status: typeof roleObj.status === 'number' ? roleObj.status : parseInt(String(roleObj.status || 0)) || 0
                 };
-
-                console.log('角色Store - 数据适配:', {
-                    原始角色: { id: role.id, name: role.name, status: role.status, statusType: typeof role.status },
-                    适配后角色: { id: adaptedRole.id, name: adaptedRole.name, status: adaptedRole.status, statusType: typeof adaptedRole.status, 状态文本: adaptedRole.status === 0 ? '启用' : '禁用' }
-                });
 
                 return adaptedRole;
             });
 
             loaded.value = true;
-            console.log('角色Store - 加载角色数据成功:', {
-                原始数据: rawRoles.length,
-                处理后数据: roles.value.length,
-                启用角色数量: roles.value.filter(r => r.status === 0).length,
-                禁用角色数量: roles.value.filter(r => r.status === 1).length,
-                角色详情: roles.value.map(r => ({
-                    id: r.id,
-                    name: r.name,
-                    code: r.code,
-                    status: r.status,
-                    状态文本: r.status === 0 ? '启用' : '禁用'
-                }))
-            });
-        } catch (error) {
-            console.error('获取角色列表失败:', error);
+            if (DEBUG) {
+                logger.info('角色Store - 加载角色数据成功', {
+                    原始数据: rawRoles.length,
+                    处理后数据: roles.value.length,
+                    启用角色数量: roles.value.filter(r => r.status === 0).length,
+                    禁用角色数量: roles.value.filter(r => r.status === 1).length
+                }, 'RoleStore');
+            }
+        } catch (error: unknown) {
+            logger.error('获取角色列表失败', error, 'RoleStore');
             roles.value = [];
             loaded.value = false;
         } finally {

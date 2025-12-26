@@ -34,9 +34,7 @@
       <el-table-column prop="orderNo" label="订单号" width="180" />
       <el-table-column prop="customerName" label="客户名称" width="200" />
       <el-table-column prop="amount" label="订单金额" width="150">
-        <template #default="{ row }">
-          {{ row.currency }} {{ row.amount }}
-        </template>
+        <template #default="{ row }"> {{ row.currency }} {{ row.amount }} </template>
       </el-table-column>
       <el-table-column prop="orderDate" label="下单日期" width="180" />
       <el-table-column prop="deliveryDate" label="预计交期" width="180" />
@@ -59,58 +57,58 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive } from 'vue';
 
 interface SearchForm {
-  orderNo: string
-  customerId: string
-  status: string
+  orderNo: string;
+  customerId: string;
+  status: string;
 }
 
 interface Order {
-  id: number
-  orderNo: string
-  customerName: string
-  amount: number
-  currency: string
-  orderDate: string
-  deliveryDate: string
-  status: string
+  id: number;
+  orderNo: string;
+  customerName: string;
+  amount: number;
+  currency: string;
+  orderDate: string;
+  deliveryDate: string;
+  status: string;
 }
 
 const searchForm = reactive<SearchForm>({
   orderNo: '',
   customerId: '',
-  status: ''
-})
+  status: '',
+});
 
-const orderList = ref<Order[]>([])
+const orderList = ref<Order[]>([]);
 
 const handleSearch = () => {
   // TODO: 实现搜索逻辑
-}
+};
 
 const handleReset = () => {
-  searchForm.orderNo = ''
-  searchForm.customerId = ''
-  searchForm.status = ''
-}
+  searchForm.orderNo = '';
+  searchForm.customerId = '';
+  searchForm.status = '';
+};
 
 const handleAdd = () => {
   // TODO: 实现新增订单逻辑
-}
+};
 
 const handleView = (row: Order) => {
   // TODO: 实现查看订单详情逻辑
-}
+};
 
 const handleEdit = (row: Order) => {
   // TODO: 实现编辑订单逻辑
-}
+};
 
 const handleTrack = (row: Order) => {
   // TODO: 实现订单跟踪逻辑
-}
+};
 
 const getStatusType = (status: string) => {
   const statusMap: Record<string, string> = {
@@ -118,10 +116,10 @@ const getStatusType = (status: string) => {
     confirmed: 'primary',
     production: 'info',
     shipped: 'success',
-    completed: ''
-  }
-  return statusMap[status] || ''
-}
+    completed: '',
+  };
+  return statusMap[status] || '';
+};
 
 const getStatusText = (status: string) => {
   const statusMap: Record<string, string> = {
@@ -129,10 +127,10 @@ const getStatusText = (status: string) => {
     confirmed: '已确认',
     production: '生产中',
     shipped: '已发货',
-    completed: '已完成'
-  }
-  return statusMap[status] || status
-}
+    completed: '已完成',
+  };
+  return statusMap[status] || status;
+};
 </script>
 
 <style scoped>
@@ -153,4 +151,4 @@ const getStatusText = (status: string) => {
   background-color: #f5f7fa;
   border-radius: 4px;
 }
-</style> 
+</style>

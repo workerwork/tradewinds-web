@@ -99,20 +99,21 @@ html {
     opacity: 0;
 }
 
-// 页面切换动画
+// 页面切换动画 - 优化为具体属性，提升性能
 .page-enter-active,
 .page-leave-active {
-    transition: all 0.3s;
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+    will-change: opacity, transform;
 }
 
 .page-enter-from {
     opacity: 0;
-    transform: translateX(30px);
+    transform: translateX(8px);
 }
 
 .page-leave-to {
     opacity: 0;
-    transform: translateX(-30px);
+    transform: translateX(-8px);
 }
 
 // 全局滚动条样式
@@ -157,7 +158,8 @@ html {
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
-        transition: all 0.2s ease !important;
+        transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease !important;
+        will-change: background-color, color, transform;
     }
 
     .el-menu-item:hover {
@@ -196,14 +198,13 @@ html {
 }
 
 // 排除自动完成下拉菜单，让其宽度与输入框一致
+// 注意：权限管理的 autocomplete 宽度由页面内样式控制，这里不覆盖
 .el-popper.is-light.autocomplete-username-popper,
 .el-popper.is-light.autocomplete-name-popper,
 .el-popper.is-light.autocomplete-phone-popper,
 .el-popper.is-light.autocomplete-email-popper,
 .el-popper.is-light.autocomplete-role-name-popper,
 .el-popper.is-light.autocomplete-role-code-popper,
-.el-popper.is-light.autocomplete-permission-name-popper,
-.el-popper.is-light.autocomplete-permission-code-popper,
 .el-popper.is-light.backup-frequency-select-popper {
     min-width: auto !important;
     width: auto !important;
@@ -240,6 +241,25 @@ html {
     background: rgba(255, 255, 255, 0.1) !important;
 }
 
+// ==================== 分页组件样式 ====================
+// 分页下拉框（通过 popper-class 设置，参考状态选择器的样式设置方式）
+// 这个类名通过 el-pagination 的 popper-class 属性添加
+.pagination-sizes-popper.el-popper.is-light {
+    min-width: 110px !important;
+    width: 110px !important;
+    max-width: 110px !important;
+    text-align: center;
+}
+
+.pagination-sizes-popper .el-select-dropdown__item {
+    min-width: 110px !important;
+    width: 110px !important;
+    max-width: 110px !important;
+    text-align: center !important;
+    padding: 0 20px !important;
+    justify-content: center !important;
+}
+
 // 确保所有弹出菜单宽度一致
 .el-menu--popup-container {
     min-width: 220px !important;
@@ -272,7 +292,8 @@ html {
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    transition: all 0.2s ease !important;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease !important;
+    will-change: background-color, color, transform;
     display: flex !important;
     align-items: center !important;
     border: none !important;

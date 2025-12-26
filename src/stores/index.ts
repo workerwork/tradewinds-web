@@ -5,10 +5,12 @@ import { createPersistedState } from 'pinia-plugin-persistedstate';
 const store = createPinia();
 
 // 配置持久化插件
-store.use(createPersistedState({
+store.use(
+  createPersistedState({
     storage: localStorage,
-    key: prefix => `aiman_${prefix}`
-}));
+    key: prefix => `aiman_${prefix}`,
+  })
+);
 
 // 导出 store 实例
 export default store;
@@ -20,4 +22,4 @@ export * from './menu';
 export * from './customer';
 export * from './product';
 export * from './order';
-export * from './role'; 
+export * from './role';

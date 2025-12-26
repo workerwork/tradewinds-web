@@ -8,14 +8,14 @@ import { API_MODE } from '@/config';
  * @param params 查询参数
  */
 export const getContactRecords = (params?: ContactRecordQuery) => {
-    return API_MODE === 'direct'
-        ? request.get('/contact-records', { params })
-        : request_invoke({
-            url: '/contact-records',
-            method: 'GET',
-            params,
-            invokeCommand: 'contact_record_list'
-        });
+  return API_MODE === 'direct'
+    ? request.get('/contact-records', { params })
+    : request_invoke({
+        url: '/contact-records',
+        method: 'GET',
+        params,
+        invokeCommand: 'contact_record_list',
+      });
 };
 
 /**
@@ -23,12 +23,12 @@ export const getContactRecords = (params?: ContactRecordQuery) => {
  * @param data 联系记录数据
  */
 export const createContactRecord = (data: Partial<ContactRecord>) => {
-    return API_MODE === 'direct'
-        ? request.post('/contact-records', data)
-        : request_invoke({
-            url: '/contact-records',
-            method: 'POST',
-            data,
-            invokeCommand: 'contact_record_create'
-        });
-}; 
+  return API_MODE === 'direct'
+    ? request.post('/contact-records', data)
+    : request_invoke({
+        url: '/contact-records',
+        method: 'POST',
+        data,
+        invokeCommand: 'contact_record_create',
+      });
+};

@@ -3,16 +3,15 @@
  */
 
 export interface SidebarProps {
-    isCollapse: boolean
+  isCollapse: boolean;
 }
 
 export interface SidebarEmits {
-    (e: 'update:isCollapse', value: boolean): void
+  (e: 'update:isCollapse', value: boolean): void;
 }
 
 export interface SystemInfo {
-    onlineUsers: number
-    runtime: string
-    version: string
+  onlineUsers: number;
+  runtime: string;
+  version: string;
 }
-

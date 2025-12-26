@@ -6,11 +6,11 @@
 </template>
 
 <script setup lang="ts">
-import { Warning } from '@element-plus/icons-vue'
+import { Warning } from '@element-plus/icons-vue';
 
 defineProps<{
-  isCollapsed: boolean
-}>()
+  isCollapsed: boolean;
+}>();
 </script>
 
 <style scoped lang="scss">
@@ -31,4 +31,3 @@ defineProps<{
   color: rgba(255, 255, 255, 0.4);
 }
 </style>
-

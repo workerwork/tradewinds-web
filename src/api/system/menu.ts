@@ -5,15 +5,17 @@ import type { Menu, PaginationQuery, PaginationResponse } from '@/types';
  * 获取菜单列表
  * @param params 查询参数
  */
-export const getMenuList = (params?: Partial<PaginationQuery & { name: string; status: number }>) => {
-    return request.get<PaginationResponse<Menu>>('/system/menu/list', { params });
+export const getMenuList = (
+  params?: Partial<PaginationQuery & { name: string; status: number }>
+) => {
+  return request.get<PaginationResponse<Menu>>('/system/menu/list', { params });
 };
 
 /**
  * 获取菜单树
  */
 export const getMenuTree = () => {
-    return request.get<Menu[]>('/system/menu/tree');
+  return request.get<Menu[]>('/system/menu/tree');
 };
 
 /**
@@ -21,7 +23,7 @@ export const getMenuTree = () => {
  * @param data 菜单数据
  */
 export const addMenu = (data: Partial<Menu>) => {
-    return request.post<void>('/system/menu/add', data);
+  return request.post<void>('/system/menu/add', data);
 };
 
 /**
@@ -30,7 +32,7 @@ export const addMenu = (data: Partial<Menu>) => {
  * @param data 菜单数据
  */
 export const updateMenu = (id: number, data: Partial<Menu>) => {
-    return request.put<void>(`/system/menu/update/${id}`, data);
+  return request.put<void>(`/system/menu/update/${id}`, data);
 };
 
 /**
@@ -38,7 +40,7 @@ export const updateMenu = (id: number, data: Partial<Menu>) => {
  * @param id 菜单ID
  */
 export const deleteMenu = (id: number) => {
-    return request.del<void>(`/system/menu/delete/${id}`);
+  return request.del<void>(`/system/menu/delete/${id}`);
 };
 
 /**
@@ -46,7 +48,7 @@ export const deleteMenu = (id: number) => {
  * @param id 菜单ID
  */
 export const getMenuDetail = (id: number) => {
-    return request.get<Menu>(`/system/menu/detail/${id}`);
+  return request.get<Menu>(`/system/menu/detail/${id}`);
 };
 
 /**
@@ -55,5 +57,5 @@ export const getMenuDetail = (id: number) => {
  * @param status 状态
  */
 export const updateMenuStatus = (id: number, status: number) => {
-    return request.put<void>(`/system/menu/status/${id}`, { status });
-}; 
+  return request.put<void>(`/system/menu/status/${id}`, { status });
+};

@@ -1,12 +1,12 @@
 <template>
   <div class="user-info">
-    <el-dropdown trigger="click" @command="$emit('command', $event)" popper-class="user-dropdown-popper">
+    <el-dropdown
+      trigger="click"
+      popper-class="user-dropdown-popper"
+      @command="$emit('command', $event)"
+    >
       <div class="user-profile">
-        <el-avatar 
-          :size="36" 
-          :src="userInfo?.avatar" 
-          class="user-avatar"
-        >
+        <el-avatar :size="36" :src="userInfo?.avatar" class="user-avatar">
           <span class="avatar-initials">{{ getUserInitials }}</span>
         </el-avatar>
         <div class="user-text">
@@ -40,16 +40,16 @@
 </template>
 
 <script setup lang="ts">
-import { UserFilled, Setting, SwitchButton, Lock, CaretBottom } from '@element-plus/icons-vue'
-import { useI18n } from 'vue-i18n'
-import { useTopbarUser } from '@/composables'
+import { UserFilled, Setting, SwitchButton, Lock, CaretBottom } from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n';
+import { useTopbarUser } from '@/composables';
 
 defineEmits<{
-  command: [command: string]
-}>()
+  command: [command: string];
+}>();
 
-const { t } = useI18n()
-const { userInfo, userDisplayName, getCurrentRoleName, getUserInitials } = useTopbarUser()
+const { t } = useI18n();
+const { userInfo, userDisplayName, getCurrentRoleName, getUserInitials } = useTopbarUser();
 </script>
 
 <style scoped lang="scss">
@@ -90,7 +90,7 @@ const { userInfo, userDisplayName, getCurrentRoleName, getUserInitials } = useTo
 
 // ==================== 用户头像 ====================
 .user-avatar {
-  background: linear-gradient(135deg, #409EFF, #36A3F7);
+  background: linear-gradient(135deg, #409eff, #36a3f7);
   color: white;
   box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
   border: 2px solid rgba(255, 255, 255, 0.2);
@@ -164,8 +164,9 @@ const { userInfo, userDisplayName, getCurrentRoleName, getUserInitials } = useTo
 :deep(.user-dropdown-popper),
 :deep(.el-popper.is-light.user-dropdown-popper) {
   border: none !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12),
-              0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.12),
+    0 4px 12px rgba(0, 0, 0, 0.08) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
   padding: 0 !important;
@@ -220,14 +221,14 @@ const { userInfo, userDisplayName, getCurrentRoleName, getUserInitials } = useTo
   cursor: pointer !important;
   width: 100% !important;
   box-sizing: border-box !important;
-  
+
   // 移除 Element Plus 默认的伪元素
   &::after,
   &::before {
     display: none !important;
     content: none !important;
   }
-  
+
   // 图标样式
   :deep(.el-icon) {
     margin-right: 8px !important;
@@ -240,7 +241,7 @@ const { userInfo, userDisplayName, getCurrentRoleName, getUserInitials } = useTo
     width: 16px !important;
     height: 16px !important;
   }
-  
+
   // 文字样式
   span {
     display: inline-block !important;
@@ -257,15 +258,15 @@ const { userInfo, userDisplayName, getCurrentRoleName, getUserInitials } = useTo
 :deep(.user-dropdown-menu .el-dropdown-menu__item:hover),
 :deep(.user-dropdown-popper .el-dropdown-menu__item:hover) {
   background: rgba(64, 158, 255, 0.08) !important;
-  color: #409EFF !important;
-  
+  color: #409eff !important;
+
   :deep(.el-icon) {
-    color: #409EFF !important;
+    color: #409eff !important;
     transform: scale(1.1) !important;
   }
-  
+
   span {
-    color: #409EFF !important;
+    color: #409eff !important;
   }
 }
 
@@ -281,7 +282,7 @@ const { userInfo, userDisplayName, getCurrentRoleName, getUserInitials } = useTo
   border-top: none !important;
   margin-top: 4px !important;
   padding-top: 10px !important;
-  
+
   // 分隔线
   &::before {
     content: '';
@@ -290,27 +291,27 @@ const { userInfo, userDisplayName, getCurrentRoleName, getUserInitials } = useTo
     left: 12px;
     right: 12px;
     height: 1px;
-    background: linear-gradient(90deg, 
+    background: linear-gradient(
+      90deg,
       transparent,
       rgba(0, 0, 0, 0.1) 20%,
       rgba(0, 0, 0, 0.1) 80%,
       transparent
     );
   }
-  
+
   // 危险操作使用红色
   &:hover {
     background: rgba(245, 108, 108, 0.1) !important;
-    color: #F56C6C !important;
-    
+    color: #f56c6c !important;
+
     :deep(.el-icon) {
-      color: #F56C6C !important;
+      color: #f56c6c !important;
     }
-    
+
     span {
-      color: #F56C6C !important;
+      color: #f56c6c !important;
     }
   }
 }
 </style>
-

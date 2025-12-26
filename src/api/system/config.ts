@@ -2,45 +2,47 @@ import { request } from '@/utils';
 import type { PaginationQuery, PaginationResponse } from '@/types';
 
 interface ConfigParam {
-    id?: number;
-    paramName: string;
-    paramKey: string;
-    paramValue: string;
-    type: 'Y' | 'N';
-    status: '0' | '1';
-    remark?: string;
-    createTime?: string;
-    updateTime?: string;
+  id?: number;
+  paramName: string;
+  paramKey: string;
+  paramValue: string;
+  type: 'Y' | 'N';
+  status: '0' | '1';
+  remark?: string;
+  createTime?: string;
+  updateTime?: string;
 }
 
 interface DictType {
-    id?: number;
-    dictName: string;
-    dictType: string;
-    status: '0' | '1';
-    remark?: string;
-    createTime?: string;
-    updateTime?: string;
+  id?: number;
+  dictName: string;
+  dictType: string;
+  status: '0' | '1';
+  remark?: string;
+  createTime?: string;
+  updateTime?: string;
 }
 
 interface DictData {
-    id?: number;
-    dictTypeId: number;
-    dictLabel: string;
-    dictValue: string;
-    dictSort: number;
-    status: '0' | '1';
-    remark?: string;
-    createTime?: string;
-    updateTime?: string;
+  id?: number;
+  dictTypeId: number;
+  dictLabel: string;
+  dictValue: string;
+  dictSort: number;
+  status: '0' | '1';
+  remark?: string;
+  createTime?: string;
+  updateTime?: string;
 }
 
 /**
  * 获取参数列表
  * @param params 查询参数
  */
-export const getParamList = (params?: Partial<PaginationQuery & { paramName: string; paramKey: string }>) => {
-    return request.get<PaginationResponse<ConfigParam>>('/system/config/params', { params });
+export const getParamList = (
+  params?: Partial<PaginationQuery & { paramName: string; paramKey: string }>
+) => {
+  return request.get<PaginationResponse<ConfigParam>>('/system/config/params', { params });
 };
 
 /**
@@ -48,7 +50,7 @@ export const getParamList = (params?: Partial<PaginationQuery & { paramName: str
  * @param data 参数数据
  */
 export const addParam = (data: Partial<ConfigParam>) => {
-    return request.post<void>('/system/config/param/add', data);
+  return request.post<void>('/system/config/param/add', data);
 };
 
 /**
@@ -57,7 +59,7 @@ export const addParam = (data: Partial<ConfigParam>) => {
  * @param data 参数数据
  */
 export const updateParam = (id: number, data: Partial<ConfigParam>) => {
-    return request.put<void>(`/system/config/param/update/${id}`, data);
+  return request.put<void>(`/system/config/param/update/${id}`, data);
 };
 
 /**
@@ -65,7 +67,7 @@ export const updateParam = (id: number, data: Partial<ConfigParam>) => {
  * @param id 参数ID
  */
 export const deleteParam = (id: number) => {
-    return request.del<void>(`/system/config/param/delete/${id}`);
+  return request.del<void>(`/system/config/param/delete/${id}`);
 };
 
 /**
@@ -73,7 +75,7 @@ export const deleteParam = (id: number) => {
  * @param ids 参数ID列表
  */
 export const batchDeleteParams = (ids: number[]) => {
-    return request.del<void>('/system/config/param/batch', { data: { ids } });
+  return request.del<void>('/system/config/param/batch', { data: { ids } });
 };
 
 /**
@@ -81,7 +83,7 @@ export const batchDeleteParams = (ids: number[]) => {
  * @param id 参数ID
  */
 export const getParamDetail = (id: number) => {
-    return request.get<ConfigParam>(`/system/config/param/detail/${id}`);
+  return request.get<ConfigParam>(`/system/config/param/detail/${id}`);
 };
 
 /**
@@ -89,15 +91,17 @@ export const getParamDetail = (id: number) => {
  * @param key 参数键名
  */
 export const getParamValue = (key: string) => {
-    return request.get<string>(`/system/config/param/value/${key}`);
+  return request.get<string>(`/system/config/param/value/${key}`);
 };
 
 /**
  * 获取字典类型列表
  * @param params 查询参数
  */
-export const getDictTypeList = (params?: Partial<PaginationQuery & { dictName: string; dictType: string }>) => {
-    return request.get<PaginationResponse<DictType>>('/system/config/dict/types', { params });
+export const getDictTypeList = (
+  params?: Partial<PaginationQuery & { dictName: string; dictType: string }>
+) => {
+  return request.get<PaginationResponse<DictType>>('/system/config/dict/types', { params });
 };
 
 /**
@@ -105,7 +109,7 @@ export const getDictTypeList = (params?: Partial<PaginationQuery & { dictName: s
  * @param data 字典类型数据
  */
 export const addDictType = (data: Partial<DictType>) => {
-    return request.post<void>('/system/config/dict/type/add', data);
+  return request.post<void>('/system/config/dict/type/add', data);
 };
 
 /**
@@ -114,7 +118,7 @@ export const addDictType = (data: Partial<DictType>) => {
  * @param data 字典类型数据
  */
 export const updateDictType = (id: number, data: Partial<DictType>) => {
-    return request.put<void>(`/system/config/dict/type/update/${id}`, data);
+  return request.put<void>(`/system/config/dict/type/update/${id}`, data);
 };
 
 /**
@@ -122,7 +126,7 @@ export const updateDictType = (id: number, data: Partial<DictType>) => {
  * @param id 字典类型ID
  */
 export const deleteDictType = (id: number) => {
-    return request.del<void>(`/system/config/dict/type/delete/${id}`);
+  return request.del<void>(`/system/config/dict/type/delete/${id}`);
 };
 
 /**
@@ -130,7 +134,7 @@ export const deleteDictType = (id: number) => {
  * @param dictType 字典类型
  */
 export const getDictDataList = (dictType: string) => {
-    return request.get<DictData[]>(`/system/config/dict/data/${dictType}`);
+  return request.get<DictData[]>(`/system/config/dict/data/${dictType}`);
 };
 
 /**
@@ -138,7 +142,7 @@ export const getDictDataList = (dictType: string) => {
  * @param data 字典数据
  */
 export const addDictData = (data: Partial<DictData>) => {
-    return request.post<void>('/system/config/dict/data/add', data);
+  return request.post<void>('/system/config/dict/data/add', data);
 };
 
 /**
@@ -147,7 +151,7 @@ export const addDictData = (data: Partial<DictData>) => {
  * @param data 字典数据
  */
 export const updateDictData = (id: number, data: Partial<DictData>) => {
-    return request.put<void>(`/system/config/dict/data/update/${id}`, data);
+  return request.put<void>(`/system/config/dict/data/update/${id}`, data);
 };
 
 /**
@@ -155,5 +159,5 @@ export const updateDictData = (id: number, data: Partial<DictData>) => {
  * @param id 字典数据ID
  */
 export const deleteDictData = (id: number) => {
-    return request.del<void>(`/system/config/dict/data/delete/${id}`);
-}; 
+  return request.del<void>(`/system/config/dict/data/delete/${id}`);
+};

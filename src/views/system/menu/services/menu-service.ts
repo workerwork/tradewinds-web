@@ -1,4 +1,4 @@
-import type { Menu, PaginationResponse } from '@/types';
+import type { Menu, PaginationResponse, PaginationQuery } from '@/types';
 import {
     getMenuList as fetchMenuList,
     getMenuTree as fetchMenuTree,
@@ -7,75 +7,41 @@ import {
     deleteMenu as deleteMenuApi,
     updateMenuStatus as changeMenuStatus
 } from '@/api/system/menu';
+import { logger, extractPaginationData } from '@/utils';
 
 /**
  * 获取菜单列表
  */
-export async function getMenuList(params: any) {
+export async function getMenuList(params: Partial<PaginationQuery & { name?: string; status?: number }>) {
     try {
         const response = await fetchMenuList(params);
 
-        let menus: Menu[] = [];
-        let totalCount = 0;
-
-        // 处理标准的分页响应格式
-        if (response && 'items' in response && Array.isArray(response.items)) {
-            menus = response.items;
-            totalCount = response.total;
-        }
-        // 处理其他可能的响应格式
-        else if (Array.isArray(response)) {
-            menus = response;
-            totalCount = response.length;
-        }
-        else if (response && typeof response === 'object') {
-            if ('data' in response && typeof response.data === 'object') {
-                const data = response.data as any;
-                if (Array.isArray(data)) {
-                    menus = data;
-                    totalCount = data.length;
-                } else if (data && typeof data === 'object') {
-                    if (Array.isArray(data.items)) {
-                        menus = data.items;
-                        totalCount = data.total || 0;
-                    } else if (Array.isArray(data.list)) {
-                        menus = data.list;
-                        totalCount = data.total || 0;
-                    } else if (Array.isArray(data.menus)) {
-                        menus = data.menus;
-                        totalCount = data.total || 0;
-                    }
-                }
-            } else if ('list' in response && Array.isArray(response.list)) {
-                menus = response.list;
-                totalCount = response.total || 0;
-            } else if ('records' in response && Array.isArray(response.records)) {
-                menus = response.records;
-                totalCount = response.total || 0;
-            } else if ('menus' in response && Array.isArray(response.menus)) {
-                menus = response.menus;
-                totalCount = response.total || 0;
-            }
-        }
+        // 使用统一的分页数据提取工具
+        const { items: menus, total: totalCount } = extractPaginationData<Menu>(response, {
+            category: 'MenuService',
+            logPrefix: 'MenuService - 提取菜单列表',
+            arrayFieldNames: ['menus']
+        });
 
         // 确保菜单数据格式一致
-        const normalizedMenus = menus.map((menu: any) => {
+        const normalizedMenus = menus.map((menu: unknown) => {
+            const menuObj = menu as Record<string, unknown>;
             return {
-                ...menu,
-                name: menu.name || menu.menuName || menu.menu_name || '',
-                path: menu.path || menu.menuPath || menu.menu_path || '',
-                component: menu.component || menu.menuComponent || menu.menu_component || '',
-                type: menu.type || menu.menuType || menu.menu_type || 'menu',
-                icon: menu.icon || menu.menuIcon || menu.menu_icon || '',
-                permission: menu.permission || menu.menuPermission || menu.menu_permission || '',
-                sort: menu.sort || menu.menuSort || menu.menu_sort || 0,
-                status: typeof menu.status === 'number' ? menu.status : parseInt(menu.status) || 0
+                ...menuObj,
+                name: (menuObj.name || menuObj.menuName || menuObj.menu_name || '') as string,
+                path: (menuObj.path || menuObj.menuPath || menuObj.menu_path || '') as string,
+                component: (menuObj.component || menuObj.menuComponent || menuObj.menu_component || '') as string,
+                type: (menuObj.type || menuObj.menuType || menuObj.menu_type || 'menu') as string,
+                icon: (menuObj.icon || menuObj.menuIcon || menuObj.menu_icon || '') as string,
+                permission: (menuObj.permission || menuObj.menuPermission || menuObj.menu_permission || '') as string,
+                sort: (typeof menuObj.sort === 'number' ? menuObj.sort : Number(menuObj.sort) || 0) as number,
+                status: typeof menuObj.status === 'number' ? menuObj.status : Number(menuObj.status) || 0
             };
         });
 
         return { menus: normalizedMenus, total: totalCount };
-    } catch (error) {
-        console.error('获取菜单列表失败:', error);
+    } catch (error: unknown) {
+        logger.error('获取菜单列表失败', error, 'MenuService');
         throw error;
     }
 }
@@ -90,12 +56,13 @@ export async function getMenuTree() {
         if (Array.isArray(response)) {
             return response;
         } else if (response && typeof response === 'object' && 'data' in response) {
-            return Array.isArray(response.data) ? response.data : [];
+            const responseObj = response as { data?: unknown };
+            return Array.isArray(responseObj.data) ? responseObj.data : [];
         }
 
         return [];
-    } catch (error) {
-        console.error('获取菜单树失败:', error);
+    } catch (error: unknown) {
+        logger.error('获取菜单树失败', error, 'MenuService');
         throw error;
     }
 }
@@ -103,14 +70,14 @@ export async function getMenuTree() {
 /**
  * 创建菜单
  */
-export async function createMenu(menuData: any) {
+export async function createMenu(menuData: Partial<Menu>) {
     return addMenu(menuData);
 }
 
 /**
  * 更新菜单
  */
-export async function updateMenu(id: string, menuData: any) {
+export async function updateMenu(id: string, menuData: Partial<Menu>) {
     return updateMenuApi(Number(id), menuData);
 }
 

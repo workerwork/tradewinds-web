@@ -1,12 +1,18 @@
 // 菜单调试工具
-export const debugMenuStructure = (menus: any[], level = 0) => {
+import { logger } from '@/utils/system/logger';
+import { DEBUG } from '@/config';
+import type { MenuItem } from '@/types/menu';
+
+export const debugMenuStructure = (menus: MenuItem[], level = 0) => {
+    if (!DEBUG) return;
+
     const indent = '  '.repeat(level);
 
-    console.log(`${indent}=== 菜单层级 ${level} ===`);
-    console.log(`${indent}菜单数量: ${menus.length}`);
+    logger.info(`${indent}=== 菜单层级 ${level} ===`, undefined, 'MenuDebug');
+    logger.info(`${indent}菜单数量: ${menus.length}`, undefined, 'MenuDebug');
 
     menus.forEach((menu, index) => {
-        console.log(`${indent}菜单 ${index + 1}:`, {
+        logger.info(`${indent}菜单 ${index + 1}:`, {
             id: menu.id,
             name: menu.name,
             title: menu.title,
@@ -15,7 +21,7 @@ export const debugMenuStructure = (menus: any[], level = 0) => {
             visible: menu.visible,
             hasChildren: !!(menu.children && menu.children.length > 0),
             childrenCount: menu.children ? menu.children.length : 0
-        });
+        }, 'MenuDebug');
 
         // 如果有子菜单，递归调试
         if (menu.children && menu.children.length > 0) {
@@ -25,10 +31,10 @@ export const debugMenuStructure = (menus: any[], level = 0) => {
 };
 
 // 检查菜单数据是否包含三级菜单
-export const checkMultiLevelMenus = (menus: any[]) => {
+export const checkMultiLevelMenus = (menus: MenuItem[]) => {
     let maxLevel = 0;
 
-    const checkLevel = (menuList: any[], currentLevel = 0) => {
+    const checkLevel = (menuList: MenuItem[], currentLevel = 0) => {
         maxLevel = Math.max(maxLevel, currentLevel);
 
         menuList.forEach(menu => {
@@ -40,20 +46,22 @@ export const checkMultiLevelMenus = (menus: any[]) => {
 
     checkLevel(menus);
 
-    console.log('菜单层级检查结果:', {
-        最大层级: maxLevel + 1, // +1 因为从0开始计算
-        是否有三级菜单: maxLevel >= 2,
-        菜单总数: countAllMenus(menus)
-    });
+    if (DEBUG) {
+        logger.info('菜单层级检查结果:', {
+            最大层级: maxLevel + 1, // +1 因为从0开始计算
+            是否有三级菜单: maxLevel >= 2,
+            菜单总数: countAllMenus(menus)
+        }, 'MenuDebug');
+    }
 
     return maxLevel + 1;
 };
 
 // 计算菜单总数
-export const countAllMenus = (menus: any[]): number => {
+export const countAllMenus = (menus: MenuItem[]): number => {
     let count = 0;
 
-    const countMenus = (menuList: any[]) => {
+    const countMenus = (menuList: MenuItem[]) => {
         menuList.forEach(menu => {
             count++;
             if (menu.children && menu.children.length > 0) {
@@ -67,7 +75,7 @@ export const countAllMenus = (menus: any[]): number => {
 };
 
 // 菜单数据规范化函数
-export const normalizeMenuData = (menus: any[]): any[] => {
+export const normalizeMenuData = (menus: unknown[]): MenuItem[] => {
     return menus.map(menu => {
         const normalizedMenu = {
             ...menu,
@@ -92,7 +100,7 @@ export const normalizeMenuData = (menus: any[]): any[] => {
 };
 
 // 检查菜单样式一致性
-export const checkMenuStyleConsistency = (menus: any[], level = 0) => {
+export const checkMenuStyleConsistency = (menus: MenuItem[], level = 0) => {
     const issues: string[] = [];
 
     menus.forEach((menu, index) => {
@@ -102,15 +110,17 @@ export const checkMenuStyleConsistency = (menus: any[], level = 0) => {
         const hasPath = !!menu.path;
         const hasComponent = !!menu.component;
 
-        console.log(`层级 ${level} - 菜单 "${menu.name}" 结构分析:`, {
-            索引: index,
-            有子菜单: hasChildren,
-            可见: isVisible,
-            有路径: hasPath,
-            有组件: hasComponent,
-            渲染类型: hasChildren ? 'el-sub-menu' : 'el-menu-item',
-            应用CSS类: `menu-level-${level}`
-        });
+        if (DEBUG) {
+            logger.info(`层级 ${level} - 菜单 "${menu.name}" 结构分析:`, {
+                索引: index,
+                有子菜单: hasChildren,
+                可见: isVisible,
+                有路径: hasPath,
+                有组件: hasComponent,
+                渲染类型: hasChildren ? 'el-sub-menu' : 'el-menu-item',
+                应用CSS类: `menu-level-${level}`
+            }, 'MenuDebug');
+        }
 
         // 递归检查子菜单
         if (hasChildren) {
@@ -120,21 +130,26 @@ export const checkMenuStyleConsistency = (menus: any[], level = 0) => {
     });
 
     if (level === 0 && issues.length > 0) {
-        console.warn('菜单样式一致性问题:', issues);
+        logger.warn('菜单样式一致性问题:', issues, 'MenuDebug');
     }
 
     return issues;
 };
 
 // 查找同级菜单中的样式差异
-export const findStyleDifferences = (menus: any[], level = 0) => {
+export const findStyleDifferences = (menus: MenuItem[], level = 0) => {
     const sameLevel = menus.filter(menu => menu.visible !== false);
 
     if (sameLevel.length < 2) {
         return []; // 少于2个菜单，无需比较
     }
 
-    const differences: any[] = [];
+    const differences: Array<{
+        level: number;
+        menu1: { name: string; hasChildren: boolean };
+        menu2: { name: string; hasChildren: boolean };
+        issue: string;
+    }> = [];
 
     for (let i = 0; i < sameLevel.length - 1; i++) {
         const menu1 = sameLevel[i];
@@ -162,14 +177,14 @@ export const findStyleDifferences = (menus: any[], level = 0) => {
     });
 
     if (level === 0 && differences.length > 0) {
-        console.warn('发现同级菜单样式差异:', differences);
+        logger.warn('发现同级菜单样式差异:', differences, 'MenuDebug');
     }
 
     return differences;
 };
 
-// 在浏览器控制台中暴露调试函数
-if (typeof window !== 'undefined') {
-    (window as any).debugMenus = debugMenuStructure;
-    (window as any).checkMenuLevels = checkMultiLevelMenus;
+// 在浏览器控制台中暴露调试函数（仅在开发环境）
+if (typeof window !== 'undefined' && DEBUG) {
+    (window as Record<string, unknown>).debugMenus = debugMenuStructure;
+    (window as Record<string, unknown>).checkMenuLevels = checkMultiLevelMenus;
 } 

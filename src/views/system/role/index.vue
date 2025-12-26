@@ -8,9 +8,12 @@
             v-model="searchForm.name"
             placeholder="请输入角色名称"
             clearable
+            trigger-on-focus
             popper-class="autocomplete-role-name-popper"
             :fetch-suggestions="queryNameSuggestions"
             @select="handleFieldSearch"
+            @input="handleFieldSearch"
+            @clear="handleFieldSearch"
             style="width: 200px;"
           />
         </el-form-item>
@@ -19,9 +22,12 @@
             v-model="searchForm.code"
             placeholder="请输入角色编码"
             clearable
+            trigger-on-focus
             popper-class="autocomplete-role-code-popper"
             :fetch-suggestions="queryCodeSuggestions"
             @select="handleFieldSearch"
+            @input="handleFieldSearch"
+            @clear="handleFieldSearch"
             style="width: 200px;"
           />
         </el-form-item>
@@ -112,7 +118,6 @@
           <template #default="{ row }">
             <el-button-group>
               <el-button 
-                v-if="isUUID(row.id)"
                 type="primary" 
                 link 
                 @click="handleEdit(row)"
@@ -152,7 +157,7 @@
         <div class="pagination-left">
           <div class="search-stats" v-if="hasSearchCriteria">
             <el-tag type="info" size="small">
-              搜索找到 {{ filteredRoleList.length }} 条结果
+              搜索找到 {{ total }} 条结果
             </el-tag>
           </div>
         </div>
@@ -160,11 +165,12 @@
           <el-pagination
             v-model:current-page="page"
             v-model:page-size="pageSize"
-            :total="filteredRoleList.length"
+            :total="total"
             :page-sizes="[10, 20, 50, 100]"
             size="small"
             background
             layout="total, sizes, prev, pager, next, jumper"
+            popper-class="pagination-sizes-popper"
             @size-change="handleSizeChange"
             @current-change="handleCurrentChange"
           />
@@ -173,21 +179,28 @@
     </el-card>
 
     <!-- 角色表单对话框 -->
-    <FormDialog
+    <el-dialog
       v-model="dialogVisible"
-      :dialog-type="dialogType"
       :title="dialogType === 'add' ? '新增角色' : '编辑角色'"
       width="600px"
-      :loading="submitting"
-      @confirm="handleSubmit"
-      @cancel="close"
+      :close-on-click-modal="false"
+      append-to-body
+      destroy-on-close
     >
       <RoleForm
         ref="roleFormRef"
         :model-value="form"
         :is-edit="dialogType === 'edit'"
       />
-    </FormDialog>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="close">取消</el-button>
+          <el-button type="primary" @click="handleSubmit" :loading="submitting">
+            确定
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
 
     <!-- 权限分配对话框 -->
     <el-dialog
@@ -195,6 +208,7 @@
       title="分配权限"
       width="600px"
       destroy-on-close
+      append-to-body
     >
       <PermissionAssignment
         ref="permissionAssignmentRef"
@@ -225,7 +239,6 @@ import { formatDateTime } from '@/utils';
 import { debounce } from 'lodash-es';
 import RoleForm from './components/RoleForm.vue';
 import PermissionAssignment from './components/PermissionAssignment.vue';
-import FormDialog from '@/components/common/FormDialog.vue';
 import { 
   getRoleList, 
   createRole, 
@@ -235,14 +248,10 @@ import {
   deleteRole
 } from './services/role-service';
 import { useMenuStore } from '@/stores/menu';
-import { useTablePersist, useSearchHistory, useDialog } from '@/composables'
-
-// 自动完成建议项类型
-interface AutocompleteSuggestion {
-  value: string;
-}
+import { useTablePersist, useTableSearch, useSearchHistory, useDialog, useErrorHandler, useAutocomplete } from '@/composables'
 
 const menuStore = useMenuStore();
+const { handleApiError, handleSilentError } = useErrorHandler();
 
 // 搜索表单
 const searchForm = reactive({
@@ -270,9 +279,6 @@ const defaultTableOptions = {
 }
 const tableOptions = useTablePersist('system-role', defaultTableOptions)
 
-// 搜索历史管理
-const { addSearchRecord } = useSearchHistory('role-search-history', 10)
-
 // 只保留一份分页和列声明
 const page = ref(tableOptions.value.page)
 const pageSize = ref(tableOptions.value.pageSize)
@@ -280,6 +286,8 @@ const allColumns = ref(tableOptions.value.allColumns)
 const total = ref(0)
 const loading = ref(false)
 const roleList = ref<Role[]>([])
+// 完整的角色列表（用于 autocomplete 建议，不受搜索条件影响）
+const allRolesForSuggestions = ref<Role[]>([])
 const roleFormRef = ref()
 const form = reactive({
   id: '' as string | number,
@@ -316,6 +324,66 @@ const {
   resetForm
 });
 
+// 搜索历史管理（用于记录搜索历史）
+const { addSearchRecord } = useSearchHistory('role-search-history', 10);
+
+// 使用统一的搜索过滤 composable
+const { handleFieldSearch, resetSearch, handleStatusChange, handleShowDeletedChange, fetchList } = useTableSearch({
+  searchForm,
+  page,
+  pageSize,
+  searchFields: {
+    name: 'name',
+    code: 'code'
+  },
+  handleError: (error, message) => handleApiError(error, message, 'RoleManagement'),
+  searchHistoryKey: 'role-search-history',
+  extractSearchKeywords: (form) => [
+    form.name,
+    form.code
+  ].filter(Boolean) as string[],
+  debounceTime: 200,
+  showDeleted: computed(() => searchForm.showDeleted),
+  onFetch: async (params) => {
+    loading.value = true;
+    try {
+      const { roles, total: totalCount } = await getRoleList(params);
+      roleList.value = roles;
+      total.value = totalCount;
+      // 空值保护（但保留 id 字段，因为可能是数字 0）
+      roleList.value = roleList.value.map(item => {
+        const itemAny = item as Record<string, unknown>;
+        Object.keys(itemAny).forEach(key => {
+          // id 字段特殊处理：如果是 0 或有效的数字，保留原值，不处理 null/undefined（让类型系统处理）
+          if (key === 'id') {
+            // id 是 number 类型，0 是有效值，不应该被替换
+            // 如果 id 是 null 或 undefined，保持原值，让类型系统处理
+            // 不在这里转换为空字符串，因为 id 应该是 number 类型
+          } else if (itemAny[key] == null) {
+            itemAny[key] = '';
+          }
+        });
+        // 兜底权限列表为数组，防止tooltipFormatter报错
+        if (!Array.isArray(item.permissions)) item.permissions = [];
+        return item;
+      });
+      
+      // 记录搜索历史
+      const searchKeywords = [
+        searchForm.name,
+        searchForm.code
+      ].filter(Boolean);
+      
+      if (searchKeywords.length > 0) {
+        const keyword = searchKeywords.join(' ');
+        addSearchRecord(keyword, total.value);
+      }
+    } finally {
+      loading.value = false;
+    }
+  }
+});
+
 watch([page, pageSize, allColumns], () => {
   tableOptions.value.page = page.value
   tableOptions.value.pageSize = pageSize.value
@@ -329,125 +397,50 @@ const hasSearchCriteria = computed(() => {
   return searchForm.name || searchForm.code || (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined)
 })
 
-// 实时过滤角色列表
-const filteredRoleList = computed(() => {
-  let filtered = roleList.value;
-  
-  // 角色名称过滤
-  if (searchForm.name) {
-    filtered = filtered.filter(role => 
-      role.name.toLowerCase().includes(searchForm.name.toLowerCase())
-    );
-  }
-  
-  // 角色编码过滤
-  if (searchForm.code) {
-    filtered = filtered.filter(role => 
-      role.code.toLowerCase().includes(searchForm.code.toLowerCase())
-    );
-  }
-  
-  // 状态过滤 - 由于状态过滤已经在后端处理，这里不需要再过滤
-  // 但为了保持一致性，仍然保留前端的过滤逻辑作为兜底
-  if (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined) {
-    const statusNum = typeof searchForm.status === 'string' ? parseInt(searchForm.status) : searchForm.status;
-    filtered = filtered.filter(role => role.status === statusNum);
-  }
-  
-  return filtered;
+// 使用服务端分页和搜索，不再需要本地过滤
+// 直接使用 roleList，因为搜索和过滤已经在服务端完成
+const filteredRoleList = computed(() => roleList.value);
+
+// 使用统一的 autocomplete composable
+const { createSuggestionQuery, fetchAllForSuggestions } = useAutocomplete<Role>({
+  allItemsForSuggestions: allRolesForSuggestions,
+  currentList: roleList,
+  fetchAllItems: async () => {
+    const params: Record<string, unknown> = {
+      page: 1,
+      pageSize: 500,
+      showDeleted: false
+    };
+    const result = await getRoleList(params);
+    const roles = result?.roles || [];
+    return roles.map((item: unknown) => {
+      const roleItem = item as Record<string, unknown>;
+      return {
+        id: roleItem.id,
+        name: String(roleItem.name || ''),
+        code: String(roleItem.code || ''),
+      } as Role;
+    });
+  },
+  maxSuggestions: 10
 });
 
-// 联想建议函数
-const queryNameSuggestions = (queryString: string, cb: (suggestions: AutocompleteSuggestion[]) => void) => {
-  const suggestions = roleList.value
-    .filter(role => role.name.toLowerCase().includes(queryString.toLowerCase()))
-    .map(role => ({ value: role.name }))
-    .slice(0, 10); // 限制建议数量
-  cb(suggestions);
+// 创建各个字段的建议查询函数
+const queryNameSuggestions = createSuggestionQuery('name');
+const queryCodeSuggestions = createSuggestionQuery('code');
+
+// 获取完整角色列表用于 autocomplete 建议（使用 composable 提供的方法）
+const fetchAllRolesForSuggestions = () => fetchAllForSuggestions();
+
+// 获取角色列表（使用服务端分页和搜索）
+// 注意：数据获取逻辑已移至 useTableSearch 的 onFetch 回调中
+const fetchRoleList = () => {
+  // 使用 useTableSearch 提供的 fetchList
+  fetchList();
 };
 
-const queryCodeSuggestions = (queryString: string, cb: (suggestions: AutocompleteSuggestion[]) => void) => {
-  const suggestions = roleList.value
-    .filter(role => role.code.toLowerCase().includes(queryString.toLowerCase()))
-    .map(role => ({ value: role.code }))
-    .slice(0, 10);
-  cb(suggestions);
-};
-
-// 获取角色列表
-const fetchRoleList = debounce(async () => {
-  try {
-    loading.value = true;
-    const params: Record<string, any> = {
-      page: 1, // 获取所有数据用于本地过滤
-      pageSize: 1000, // 获取大量数据
-      showDeleted: !!searchForm.showDeleted
-    };
-    
-    // 只有当状态有有效值时才传递状态参数
-    if (searchForm.status !== '' && searchForm.status != null && searchForm.status !== undefined) {
-      params.status = searchForm.status;
-    }
-    
-    const { roles, total: totalCount } = await getRoleList(params);
-    roleList.value = roles;
-    total.value = totalCount;
-    // 空值保护
-    roleList.value = roleList.value.map(item => {
-      Object.keys(item).forEach(key => {
-        if (item[key] == null) item[key] = '';
-      });
-      // 兜底权限列表为数组，防止tooltipFormatter报错
-      if (!Array.isArray(item.permissions)) item.permissions = [];
-      // id 不做 Number 转换，直接用原始值
-      // item.id = item.id ?? '';
-      return item;
-    });
-    
-    // 记录搜索历史（使用当前搜索的字段作为关键词）
-    const searchKeywords = [
-      searchForm.name,
-      searchForm.code
-    ].filter(Boolean)
-    
-    if (searchKeywords.length > 0) {
-      const keyword = searchKeywords.join(' ')
-      addSearchRecord(keyword, filteredRoleList.value.length)
-    }
-  } catch (error: any) {
-    ElMessage.error(error?.message || '获取角色列表失败，请稍后重试');
-    console.error('获取角色列表失败:', error);
-  } finally {
-    loading.value = false;
-  }
-}, 300);
-
-// 字段搜索（带防抖）
-const handleFieldSearch = debounce(() => {
-  // 状态变化时需要重新请求数据，其他字段变化时只需要前端过滤
-  // 这里暂时不重新请求，让用户手动刷新或通过其他方式触发
-}, 300);
-
-// 状态变化处理
-const handleStatusChange = () => {
-  // 状态变化时立即重新获取数据
-  fetchRoleList();
-};
-
-// 显示已删除角色开关变化处理
-const handleShowDeletedChange = () => {
-  // 显示已删除角色开关变化时立即重新获取数据
-  fetchRoleList();
-};
-
-// 重置搜索
-const resetSearch = () => {
-  Object.keys(searchForm).forEach(key => {
-    if (key === 'showDeleted') return; // 不重置显示已删除角色开关
-    searchForm[key] = '';
-  });
-  fetchRoleList();
-};
+// 注意：handleFieldSearch、resetSearch、handleStatusChange、handleShowDeletedChange
+// 已由 useTableSearch composable 提供，无需重复定义
 
 // 新增角色
 const handleAdd = () => {
@@ -462,7 +455,7 @@ const isUUID = (id: string | number | undefined): id is string => {
 interface PermissionTreeNode {
   id: string | number;
   children?: PermissionTreeNode[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // 过滤出叶子权限（用户实际选择的权限，不包括因为层级关系自动添加的父权限）
@@ -507,35 +500,72 @@ const getLeafPermissions = (allPermissionIds: (string | number)[], treeData: Per
 
 // 编辑角色
 const handleEdit = async (row: Role) => {
-  if (!isUUID(row.id)) {
-    ElMessage.error('角色ID无效，无法编辑');
-    return;
-  }
+  // 参考用户管理的实现：直接设置 form，不做复杂的 ID 验证
+  // 如果 ID 真的无效，会在提交时验证
+  Object.assign(form, {
+    ...row,
+    id: row.id, // 保持原始类型（string | number）
+    permissionIds: [] // 先清空，后面会设置
+  });
   
-  // 基本信息
-  form.id = row.id;
-  form.name = row.name;
-  form.code = row.code;
-  form.description = row.description;
-  form.status = row.status;
+  // 先打开弹窗，提升用户体验
+  openEdit(row);
   
   // 权限处理：先获取完整权限列表，然后过滤出叶子权限
   const allPermissionIds = Array.isArray(row.permissions) ? row.permissions.map(p => p.id as string | number) : [];
   
-  // 异步获取权限树数据并过滤叶子权限
+  // 异步获取权限树数据并过滤叶子权限（在弹窗打开后执行，不阻塞弹窗显示）
   try {
     const { getPermissionTree } = await import('./services/role-service');
-    const treeData = await getPermissionTree();
+    const treeData = await getPermissionTree() as PermissionTreeNode[];
     const leafPermissions = getLeafPermissions(allPermissionIds, treeData);
     
     // 过滤叶子权限，只显示用户选择的权限
     form.permissionIds = leafPermissions;
-  } catch (error) {
-    console.error('获取权限树失败，使用完整权限列表:', error);
+  } catch (error: unknown) {
+    handleSilentError(error, 'RoleManagement');
     form.permissionIds = allPermissionIds;
   }
+};
+
+// 验证角色ID是否有效
+const isValidRoleId = (id: string | number | null | undefined): boolean => {
+  if (id == null) return false;
+  if (typeof id === 'number' && isNaN(id)) return false;
+  if (typeof id === 'string' && id.trim() === '') return false;
+  return true;
+};
+
+// 规范化权限ID数组：过滤无效值，支持UUID字符串或数字
+const normalizePermissionIds = (ids: (string | number)[] | null | undefined): (string | number)[] => {
+  if (!ids || !Array.isArray(ids)) return [];
   
-  openEdit(row);
+  return ids
+    .filter(id => {
+      // 过滤掉 null、空字符串和 NaN
+      if (id == null || id === '') return false;
+      if (typeof id === 'number' && isNaN(id)) return false;
+      return true;
+    })
+    .map(id => {
+      // 如果是字符串且可以转换为有效数字，则转换；否则保持字符串（可能是UUID）
+      if (typeof id === 'string') {
+        const numId = Number(id);
+        return isNaN(numId) ? id : numId;
+      }
+      return id; // 数字直接返回
+    });
+};
+
+// 构建角色提交数据
+const buildRoleData = (roleForm: typeof form, permissionIds: (string | number)[]) => {
+  return {
+    name: (roleForm.name || '').trim(),
+    code: (roleForm.code || '').trim(),
+    description: (roleForm.description || '').trim(),
+    status: Number(roleForm.status) || 0,
+    permissionIds: normalizePermissionIds(permissionIds)
+  };
 };
 
 // 提交表单
@@ -543,57 +573,60 @@ const handleSubmit = async () => {
   if (!roleFormRef.value) return;
   
   // 获取用户实际选择的权限ID（不包含自动添加的父权限）
-  let selectedPermissionIds = Array.from(roleFormRef.value.getPermissionIds ? roleFormRef.value.getPermissionIds() : []) as (string | number)[];
+  const selectedPermissionIds = Array.from(
+    roleFormRef.value.getPermissionIds?.() || []
+  ) as (string | number)[];
   
   // 获取包含父权限的完整权限ID列表（用于提交）
-  let permissionIdsWithParents = selectedPermissionIds;
-  if (roleFormRef.value.getPermissionIdsWithParents) {
-    permissionIdsWithParents = roleFormRef.value.getPermissionIdsWithParents();
-    // 提交时使用包含父权限的完整列表
+  const permissionIdsWithParents = roleFormRef.value.getPermissionIdsWithParents?.() || selectedPermissionIds;
+  
+  // 表单显示用户选择的权限
+  if (roleFormRef.value.form) {
+    roleFormRef.value.form.permissionIds = selectedPermissionIds;
   }
   
-  if (roleFormRef.value.form) {
-    roleFormRef.value.form.permissionIds = selectedPermissionIds; // 表单仍然显示用户选择的权限
-  }
   const valid = await roleFormRef.value.validate();
   if (!valid) return;
 
   setSubmitting(true);
   try {
-    let roleData = { ...roleFormRef.value.form };
-    roleData.permissionIds = permissionIdsWithParents; // 提交时使用包含父权限的完整列表
+    const roleForm = roleFormRef.value.form;
+    
     if (dialogType.value === 'add') {
-      // 新增时不携带id
-      delete roleData.id;
-      // status 转 number，防止后端类型不符
-      roleData.status = Number(roleData.status);
-      const res = await createRole(roleData) as unknown as { id: string | number };
+      // 新增角色
+      const roleData = buildRoleData(roleForm, permissionIdsWithParents);
+      await createRole(roleData);
       ElMessage.success('添加成功');
     } else {
-      // 编辑时校验 id
-      if (!isUUID(roleData.id)) {
+      // 编辑角色：校验ID
+      const roleId = roleForm.id;
+      if (!roleId || (typeof roleId === 'string' && roleId.trim() === '')) {
         ElMessage.error('角色ID无效，无法编辑');
         setSubmitting(false);
         return;
       }
-      // status 转 number，防止后端类型不符
-      roleData.status = Number(roleData.status);
-      await updateRole(roleData.id, roleData);
+      
+      // 编辑时，id 已经在 URL 中，不需要在 body 中传递
+      const roleData = buildRoleData(roleForm, permissionIdsWithParents);
+      await updateRole(String(roleId), roleData);
       ElMessage.success('更新成功');
     }
     close();
     fetchRoleList();
+    // 角色创建或更新后，延迟更新建议列表（不阻塞主流程）
+    setTimeout(() => {
+      fetchAllRolesForSuggestions();
+    }, 100);
     
     // 角色信息变更后刷新菜单栏
     try {
       await menuStore.getUserMenus();
     } catch (error) {
       // 菜单刷新失败不影响主流程，静默处理
-      console.error('角色变更后菜单刷新失败:', error);
+      handleSilentError(error, 'RoleManagement');
     }
-  } catch (error: any) {
-    ElMessage.error(error?.message || '操作失败，请稍后重试');
-    console.error('提交失败:', error);
+  } catch (error: unknown) {
+    handleApiError(error, '操作失败，请稍后重试', 'RoleManagement');
   } finally {
     setSubmitting(false);
   }
@@ -601,6 +634,11 @@ const handleSubmit = async () => {
 
 // 切换角色状态
 const handleToggleStatus = async (row: Role) => {
+  if (!isValidRoleId(row.id)) {
+    ElMessage.error('角色ID无效，无法切换状态');
+    return;
+  }
+  
   try {
     await ElMessageBox.confirm(
       '确定要' + (row.status === 0 ? '禁用' : '启用') + '该角色吗？',
@@ -612,10 +650,9 @@ const handleToggleStatus = async (row: Role) => {
     await updateRoleStatus(String(row.id), row.status === 0 ? 1 : 0);
     ElMessage.success((row.status === 0 ? '禁用' : '启用') + '成功');
     fetchRoleList();
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error !== 'cancel') {
-      ElMessage.error(error?.message || '操作失败，请稍后重试');
-      console.error('更新角色状态失败:', error);
+      handleApiError(error, '操作失败，请稍后重试', 'RoleManagement');
     }
   }
 };
@@ -629,14 +666,14 @@ const handlePermission = async (row: Role) => {
   
   try {
     const { getPermissionTree } = await import('./services/role-service');
-    const treeData = await getPermissionTree();
+    const treeData = await getPermissionTree() as PermissionTreeNode[];
     const leafPermissions = getLeafPermissions(allPermissionIds, treeData);
     
     // 过滤叶子权限，只显示用户选择的权限
     
     checkedPermissions.value = leafPermissions;
-  } catch (error) {
-    console.error('获取权限树失败，使用完整权限列表:', error);
+  } catch (error: unknown) {
+    handleSilentError(error, 'RoleManagement');
     checkedPermissions.value = allPermissionIds;
   }
   
@@ -659,11 +696,10 @@ const handlePermissionSubmit = async () => {
       await menuStore.getUserMenus();
     } catch (error) {
       // 菜单刷新失败不影响主流程，静默处理
-      console.error('角色权限变更后菜单刷新失败:', error);
+      handleSilentError(error, 'RoleManagement');
     }
-  } catch (error: any) {
-    ElMessage.error(error?.message || '权限分配失败，请稍后重试');
-    console.error('权限分配失败:', error);
+  } catch (error: unknown) {
+    handleApiError(error, '权限分配失败，请稍后重试', 'RoleManagement');
   } finally {
     submitting.value = false;
   }
@@ -682,14 +718,20 @@ const handleDelete = async (row: Role) => {
     await deleteRole(String(row.id)); // 物理删除
     ElMessage.success('删除成功');
     fetchRoleList();
-  } catch (error) {
-    ElMessage.error('删除失败');
-    console.error('删除角色失败:', error);
+  } catch (error: unknown) {
+    if (error !== 'cancel') {
+      handleApiError(error, '删除失败', 'RoleManagement');
+    }
   }
 };
 
 // 新增软删除和物理删除方法
 const handleSoftDelete = (row: Role) => {
+  if (!isValidRoleId(row.id)) {
+    ElMessage.error('角色ID无效，无法删除');
+    return;
+  }
+  
   ElMessageBox.confirm(
     '确定要删除该角色吗？（可在回收站彻底删除）',
     '提示',
@@ -705,11 +747,18 @@ const handleSoftDelete = (row: Role) => {
       ElMessage.success('已移入回收站');
       fetchRoleList();
     } catch (error) {
-      ElMessage.error('删除失败');
+      handleApiError(error, '删除失败，请稍后重试', 'RoleManagement');
     }
+  }).catch(() => {
+    // 用户取消操作，静默处理
   });
 };
 const handlePhysicalDelete = (row: Role) => {
+  if (!isValidRoleId(row.id)) {
+    ElMessage.error('角色ID无效，无法删除');
+    return;
+  }
+  
   ElMessageBox.confirm(
     '此操作将彻底删除该角色，无法恢复，是否继续？',
     '警告',
@@ -725,23 +774,40 @@ const handlePhysicalDelete = (row: Role) => {
       ElMessage.success('已彻底删除');
       fetchRoleList();
     } catch (error) {
-      ElMessage.error('彻底删除失败');
+      handleApiError(error, '彻底删除失败，请稍后重试', 'RoleManagement');
     }
+  }).catch(() => {
+    // 用户取消操作，静默处理
   });
 };
 
 // 分页相关方法
 const handleSizeChange = (newSize: number) => {
-  page.value = 1;
+  pageSize.value = newSize;
+  page.value = 1; // 改变每页数量时重置到第一页
   fetchRoleList();
 };
 
 const handleCurrentChange = (newPage: number) => {
+  page.value = newPage;
   fetchRoleList();
 };
 
-onMounted(() => {
-  fetchRoleList();
+onMounted(async () => {
+  // 先加载角色列表（不阻塞页面加载）
+  await fetchRoleList();
+  
+  // 延迟加载建议列表，使用 requestIdleCallback 在空闲时加载
+  // 优化：减少 timeout，让建议列表更快可用
+  if ('requestIdleCallback' in window) {
+    (window as unknown as { requestIdleCallback: (callback: IdleRequestCallback, options?: { timeout?: number }) => number }).requestIdleCallback(() => {
+      fetchAllRolesForSuggestions();
+    }, { timeout: 500 }); // 从 2000ms 减少到 500ms
+  } else {
+    setTimeout(() => {
+      fetchAllRolesForSuggestions();
+    }, 300); // 从 500ms 减少到 300ms
+  }
 });
 </script>
 
@@ -803,6 +869,24 @@ onMounted(() => {
 
 :deep(.el-select .el-input__inner) {
   text-align: center;
+}
+
+// ==================== 分页组件样式穿透 ====================
+// 分页下拉框（参考状态选择器的样式设置方式）
+:deep(.pagination-sizes-popper.el-popper.is-light) {
+  min-width: 110px !important;
+  width: 110px !important;
+  max-width: 110px !important;
+  text-align: center;
+}
+
+:deep(.pagination-sizes-popper .el-select-dropdown__item) {
+  min-width: 110px !important;
+  width: 110px !important;
+  max-width: 110px !important;
+  text-align: center !important;
+  padding: 0 20px !important;
+  justify-content: center !important;
 }
 
 // ==================== 自动完成下拉菜单 ====================

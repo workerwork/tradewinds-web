@@ -1,4 +1,4 @@
-import type { PaginationResponse } from '@/types';
+import type { PaginationResponse, PaginationQuery } from '@/types';
 import {
     getParamList as fetchParamList,
     addParam,
@@ -15,6 +15,7 @@ import {
     updateDictData as updateDictDataApi,
     deleteDictData as deleteDictDataApi
 } from '@/api/system/config';
+import { logger, extractPaginationData } from '@/utils';
 
 interface ConfigParam {
     id?: number;
@@ -53,56 +54,20 @@ interface DictData {
 /**
  * 获取参数列表
  */
-export async function getParamList(params: any) {
+export async function getParamList(params: Partial<PaginationQuery & { paramName?: string; paramKey?: string; status?: string }>) {
     try {
         const response = await fetchParamList(params);
 
-        let params: ConfigParam[] = [];
-        let totalCount = 0;
+        // 使用统一的分页数据提取工具
+        const { items: paramsList, total: totalCount } = extractPaginationData<ConfigParam>(response, {
+            category: 'ConfigService',
+            logPrefix: 'ConfigService - 提取参数列表',
+            arrayFieldNames: ['params']
+        });
 
-        // 处理标准的分页响应格式
-        if (response && 'items' in response && Array.isArray(response.items)) {
-            params = response.items;
-            totalCount = response.total;
-        }
-        // 处理其他可能的响应格式
-        else if (Array.isArray(response)) {
-            params = response;
-            totalCount = response.length;
-        }
-        else if (response && typeof response === 'object') {
-            if ('data' in response && typeof response.data === 'object') {
-                const data = response.data as any;
-                if (Array.isArray(data)) {
-                    params = data;
-                    totalCount = data.length;
-                } else if (data && typeof data === 'object') {
-                    if (Array.isArray(data.items)) {
-                        params = data.items;
-                        totalCount = data.total || 0;
-                    } else if (Array.isArray(data.list)) {
-                        params = data.list;
-                        totalCount = data.total || 0;
-                    } else if (Array.isArray(data.params)) {
-                        params = data.params;
-                        totalCount = data.total || 0;
-                    }
-                }
-            } else if ('list' in response && Array.isArray(response.list)) {
-                params = response.list;
-                totalCount = response.total || 0;
-            } else if ('records' in response && Array.isArray(response.records)) {
-                params = response.records;
-                totalCount = response.total || 0;
-            } else if ('params' in response && Array.isArray(response.params)) {
-                params = response.params;
-                totalCount = response.total || 0;
-            }
-        }
-
-        return { params, total: totalCount };
-    } catch (error) {
-        console.error('获取参数列表失败:', error);
+        return { params: paramsList, total: totalCount };
+    } catch (error: unknown) {
+        logger.error('获取参数列表失败', error, 'ConfigService');
         throw error;
     }
 }
@@ -146,56 +111,20 @@ export async function getParamValue(key: string) {
 /**
  * 获取字典类型列表
  */
-export async function getDictTypeList(params: any) {
+export async function getDictTypeList(params: Partial<PaginationQuery & { dictName?: string; dictType?: string; status?: string }>) {
     try {
         const response = await fetchDictTypeList(params);
 
-        let dictTypes: DictType[] = [];
-        let totalCount = 0;
-
-        // 处理标准的分页响应格式
-        if (response && 'items' in response && Array.isArray(response.items)) {
-            dictTypes = response.items;
-            totalCount = response.total;
-        }
-        // 处理其他可能的响应格式
-        else if (Array.isArray(response)) {
-            dictTypes = response;
-            totalCount = response.length;
-        }
-        else if (response && typeof response === 'object') {
-            if ('data' in response && typeof response.data === 'object') {
-                const data = response.data as any;
-                if (Array.isArray(data)) {
-                    dictTypes = data;
-                    totalCount = data.length;
-                } else if (data && typeof data === 'object') {
-                    if (Array.isArray(data.items)) {
-                        dictTypes = data.items;
-                        totalCount = data.total || 0;
-                    } else if (Array.isArray(data.list)) {
-                        dictTypes = data.list;
-                        totalCount = data.total || 0;
-                    } else if (Array.isArray(data.dictTypes)) {
-                        dictTypes = data.dictTypes;
-                        totalCount = data.total || 0;
-                    }
-                }
-            } else if ('list' in response && Array.isArray(response.list)) {
-                dictTypes = response.list;
-                totalCount = response.total || 0;
-            } else if ('records' in response && Array.isArray(response.records)) {
-                dictTypes = response.records;
-                totalCount = response.total || 0;
-            } else if ('dictTypes' in response && Array.isArray(response.dictTypes)) {
-                dictTypes = response.dictTypes;
-                totalCount = response.total || 0;
-            }
-        }
+        // 使用统一的分页数据提取工具
+        const { items: dictTypes, total: totalCount } = extractPaginationData<DictType>(response, {
+            category: 'ConfigService',
+            logPrefix: 'ConfigService - 提取字典类型列表',
+            arrayFieldNames: ['dictTypes']
+        });
 
         return { dictTypes, total: totalCount };
-    } catch (error) {
-        console.error('获取字典类型列表失败:', error);
+    } catch (error: unknown) {
+        logger.error('获取字典类型列表失败', error, 'ConfigService');
         throw error;
     }
 }
@@ -231,12 +160,13 @@ export async function getDictDataList(dictType: string) {
         if (Array.isArray(response)) {
             return response;
         } else if (response && typeof response === 'object' && 'data' in response) {
-            return Array.isArray(response.data) ? response.data : [];
+            const responseObj = response as { data?: unknown };
+            return Array.isArray(responseObj.data) ? responseObj.data : [];
         }
 
         return [];
-    } catch (error) {
-        console.error('获取字典数据列表失败:', error);
+    } catch (error: unknown) {
+        logger.error('获取字典数据列表失败', error, 'ConfigService');
         throw error;
     }
 }

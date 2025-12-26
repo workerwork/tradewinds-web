@@ -1,4 +1,5 @@
 import { ref, watch } from 'vue'
+import { logger } from '@/utils'
 
 interface SearchHistoryItem {
   keyword: string
@@ -16,8 +17,8 @@ export function useSearchHistory(storageKey: string, maxHistory: number = 10) {
       if (saved) {
         searchHistory.value = JSON.parse(saved)
       }
-    } catch (error) {
-      console.warn('加载搜索历史失败:', error)
+    } catch (error: unknown) {
+      logger.warn('加载搜索历史失败', error, 'SearchHistory')
     }
   }
 
@@ -25,8 +26,8 @@ export function useSearchHistory(storageKey: string, maxHistory: number = 10) {
   const saveHistory = () => {
     try {
       localStorage.setItem(storageKey, JSON.stringify(searchHistory.value))
-    } catch (error) {
-      console.warn('保存搜索历史失败:', error)
+    } catch (error: unknown) {
+      logger.warn('保存搜索历史失败', error, 'SearchHistory')
     }
   }
 

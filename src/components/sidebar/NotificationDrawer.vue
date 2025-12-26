@@ -20,7 +20,7 @@
           全部标记为已读
         </el-button>
       </div>
-      
+
       <div class="notification-list">
         <NotificationItem
           v-for="notification in notifications"
@@ -29,7 +29,7 @@
           @click="handleMarkAsRead(notification)"
         />
       </div>
-      
+
       <div v-if="notifications.length === 0" class="empty-notifications">
         <el-icon><Bell /></el-icon>
         <p>暂无消息通知</p>
@@ -39,42 +39,37 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Bell } from '@element-plus/icons-vue'
-import { useNotifications } from '@/composables'
-import NotificationItem from './NotificationItem.vue'
-import { DRAWER, LAYOUT } from '@/constants'
+import { computed } from 'vue';
+import { Bell } from '@element-plus/icons-vue';
+import { useNotifications } from '@/composables';
+import NotificationItem from './NotificationItem.vue';
+import { DRAWER, LAYOUT } from '@/constants';
 
 const props = defineProps<{
-  modelValue: boolean
-}>()
+  modelValue: boolean;
+}>();
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
-}>()
+  'update:modelValue': [value: boolean];
+}>();
 
 const drawerVisible = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
-})
+  set: value => emit('update:modelValue', value),
+});
 
-const {
-  notifications,
-  unreadCount,
-  markAsRead,
-  markAllAsRead
-} = useNotifications()
+const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
 
-const drawerSize = DRAWER.NOTIFICATION.SIZE
-const zIndex = DRAWER.NOTIFICATION.Z_INDEX
+const drawerSize = DRAWER.NOTIFICATION.SIZE;
+const zIndex = DRAWER.NOTIFICATION.Z_INDEX;
 
 const handleMarkAsRead = (notification: any) => {
-  markAsRead(notification)
-}
+  markAsRead(notification);
+};
 
 const handleMarkAllAsRead = () => {
-  markAllAsRead()
-}
+  markAllAsRead();
+};
 </script>
 
 <style scoped lang="scss">
@@ -148,6 +143,4 @@ const handleMarkAllAsRead = () => {
 :deep(.el-drawer__body) {
   padding: 0;
 }
-
 </style>
-

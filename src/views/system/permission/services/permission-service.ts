@@ -7,13 +7,14 @@ import {
     getPermissionTree as fetchPermissionTree,
     getRolePermissions as fetchRolePermissions
 } from '@/api/system/permission';
+import { logger } from '@/utils';
 
 interface ApiResponse<T> {
     code?: number;
     success?: boolean;
     message?: string | null;
     data?: T;
-    permissions?: any[];
+    permissions?: unknown[];
     total?: number;
 }
 
@@ -32,8 +33,8 @@ export async function getPermissionList(params: Partial<PaginationQuery & { name
         const response = await fetchPermissionList(params);
         // 直接返回 response，保留 permissions 和 total 字段
         return response;
-    } catch (error) {
-        console.error('获取权限列表失败:', error);
+    } catch (error: unknown) {
+        logger.error('获取权限列表失败', error, 'PermissionService');
         throw error;
     }
 }
@@ -62,13 +63,13 @@ export async function deletePermission(id: string): Promise<void> {
 /**
  * 获取权限树
  */
-export async function getPermissionTree(): Promise<any> {
+export async function getPermissionTree(): Promise<unknown> {
     return fetchPermissionTree();
 }
 
 /**
  * 获取角色权限
  */
-export async function getRolePermissions(roleId: string): Promise<any> {
+export async function getRolePermissions(roleId: string): Promise<unknown> {
     return fetchRolePermissions(Number(roleId));
 } 

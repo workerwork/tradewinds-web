@@ -186,7 +186,24 @@ const dictList = ref([
 // 字典项管理
 const itemsDialogVisible = ref(false);
 const itemsLoading = ref(false);
-const currentDict = ref<any>(null);
+// 字典类型定义
+interface DictType {
+  name: string;
+  code: string;
+  description?: string;
+  [key: string]: unknown;
+}
+
+// 字典项类型定义
+interface DictItem {
+  label: string;
+  value: string;
+  sort: number;
+  status: boolean;
+  [key: string]: unknown;
+}
+
+const currentDict = ref<DictType | null>(null);
 const dictItemsList = ref([
   {
     label: '男',
@@ -244,13 +261,13 @@ const handleAdd = () => {
   dialogVisible.value = true;
 };
 
-const handleEdit = (row: any) => {
+const handleEdit = (row: DictType) => {
   dialogType.value = 'edit';
   form.value = { ...row };
   dialogVisible.value = true;
 };
 
-const handleDelete = (row: any) => {
+const handleDelete = (row: DictType) => {
   ElMessageBox.confirm(
     t('common.deleteConfirm'),
     t('common.warning'),
@@ -276,7 +293,7 @@ const handleSubmit = async () => {
 };
 
 // 字典项操作
-const handleViewItems = (row: any) => {
+const handleViewItems = (row: DictType) => {
   currentDict.value = row;
   itemsDialogVisible.value = true;
 };
@@ -292,13 +309,13 @@ const handleAddItem = () => {
   itemDialogVisible.value = true;
 };
 
-const handleEditItem = (row: any) => {
+const handleEditItem = (row: DictItem) => {
   itemDialogType.value = 'edit';
   itemForm.value = { ...row };
   itemDialogVisible.value = true;
 };
 
-const handleDeleteItem = (row: any) => {
+const handleDeleteItem = (row: DictItem) => {
   ElMessageBox.confirm(
     t('common.deleteConfirm'),
     t('common.warning'),

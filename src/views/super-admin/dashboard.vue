@@ -1,5 +1,9 @@
 <template>
-  <div class="super-admin-dashboard-container" v-loading="loading" element-loading-text="加载仪表盘数据中...">
+  <div
+    v-loading="loading"
+    class="super-admin-dashboard-container"
+    element-loading-text="加载仪表盘数据中..."
+  >
     <el-card class="page-header">
       <div class="header-content">
         <div class="header-text">
@@ -10,7 +14,7 @@
           <p class="page-description">欢迎使用超级管理员功能，您拥有最高级别的系统权限。</p>
         </div>
         <div class="header-actions">
-          <el-button :icon="Refresh" circle @click="getSystemInfo" :loading="loading" />
+          <el-button :icon="Refresh" circle :loading="loading" @click="getSystemInfo" />
         </div>
       </div>
     </el-card>
@@ -121,7 +125,12 @@
               <el-icon class="btn-icon"><Download /></el-icon>
               <span class="btn-text">系统备份</span>
             </el-button>
-            <el-button type="warning" size="large" class="action-btn" @click="handleSystemMaintenance">
+            <el-button
+              type="warning"
+              size="large"
+              class="action-btn"
+              @click="handleSystemMaintenance"
+            >
               <el-icon class="btn-icon"><Tools /></el-icon>
               <span class="btn-text">系统维护</span>
             </el-button>
@@ -147,18 +156,17 @@
           </span>
         </div>
       </template>
-      <el-table 
-        :data="recentActivities" 
-        style="width: 100%"
-        :empty-text="'暂无活动记录'"
-        stripe
-      >
+      <el-table :data="recentActivities" style="width: 100%" :empty-text="'暂无活动记录'" stripe>
         <el-table-column prop="time" label="时间" width="180" sortable />
         <el-table-column prop="user" label="用户" width="120" />
         <el-table-column prop="action" label="操作" min-width="200" show-overflow-tooltip />
         <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="scope">
-            <el-tag :type="scope.row.status === '成功' ? 'success' : 'danger'" effect="dark" size="small">
+            <el-tag
+              :type="scope.row.status === '成功' ? 'success' : 'danger'"
+              effect="dark"
+              size="small"
+            >
               {{ scope.row.status }}
             </el-tag>
           </template>
@@ -171,10 +179,23 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { 
-  DataBoard, Refresh, UserFilled, ShoppingCart, Lock, DataAnalysis, 
-  Download, Tools, Document, Warning, Monitor, Operation, Clock,
-  User, Cpu, Connection
+import {
+  DataBoard,
+  Refresh,
+  UserFilled,
+  ShoppingCart,
+  Lock,
+  DataAnalysis,
+  Download,
+  Tools,
+  Document,
+  Warning,
+  Monitor,
+  Operation,
+  Clock,
+  User,
+  Cpu,
+  Connection,
 } from '@element-plus/icons-vue';
 import { getSuperAdminDashboard, type SuperAdminDashboard } from '@/api/auth';
 import { useSuperAdminAccess } from '@/composables';
@@ -191,26 +212,28 @@ const memoryUsage = ref(0);
 const totalUsers = ref(0);
 const totalOrders = ref(0);
 const totalRevenue = ref(0);
-const recentActivities = ref<Array<{
-  time: string;
-  user: string;
-  action: string;
-  status: string;
-}>>([]);
+const recentActivities = ref<
+  Array<{
+    time: string;
+    user: string;
+    action: string;
+    status: string;
+  }>
+>([]);
 
 // 获取系统信息
 const getSystemInfo = async () => {
   if (!checkAccess()) {
     return;
   }
-  
+
   loading.value = true;
   try {
     const response = await getSuperAdminDashboard();
-    
+
     // 处理API响应
-    const data = response.data || response as SuperAdminDashboard;
-    
+    const data = response.data || (response as SuperAdminDashboard);
+
     // 更新系统统计
     if (data.systemStats) {
       totalUsers.value = data.systemStats.totalUsers;
@@ -218,25 +241,25 @@ const getSystemInfo = async () => {
       totalOrders.value = data.systemStats.totalOrders;
       totalRevenue.value = data.systemStats.totalRevenue;
     }
-    
+
     // 更新系统健康状态
     if (data.systemHealth) {
       cpuUsage.value = data.systemHealth.cpu;
       memoryUsage.value = data.systemHealth.memory;
     }
-    
+
     // 更新最近活动
     if (data.recentActivities) {
       recentActivities.value = data.recentActivities.map(activity => ({
         time: formatDateTime(activity.timestamp) || activity.timestamp,
         user: activity.user,
         action: activity.action,
-        status: '成功' // 可以根据实际API返回的状态进行映射
+        status: '成功', // 可以根据实际API返回的状态进行映射
       }));
     }
   } catch (error: unknown) {
     ElMessage.error((error as { message?: string })?.message || '获取仪表盘数据失败');
-    
+
     // 使用默认数据
     onlineUsers.value = 0;
     cpuUsage.value = 0;
@@ -246,8 +269,8 @@ const getSystemInfo = async () => {
         time: formatDateTime(new Date().toISOString()),
         user: 'system',
         action: '数据加载失败',
-        status: '失败'
-      }
+        status: '失败',
+      },
     ];
   } finally {
     loading.value = false;
@@ -259,15 +282,11 @@ const getSystemInfo = async () => {
 // 处理系统备份
 const handleSystemBackup = async () => {
   await executeWithPermission(async () => {
-    await ElMessageBox.confirm(
-      '确定要执行系统备份吗？此操作可能需要较长时间。',
-      '系统备份',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    );
+    await ElMessageBox.confirm('确定要执行系统备份吗？此操作可能需要较长时间。', '系统备份', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    });
     ElMessage.success('系统备份已开始执行');
   }, '系统备份操作失败');
 };
@@ -275,15 +294,11 @@ const handleSystemBackup = async () => {
 // 处理系统维护
 const handleSystemMaintenance = async () => {
   await executeWithPermission(async () => {
-    await ElMessageBox.confirm(
-      '系统维护模式将暂停所有用户访问，确定要启用吗？',
-      '系统维护',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    );
+    await ElMessageBox.confirm('系统维护模式将暂停所有用户访问，确定要启用吗？', '系统维护', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    });
     ElMessage.success('系统维护模式已启用');
   }, '系统维护操作失败');
 };
@@ -300,15 +315,11 @@ const handleSystemLogs = () => {
 // 处理紧急模式
 const handleEmergencyMode = async () => {
   await executeWithPermission(async () => {
-    await ElMessageBox.confirm(
-      '紧急模式将立即终止所有非关键操作，确定要启用吗？',
-      '紧急模式',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'error',
-      }
-    );
+    await ElMessageBox.confirm('紧急模式将立即终止所有非关键操作，确定要启用吗？', '紧急模式', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'error',
+    });
     ElMessage.error('紧急模式已启用');
   }, '紧急模式操作失败');
 };
@@ -590,4 +601,4 @@ onMounted(() => {
     }
   }
 }
-</style> 
+</style>

@@ -4,7 +4,7 @@
  * @returns {boolean}
  */
 export function isExternal(path: string): boolean {
-    return /^(https?:|mailto:|tel:)/.test(path);
+  return /^(https?:|mailto:|tel:)/.test(path);
 }
 
 /**
@@ -13,7 +13,7 @@ export function isExternal(path: string): boolean {
  * @returns {boolean}
  */
 export function validUsername(str: string): boolean {
-    return str.length >= 3 && str.length <= 20;
+  return str.length >= 3 && str.length <= 20;
 }
 
 /**
@@ -22,7 +22,7 @@ export function validUsername(str: string): boolean {
  * @returns {boolean}
  */
 export function validPassword(str: string): boolean {
-    return str.length >= 6;
+  return str.length >= 6;
 }
 
 /**
@@ -31,7 +31,7 @@ export function validPassword(str: string): boolean {
  * @returns {boolean}
  */
 export function validPhone(str: string): boolean {
-    return /^1[3-9]\d{9}$/.test(str);
+  return /^1[3-9]\d{9}$/.test(str);
 }
 
 /**
@@ -40,5 +40,5 @@ export function validPhone(str: string): boolean {
  * @returns {boolean}
  */
 export function validEmail(str: string): boolean {
-    return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(str);
-} 
+  return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(str);
+}

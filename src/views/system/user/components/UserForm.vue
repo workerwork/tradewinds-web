@@ -1,16 +1,7 @@
 <template>
-  <el-form
-    ref="formRef"
-    :model="form"
-    :rules="rules"
-    label-width="100px"
-  >
+  <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
     <el-form-item label="用户名" prop="username">
-      <el-input 
-        v-model="form.username" 
-        placeholder="请输入用户名"
-        :disabled="props.isEdit"
-      />
+      <el-input v-model="form.username" placeholder="请输入用户名" :disabled="props.isEdit" />
     </el-form-item>
     <el-form-item label="姓名" prop="realName">
       <el-input v-model="form.realName" placeholder="请输入姓名" />
@@ -29,17 +20,12 @@
           :value="String(role.id)"
           :disabled="role.status === 1"
         >
-          {{ role.name }}<span v-if="role.status === 1" style="color: #aaa;">（已禁用）</span>
+          {{ role.name }}<span v-if="role.status === 1" style="color: #aaa">（已禁用）</span>
         </el-checkbox>
       </el-checkbox-group>
     </el-form-item>
-    <el-form-item label="密码" prop="password" v-if="!props.isEdit">
-      <el-input
-        v-model="form.password"
-        type="password"
-        placeholder="请输入密码"
-        show-password
-      />
+    <el-form-item v-if="!props.isEdit" label="密码" prop="password">
+      <el-input v-model="form.password" type="password" placeholder="请输入密码" show-password />
     </el-form-item>
     <el-form-item label="状态" prop="status">
       <el-switch
@@ -61,12 +47,12 @@ import { useRoleStore } from '@/stores';
 const props = defineProps({
   modelValue: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   isEdit: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -85,7 +71,7 @@ const form = reactive({
   email: '',
   password: '',
   roleIds: [] as string[],
-  status: 0
+  status: 0,
 });
 
 // 监听 props.modelValue 变化，更新表单数据
@@ -113,35 +99,34 @@ updateForm();
 const rules = reactive<FormRules>({
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' }
+    { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' },
   ],
-  realName: [
-    { required: true, message: '请输入姓名', trigger: 'blur' }
-  ],
+  realName: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
   phone: [
     { required: true, message: '请输入手机号', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' },
   ],
   email: [
     { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { validator: (rule, value, callback) => {
-      const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
-      if (!value) {
-        callback(new Error('请输入邮箱'));
-      } else if (!emailRegex.test(value)) {
-        callback(new Error('请输入正确的邮箱地址'));
-      } else {
-        callback();
-      }
-    }, trigger: 'blur' }
+    {
+      validator: (rule, value, callback) => {
+        const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+        if (!value) {
+          callback(new Error('请输入邮箱'));
+        } else if (!emailRegex.test(value)) {
+          callback(new Error('请输入正确的邮箱地址'));
+        } else {
+          callback();
+        }
+      },
+      trigger: 'blur',
+    },
   ],
   password: [
     { required: !props.isEdit, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码长度不能小于6位', trigger: 'blur' }
+    { min: 6, message: '密码长度不能小于6位', trigger: 'blur' },
   ],
-  roleIds: [
-    { required: true, message: '请选择角色', trigger: 'change' }
-  ]
+  roleIds: [{ required: true, message: '请选择角色', trigger: 'change' }],
 });
 
 // 表单验证
@@ -154,6 +139,8 @@ const validate = async () => {
 const resetForm = () => {
   if (!formRef.value) return;
   formRef.value.resetFields();
+  // 清除所有验证状态，避免在打开对话框时显示验证错误
+  formRef.value.clearValidate();
 };
 
 // 暴露方法给父组件
@@ -162,7 +149,7 @@ defineExpose({
   form,
   validate,
   resetForm,
-  updateForm
+  updateForm,
 });
 </script>
 
@@ -170,4 +157,4 @@ defineExpose({
 :deep(.el-form-item__label) {
   font-weight: 500;
 }
-</style> 
+</style>

@@ -1,4 +1,5 @@
 import { App, ComponentInternalInstance, getCurrentInstance } from 'vue'
+import { logger } from '@/utils'
 
 /**
  * 组件清理管理器
@@ -36,8 +37,8 @@ class ComponentCleanupManager {
             tasks.forEach(task => {
                 try {
                     task()
-                } catch (error) {
-                    console.warn('组件清理任务执行失败:', error)
+                } catch (error: unknown) {
+                    logger.warn('组件清理任务执行失败', error, 'ComponentCleanup')
                 }
             })
             this.cleanupTasks.delete(instance)
@@ -93,7 +94,7 @@ export function createSafeAsync<T extends any[], R>(
     return async (...args: T): Promise<R | null> => {
         const instance = getCurrentInstance()
         if (!instance) {
-            console.warn('在组件上下文外调用异步函数')
+            logger.warn('在组件上下文外调用异步函数', undefined, 'ComponentCleanup')
             return null
         }
 
@@ -102,7 +103,7 @@ export function createSafeAsync<T extends any[], R>(
 
             // 检查组件是否仍然挂载
             if (instance.isUnmounted?.()) {
-                console.warn('组件在异步操作完成后已卸载')
+                logger.warn('组件在异步操作完成后已卸载', undefined, 'ComponentCleanup')
                 return null
             }
 
@@ -112,7 +113,7 @@ export function createSafeAsync<T extends any[], R>(
             if (!instance.isUnmounted?.()) {
                 throw error
             }
-            console.warn('组件在异步操作出错时已卸载')
+            logger.warn('组件在异步操作出错时已卸载', error, 'ComponentCleanup')
             return null
         }
     }

@@ -1,6 +1,7 @@
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useMenuStore } from '@/stores/menu'
+import { logger } from '@/utils'
 
 /**
  * 菜单状态管理 Composable
@@ -15,8 +16,8 @@ export function useMenuState() {
         const hasMenus = computed(() => {
             try {
                 return Array.isArray(menus.value) && menus.value.length > 0
-            } catch (error) {
-                console.error('useMenuState - hasMenus 计算错误:', error)
+            } catch (error: unknown) {
+                logger.error('useMenuState - hasMenus 计算错误', error, 'MenuState')
                 return false
             }
         })
@@ -27,8 +28,8 @@ export function useMenuState() {
                 if (loading.value) return 'loading'
                 if (!hasMenus.value) return 'empty'
                 return 'ready'
-            } catch (error) {
-                console.error('useMenuState - menuState 计算错误:', error)
+            } catch (error: unknown) {
+                logger.error('useMenuState - menuState 计算错误', error, 'MenuState')
                 return 'empty'
             }
         })
@@ -39,8 +40,8 @@ export function useMenuState() {
             hasMenus,
             menuState
         }
-    } catch (error) {
-        console.error('useMenuState - 初始化错误:', error)
+    } catch (error: unknown) {
+        logger.error('useMenuState - 初始化错误', error, 'MenuState')
         // 返回默认值，避免组件崩溃
         return {
             menus: computed(() => []),

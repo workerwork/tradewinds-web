@@ -22,6 +22,8 @@ import { useI18n } from 'vue-i18n';
 import { House } from '@element-plus/icons-vue';
 import { useMenuStore } from '@/stores/menu';
 import { MenuItem } from '@/types/menu';
+import { logger } from '@/utils';
+import { DEBUG } from '@/config';
 
 const route = useRoute();
 const router = useRouter();
@@ -45,23 +47,39 @@ const breadcrumbs = computed(() => {
     }));
 });
 
-// 获取面包屑标题
-const getBreadcrumbTitle = (item: any) => {
+// 获取面包屑标题 - 使用缓存优化性能
+const titleCache = new Map<string, string>();
+
+const getBreadcrumbTitle = (item: { name?: string | symbol; meta?: { title?: string; breadcrumb?: string } }) => {
   const { meta } = item;
-  if (!meta) return item.name;
+  if (!meta) return typeof item.name === 'string' ? item.name : '';
+
+  // 生成缓存 key
+  const cacheKey = `${meta.breadcrumb || ''}_${meta.title || ''}_${item.name?.toString() || ''}`;
+  
+  // 检查缓存
+  if (titleCache.has(cacheKey)) {
+    return titleCache.get(cacheKey)!;
+  }
+
+  let title = '';
 
   // 如果 meta.breadcrumb 是 i18n key，则翻译
   if (meta.breadcrumb && typeof meta.breadcrumb === 'string' && meta.breadcrumb.includes('.')) {
-    return t(meta.breadcrumb);
+    title = t(meta.breadcrumb);
   }
-
   // 如果 meta.title 是 i18n key，则翻译
-  if (meta.title && typeof meta.title === 'string' && meta.title.includes('.')) {
-    return t(meta.title);
+  else if (meta.title && typeof meta.title === 'string' && meta.title.includes('.')) {
+    title = t(meta.title);
+  }
+  // 否则直接返回 breadcrumb 或 title
+  else {
+    title = meta.breadcrumb || meta.title || (typeof item.name === 'string' ? item.name : '');
   }
 
-  // 否则直接返回 breadcrumb 或 title
-  return meta.breadcrumb || meta.title || item.name;
+  // 缓存结果
+  titleCache.set(cacheKey, title);
+  return title;
 };
 
 // 查找菜单项的第一个叶子节点
@@ -69,7 +87,9 @@ const findFirstLeafMenu = (menuPath: string): string | null => {
   // 先找到对应的菜单项
   const menu = menuStore.findMenuByPath(menuPath);
   if (!menu) {
-    console.warn('找不到对应的菜单项:', menuPath);
+    if (DEBUG) {
+      logger.warn('找不到对应的菜单项', { menuPath }, 'Breadcrumb');
+    }
     return null;
   }
 
@@ -97,14 +117,16 @@ const findFirstLeafMenu = (menuPath: string): string | null => {
 };
 
 // 处理面包屑点击事件
-const handleBreadcrumbClick = (item: any) => {
+const handleBreadcrumbClick = (item: { path: string }) => {
   const path = item.path;
   
   // 查找该菜单项的第一个叶子节点
   const leafPath = findFirstLeafMenu(path);
   
   if (leafPath && leafPath !== path) {
-    console.log(`面包屑 - 跳转到第一个叶子菜单: ${path} -> ${leafPath}`);
+    if (DEBUG) {
+      logger.info('面包屑 - 跳转到第一个叶子菜单', { from: path, to: leafPath }, 'Breadcrumb');
+    }
     router.push(leafPath);
   } else {
     // 如果没有找到叶子节点或者就是叶子节点本身，直接跳转
@@ -127,10 +149,11 @@ const handleBreadcrumbClick = (item: any) => {
 :deep(.el-breadcrumb__inner) {
   color: #606266;
   font-weight: normal;
-  transition: all 0.3s;
+  transition: color 0.2s ease;
   display: flex;
   align-items: center;
   gap: 4px;
+  will-change: color;
 }
 
 :deep(.el-breadcrumb__separator) {
@@ -143,12 +166,13 @@ const handleBreadcrumbClick = (item: any) => {
 .breadcrumb-link {
   color: #606266;
   text-decoration: none;
-  transition: all 0.3s;
+  transition: color 0.2s ease, opacity 0.2s ease;
   display: flex;
   align-items: center;
   gap: 4px;
   opacity: 0.85;
   cursor: pointer;
+  will-change: color, opacity;
   
   &:hover {
     color: var(--el-color-primary);

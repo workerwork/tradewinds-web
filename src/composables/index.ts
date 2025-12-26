@@ -23,10 +23,13 @@ export { useProfileDialog } from './user/useProfileDialog';
 // Table 相关
 export { useTablePersist } from './table/useTablePersist';
 export { useSearchHistory } from './table/useSearchHistory';
+export { useTableSearch } from './table/useTableSearch';
+export { useAutocomplete, type AutocompleteSuggestion } from './table/useAutocomplete';
 
 // 通用工具
 export { useComponentLifecycle, useSafeDialog } from './common/useComponentLifecycle';
 export { useDialog, type DialogType, type UseDialogOptions } from './common/useDialog';
+export { useErrorHandler } from './common/useErrorHandler';
 export { useNotifications, type Notification } from './common/useNotifications';
 export { useResponsive } from './common/useResponsive';
 export { useSystemInfo } from './common/useSystemInfo';

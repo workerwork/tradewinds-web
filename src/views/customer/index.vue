@@ -191,8 +191,10 @@ import type { FormInstance } from 'element-plus';
 import type { Customer } from '@/types/customer';
 import { getCustomerList, addCustomer, updateCustomer, deleteCustomer } from '@/api/customer';
 import { formatDateTime } from '@/utils';
+import { useErrorHandler } from '@/composables';
 
 const router = useRouter();
+const { handleApiError } = useErrorHandler();
 const formRef = ref<FormInstance>();
 
 // 列表数据
@@ -249,9 +251,8 @@ const getList = async () => {
     const res = await getCustomerList(queryParams);
     customerList.value = res.list;
     total.value = res.total;
-  } catch (error) {
-    console.error('获取客户列表失败:', error);
-    ElMessage.error('获取客户列表失败');
+  } catch (error: unknown) {
+    handleApiError(error, '获取客户列表失败', 'CustomerManagement');
   } finally {
     loading.value = false;
   }
@@ -311,9 +312,8 @@ const handleDelete = async (row: Customer) => {
     await deleteCustomer(row.id);
     ElMessage.success('删除成功');
     getList();
-  } catch (error) {
-    console.error('删除失败:', error);
-    ElMessage.error('删除失败');
+  } catch (error: unknown) {
+    handleApiError(error, '删除失败', 'CustomerManagement');
   }
 };
 
@@ -333,9 +333,8 @@ const handleSubmit = async () => {
     }
     dialogVisible.value = false;
     getList();
-  } catch (error) {
-    console.error('操作失败:', error);
-    ElMessage.error('操作失败');
+  } catch (error: unknown) {
+    handleApiError(error, '操作失败', 'CustomerManagement');
   }
 };
 

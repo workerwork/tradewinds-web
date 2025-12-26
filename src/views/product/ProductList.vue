@@ -30,9 +30,7 @@
       <el-table-column prop="specification" label="规格" width="150" />
       <el-table-column prop="unit" label="单位" width="80" />
       <el-table-column prop="price" label="标准价格" width="120">
-        <template #default="{ row }">
-          {{ row.currency }} {{ row.price }}
-        </template>
+        <template #default="{ row }"> {{ row.currency }} {{ row.price }} </template>
       </el-table-column>
       <el-table-column prop="stock" label="库存" width="100" />
       <el-table-column prop="status" label="状态" width="100">
@@ -54,60 +52,60 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive } from 'vue';
 
 interface SearchForm {
-  code: string
-  name: string
-  category: string
+  code: string;
+  name: string;
+  category: string;
 }
 
 interface Product {
-  id: number
-  code: string
-  name: string
-  category: string
-  specification: string
-  unit: string
-  price: number
-  currency: string
-  stock: number
-  status: 'active' | 'inactive'
+  id: number;
+  code: string;
+  name: string;
+  category: string;
+  specification: string;
+  unit: string;
+  price: number;
+  currency: string;
+  stock: number;
+  status: 'active' | 'inactive';
 }
 
 const searchForm = reactive<SearchForm>({
   code: '',
   name: '',
-  category: ''
-})
+  category: '',
+});
 
-const productList = ref<Product[]>([])
+const productList = ref<Product[]>([]);
 
 const handleSearch = () => {
   // TODO: 实现搜索逻辑
-}
+};
 
 const handleReset = () => {
-  searchForm.code = ''
-  searchForm.name = ''
-  searchForm.category = ''
-}
+  searchForm.code = '';
+  searchForm.name = '';
+  searchForm.category = '';
+};
 
 const handleAdd = () => {
   // TODO: 实现新增产品逻辑
-}
+};
 
 const handleEdit = (row: Product) => {
   // TODO: 实现编辑产品逻辑
-}
+};
 
 const handlePricing = (row: Product) => {
   // TODO: 实现产品定价逻辑
-}
+};
 
 const handleStock = (row: Product) => {
   // TODO: 实现库存管理逻辑
-}
+};
 </script>
 
 <style scoped>
@@ -128,4 +126,4 @@ const handleStock = (row: Product) => {
   background-color: #f5f7fa;
   border-radius: 4px;
 }
-</style> 
+</style>

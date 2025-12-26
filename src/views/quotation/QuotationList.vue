@@ -33,9 +33,7 @@
       <el-table-column prop="quotationNo" label="报价单号" width="180" />
       <el-table-column prop="customerName" label="客户名称" width="200" />
       <el-table-column prop="totalAmount" label="总金额" width="150">
-        <template #default="{ row }">
-          {{ row.currency }} {{ row.totalAmount }}
-        </template>
+        <template #default="{ row }"> {{ row.currency }} {{ row.totalAmount }} </template>
       </el-table-column>
       <el-table-column prop="validUntil" label="有效期至" width="180" />
       <el-table-column prop="createTime" label="创建时间" width="180" />
@@ -49,18 +47,20 @@
       <el-table-column label="操作" width="280">
         <template #default="{ row }">
           <el-button type="primary" size="small" @click="handleView(row)">查看</el-button>
-          <el-button 
-            type="success" 
-            size="small" 
+          <el-button
+            type="success"
+            size="small"
+            :disabled="row.status !== 'draft'"
             @click="handleEdit(row)"
+            >编辑</el-button
+          >
+          <el-button
+            type="warning"
+            size="small"
             :disabled="row.status !== 'draft'"
-          >编辑</el-button>
-          <el-button 
-            type="warning" 
-            size="small" 
             @click="handleSend(row)"
-            :disabled="row.status !== 'draft'"
-          >发送</el-button>
+            >发送</el-button
+          >
         </template>
       </el-table-column>
     </el-table>
@@ -68,78 +68,78 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive } from 'vue';
 
 interface SearchForm {
-  quotationNo: string
-  customerId: string
-  status: string
+  quotationNo: string;
+  customerId: string;
+  status: string;
 }
 
 interface Quotation {
-  id: number
-  quotationNo: string
-  customerName: string
-  totalAmount: number
-  currency: string
-  validUntil: string
-  createTime: string
-  status: 'draft' | 'sent' | 'confirmed' | 'expired'
+  id: number;
+  quotationNo: string;
+  customerName: string;
+  totalAmount: number;
+  currency: string;
+  validUntil: string;
+  createTime: string;
+  status: 'draft' | 'sent' | 'confirmed' | 'expired';
 }
 
 const searchForm = reactive<SearchForm>({
   quotationNo: '',
   customerId: '',
-  status: ''
-})
+  status: '',
+});
 
-const quotationList = ref<Quotation[]>([])
+const quotationList = ref<Quotation[]>([]);
 
 const handleSearch = () => {
   // TODO: 实现搜索逻辑
-}
+};
 
 const handleReset = () => {
-  searchForm.quotationNo = ''
-  searchForm.customerId = ''
-  searchForm.status = ''
-}
+  searchForm.quotationNo = '';
+  searchForm.customerId = '';
+  searchForm.status = '';
+};
 
 const handleAdd = () => {
   // TODO: 实现新增报价单逻辑
-}
+};
 
 const handleView = (row: Quotation) => {
   // TODO: 实现查看报价单详情逻辑
-}
+};
 
 const handleEdit = (row: Quotation) => {
   // TODO: 实现编辑报价单逻辑
-}
+};
 
 const handleSend = (row: Quotation) => {
   // TODO: 实现发送报价单逻辑
-}
+};
 
 const getStatusType = (status: string) => {
   const statusMap: Record<string, string> = {
     draft: 'info',
     sent: 'warning',
     confirmed: 'success',
-    expired: 'danger'
-  }
-  return statusMap[status] || ''
-}
+    expired: 'danger',
+  };
+  return statusMap[status] || '';
+};
 
 const getStatusText = (status: string) => {
   const statusMap: Record<string, string> = {
     draft: '草稿',
     sent: '已发送',
     confirmed: '已确认',
-    expired: '已失效'
-  }
-  return statusMap[status] || status
-}
+    expired: '已失效',
+  };
+  return statusMap[status] || status;
+};
 </script>
 
 <style scoped>
@@ -160,4 +160,4 @@ const getStatusText = (status: string) => {
   background-color: #f5f7fa;
   border-radius: 4px;
 }
-</style> 
+</style>

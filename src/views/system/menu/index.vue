@@ -185,6 +185,7 @@ import type { FormInstance } from 'element-plus';
 import { Search, Plus, Refresh } from '@element-plus/icons-vue';
 import type { Menu, Permission } from '@/types';
 import { request } from '@/utils';
+import { useErrorHandler } from '@/composables';
 
 // 分页参数
 const page = ref(1);
@@ -198,6 +199,7 @@ const searchForm = reactive({
 });
 
 // 表格数据
+const { handleApiError } = useErrorHandler();
 const loading = ref(false);
 const menuList = ref<Menu[]>([]);
 const menuOptions = ref<Menu[]>([]);
@@ -272,9 +274,8 @@ const getMenuList = async () => {
       description: ''
     };
     menuOptions.value = [rootMenu];
-  } catch (error: any) {
-    ElMessage.error(error?.message || '获取菜单列表失败，请稍后重试');
-    console.error('获取菜单列表失败:', error);
+  } catch (error: unknown) {
+    handleApiError(error, '获取菜单列表失败，请稍后重试', 'MenuManagement');
   } finally {
     loading.value = false;
   }
@@ -299,9 +300,8 @@ const getMenuOptions = async () => {
       description: ''
     };
     menuOptions.value = [rootMenu];
-  } catch (error: any) {
-    ElMessage.error(error?.message || '获取菜单选项失败，请稍后重试');
-    console.error('获取菜单选项失败:', error);
+  } catch (error: unknown) {
+    handleApiError(error, '获取菜单选项失败，请稍后重试', 'MenuManagement');
   }
 };
 
@@ -349,10 +349,9 @@ const handleDelete = async (row: Menu) => {
     await request.delete(`/system/menu/delete/${row.id}`);
     ElMessage.success('删除成功');
     getMenuList();
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error !== 'cancel') {
-      ElMessage.error(error?.message || '删除失败，请稍后重试');
-      console.error('删除菜单失败:', error);
+      handleApiError(error, '删除失败，请稍后重试', 'MenuManagement');
     }
   }
 };
@@ -374,9 +373,8 @@ const handleSubmit = async () => {
         }
         dialogVisible.value = false;
         getMenuList();
-      } catch (error: any) {
-        ElMessage.error(error?.message || '操作失败，请稍后重试');
-        console.error('保存菜单失败:', error);
+      } catch (error: unknown) {
+        handleApiError(error, '操作失败，请稍后重试', 'MenuManagement');
       } finally {
         submitting.value = false;
       }

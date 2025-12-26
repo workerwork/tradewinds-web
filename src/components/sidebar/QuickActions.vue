@@ -8,7 +8,7 @@
         </el-button>
       </el-badge>
     </el-tooltip>
-    
+
     <el-tooltip :content="isCollapsed ? '待办事项' : ''" placement="right" :disabled="!isCollapsed">
       <el-badge :value="todoCount" :hidden="todoCount === 0" class="action-badge">
         <el-button class="action-btn todo-btn" @click="$emit('showTodo')">
@@ -21,18 +21,18 @@
 </template>
 
 <script setup lang="ts">
-import { Bell, Calendar } from '@element-plus/icons-vue'
+import { Bell, Calendar } from '@element-plus/icons-vue';
 
 defineProps<{
-  isCollapsed: boolean
-  unreadCount: number
-  todoCount: number
-}>()
+  isCollapsed: boolean;
+  unreadCount: number;
+  todoCount: number;
+}>();
 
 defineEmits<{
-  showNotification: []
-  showTodo: []
-}>()
+  showNotification: [];
+  showTodo: [];
+}>();
 </script>
 
 <style scoped lang="scss">
@@ -56,7 +56,7 @@ defineEmits<{
   color: rgba(255, 255, 255, 0.8);
   padding: $spacing-sm $spacing-md;
   border-radius: $border-radius-md;
-  transition: $transition-base;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -67,10 +67,12 @@ defineEmits<{
   overflow: visible;
   box-shadow: $shadow-sm;
   font-weight: 500;
+  will-change: transform, background-color, border-color;
 }
 
 .action-btn :deep(.el-icon) {
-  transition: $transition-base;
+  transition: color 0.2s ease, transform 0.2s ease;
+  will-change: transform;
 }
 
 .action-btn:hover {
@@ -104,6 +106,7 @@ defineEmits<{
   gap: 0 !important;
   padding: $spacing-xs 0 !important;
   justify-content: flex-start !important;
+  overflow: visible !important;
 }
 
 .quick-actions.is-collapsed :deep(.el-tooltip) {
@@ -137,6 +140,8 @@ defineEmits<{
   position: relative !important;
   box-sizing: border-box !important;
   line-height: 1 !important;
+  overflow: visible !important;
+  will-change: transform !important;
 }
 
 .quick-actions.is-collapsed .action-btn :deep(.el-icon) {
@@ -175,16 +180,28 @@ defineEmits<{
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  z-index: 10 !important;
+  pointer-events: none !important;
 }
 
 .quick-actions.is-collapsed .action-badge :deep(.el-badge__content) {
-  right: -6px !important;
-  top: -6px !important;
+  right: -2px !important;
+  top: -2px !important;
   height: 16px !important;
   line-height: 16px !important;
   min-width: 16px !important;
   font-size: 9px !important;
   border-radius: 8px !important;
+  z-index: 10 !important;
+  pointer-events: none !important;
+}
+
+.quick-actions.is-collapsed .action-badge {
+  overflow: visible !important;
+  position: relative !important;
+}
+
+.quick-actions.is-collapsed :deep(.el-badge) {
+  overflow: visible !important;
 }
 </style>
-

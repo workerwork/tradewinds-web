@@ -10,11 +10,11 @@ export interface UseDialogOptions {
     /**
      * 打开弹窗前的回调
      */
-    onBeforeOpen?: (type: DialogType, data?: any) => void;
+    onBeforeOpen?: (type: DialogType, data?: unknown) => void;
     /**
      * 打开弹窗后的回调
      */
-    onAfterOpen?: (type: DialogType, data?: any) => void;
+    onAfterOpen?: (type: DialogType, data?: unknown) => void;
     /**
      * 关闭弹窗前的回调
      */
@@ -37,7 +37,7 @@ export function useDialog(options: UseDialogOptions = {}) {
     /**
      * 打开新增弹窗
      */
-    const openAdd = (data?: any) => {
+    const openAdd = (data?: unknown) => {
         dialogType.value = 'add';
         options.onBeforeOpen?.('add', data);
         if (options.resetForm) {
@@ -50,7 +50,7 @@ export function useDialog(options: UseDialogOptions = {}) {
     /**
      * 打开编辑弹窗
      */
-    const openEdit = (data: any) => {
+    const openEdit = (data: unknown) => {
         dialogType.value = 'edit';
         options.onBeforeOpen?.('edit', data);
         dialogVisible.value = true;

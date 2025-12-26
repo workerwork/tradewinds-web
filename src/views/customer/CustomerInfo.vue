@@ -7,8 +7,8 @@
           <el-button type="primary" @click="handleAdd">新增客户</el-button>
         </div>
       </template>
-      
-      <el-table :data="customerList" style="width: 100%" v-loading="loading" row-key="id">
+
+      <el-table v-loading="loading" :data="customerList" style="width: 100%" row-key="id">
         <el-table-column type="expand">
           <template #default="props">
             <el-form label-position="left" inline class="customer-detail">
@@ -191,22 +191,13 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="信用评级">
-              <el-rate
-                v-model="form.creditRating"
-                show-score
-                text-color="#ff9900"
-              />
+              <el-rate v-model="form.creditRating" show-score text-color="#ff9900" />
             </el-form-item>
           </el-col>
         </el-row>
 
         <el-form-item label="备注">
-          <el-input
-            v-model="form.notes"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入备注信息"
-          />
+          <el-input v-model="form.notes" type="textarea" :rows="3" placeholder="请输入备注信息" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -220,17 +211,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { useRouter } from 'vue-router'
+import { ref, reactive } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { useRouter } from 'vue-router';
 
-const router = useRouter()
-const loading = ref(false)
-const currentPage = ref(1)
-const pageSize = ref(10)
-const total = ref(0)
-const dialogVisible = ref(false)
-const dialogType = ref('add')
+const router = useRouter();
+const loading = ref(false);
+const currentPage = ref(1);
+const pageSize = ref(10);
+const total = ref(0);
+const dialogVisible = ref(false);
+const dialogType = ref('add');
 
 // 模拟客户数据
 const customerList = ref([
@@ -249,9 +240,9 @@ const customerList = ref([
     cooperationHistory: '自2018年开始合作，主要采购电子产品',
     creditRating: 4.5,
     lastContact: '2024-03-15',
-    notes: '重要客户，需重点关注'
-  }
-])
+    notes: '重要客户，需重点关注',
+  },
+]);
 
 const form = reactive({
   id: '',
@@ -267,86 +258,82 @@ const form = reactive({
   annualRevenue: '',
   cooperationHistory: '',
   creditRating: 3,
-  notes: ''
-})
+  notes: '',
+});
 
 const getCustomerTypeTag = (type: string) => {
   const typeMap: Record<string, string> = {
     direct: 'success',
     agent: 'warning',
     distributor: 'primary',
-    other: 'info'
-  }
-  return typeMap[type] || 'info'
-}
+    other: 'info',
+  };
+  return typeMap[type] || 'info';
+};
 
 const resetForm = () => {
-  form.id = ''
-  form.name = ''
-  form.type = 'direct'
-  form.contact = ''
-  form.phone = ''
-  form.email = ''
-  form.address = ''
-  form.status = 'active'
-  form.companyProfile = ''
-  form.mainBusiness = ''
-  form.annualRevenue = ''
-  form.cooperationHistory = ''
-  form.creditRating = 3
-  form.notes = ''
-}
+  form.id = '';
+  form.name = '';
+  form.type = 'direct';
+  form.contact = '';
+  form.phone = '';
+  form.email = '';
+  form.address = '';
+  form.status = 'active';
+  form.companyProfile = '';
+  form.mainBusiness = '';
+  form.annualRevenue = '';
+  form.cooperationHistory = '';
+  form.creditRating = 3;
+  form.notes = '';
+};
 
 const handleAdd = () => {
-  dialogType.value = 'add'
-  resetForm()
-  dialogVisible.value = true
-}
+  dialogType.value = 'add';
+  resetForm();
+  dialogVisible.value = true;
+};
 
 const handleEdit = (row: any) => {
-  dialogType.value = 'edit'
-  Object.assign(form, row)
-  dialogVisible.value = true
-}
+  dialogType.value = 'edit';
+  Object.assign(form, row);
+  dialogVisible.value = true;
+};
 
 const handleDelete = (row: any) => {
-  ElMessageBox.confirm(
-    `确认删除客户 ${row.name} 吗？`,
-    '警告',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    }
-  ).then(() => {
+  ElMessageBox.confirm(`确认删除客户 ${row.name} 吗？`, '警告', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(() => {
     ElMessage({
       type: 'success',
       message: '删除成功',
-    })
-  })
-}
+    });
+  });
+};
 
 const handleTrack = (row: any) => {
-  router.push(`/customer/track?customerId=${row.id}`)
-}
+  router.push(`/customer/track?customerId=${row.id}`);
+};
 
 const handleSubmit = () => {
   ElMessage({
     type: 'success',
     message: dialogType.value === 'add' ? '添加成功' : '更新成功',
-  })
-  dialogVisible.value = false
-}
+  });
+  dialogVisible.value = false;
+};
 
 const handleSizeChange = (val: number) => {
-  pageSize.value = val
+  pageSize.value = val;
   // 重新加载数据
-}
+};
 
 const handleCurrentChange = (val: number) => {
-  currentPage.value = val
+  currentPage.value = val;
   // 重新加载数据
-}
+};
 </script>
 
 <style scoped>
@@ -390,4 +377,3 @@ const handleCurrentChange = (val: number) => {
   text-align: center;
 }
 </style>
- 

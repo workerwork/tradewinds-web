@@ -1,10 +1,7 @@
 <template>
   <template v-if="!item.meta?.hidden">
     <template v-if="hasOneShowingChild(item.children, item)">
-      <el-menu-item
-        v-if="onlyOneChild.meta"
-        :index="resolvePath(onlyOneChild.path)"
-      >
+      <el-menu-item v-if="onlyOneChild.meta" :index="resolvePath(onlyOneChild.path)">
         <el-icon v-if="onlyOneChild.meta.icon">
           <component :is="onlyOneChild.meta.icon.replace('el-icon-', '')" />
         </el-icon>
@@ -56,7 +53,10 @@ const props = defineProps<{
 
 const onlyOneChild = ref<CustomRouteRecordRaw>();
 
-const hasOneShowingChild = (children: CustomRouteRecordRaw[] = [], parent: CustomRouteRecordRaw) => {
+const hasOneShowingChild = (
+  children: CustomRouteRecordRaw[] = [],
+  parent: CustomRouteRecordRaw
+) => {
   const showingChildren = children.filter(item => {
     return !item.meta?.hidden;
   });
@@ -80,4 +80,4 @@ const resolvePath = (routePath: string) => {
   }
   return props.basePath + '/' + routePath;
 };
-</script> 
+</script>

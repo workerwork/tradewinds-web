@@ -10,20 +10,19 @@ export type { ParamQuery, ParamData } from './system';
 
 // 联系记录查询参数类型
 export interface ContactRecordQuery {
-    customerId?: number;
-    contactType?: string;
-    dateRange?: [string, string];
-    page?: number;
-    size?: number;
+  customerId?: number;
+  contactType?: string;
+  dateRange?: [string, string];
+  page?: number;
+  size?: number;
 }
 
 // 导出日志查询参数类型
 export interface ExportLogParams {
-    operator?: string;
-    type?: string;
-    status?: number;
-    dateRange?: [string, string];
-    page?: number;
-    size?: number;
+  operator?: string;
+  type?: string;
+  status?: number;
+  dateRange?: [string, string];
+  page?: number;
+  size?: number;
 }
-
